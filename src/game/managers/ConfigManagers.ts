@@ -1,4 +1,6 @@
 // src/game/managers/ConfigManagers.ts
+import { PetConfig } from "../scenes/Pet/types";
+
 export class ConfigManager {
   private static instance: ConfigManager;
   private config: any = {};
@@ -23,5 +25,9 @@ export class ConfigManager {
 
   get<T = any>(path: string): T {
     return path.split(".").reduce((obj, key) => obj?.[key], this.config) as T;
+  }
+
+  getPetConfig(): PetConfig["pet"] {
+    return this.get("pet");
   }
 }

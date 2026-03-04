@@ -1,0 +1,114 @@
+{
+  "key": "pet_header",
+  "preload": {
+    "png": "pet/header/icons.png",
+    "json": "pet/header/icons.json"
+  },
+  "animations": [
+    {
+      "prefix": "arrow",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "water-unselected",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "water-selected",
+      "qty": 5,
+      "freq": 8,
+      "repeat": -1
+    },
+    {
+      "prefix": "write-unselected",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "write-selected",
+      "qty": 7,
+      "freq": 8,
+      "repeat": -1
+    },
+    {
+      "prefix": "sleep-unselected",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "sleep-selected",
+      "qty": 2,
+      "freq": 2,
+      "repeat": -1
+    },
+    {
+      "prefix": "coin",
+      "qty": 16,
+      "freq": 8,
+      "repeat": -1
+    },
+    {
+      "prefix": "heart",
+      "qty": 5,
+      "freq": 8,
+      "repeat": -1
+    }
+  ],
+  "arrow": {
+    "animation": "arrow"
+  },
+  "menu": [
+    {
+      "animation": {
+        "selected": "water-selected",
+        "unselected": "water-unselected"
+      },
+      "action": {
+        "default": "drink",
+        "status:normal": "drink",
+        "status:sleep": "drink",
+        "status:death": "lock"
+      }
+    },
+    {
+      "animation": {
+        "selected": "write-selected",
+        "unselected": "write-unselected"
+      },
+      "action": {
+        "default": "write",
+        "status:normal": "write",
+        "status:sleep": "write",
+        "status:death": "lock"
+      }
+    },
+    {
+      "animation": {
+        "selected": "sleep-selected",
+        "unselected": "sleep-unselected"
+      },
+      "action": {
+        "default": "sleep",
+        "status:normal": "sleep",
+        "status:sleep": "awake",
+        "status:death": "lock"
+      }
+    }
+  ],
+  "resources": [
+    {
+      "resource": "hp",
+      "animation": "heart"
+    },
+    {
+      "resource": "coin",
+      "animation": "coin"
+    }
+  ]
+}

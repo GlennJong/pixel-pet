@@ -7,9 +7,14 @@ export class Preloader extends Scene {
   }
 
   private configsFiles = [
-    { key: "pet", filename: "pet.config.json" },
     { key: "ui", filename: "ui.config.json" },
     { key: "mapping", filename: "mapping.config.json" },
+    { key: "config_pet_assets", filename: "config/pet/assets.json" },
+    { key: "config_pet_resources", filename: "config/pet/resources.json" },
+    { key: "config_pet_statuses", filename: "config/pet/statuses.json" },
+    { key: "config_pet_header", filename: "config/pet/header.json" },
+    { key: "config_pet_mycharacter", filename: "config/pet/character.json" },
+    { key: "config_pet_room", filename: "config/pet/room.json" },
   ];
 
   init() {
@@ -45,10 +50,24 @@ export class Preloader extends Scene {
           `filecomplete-json-${key}`,
           (_key: unknown, _type: unknown, data: any) => {
             num += 1;
-            result = {
-              ...result,
-              [key]: data,
-            };
+
+            if (key.startsWith("config_pet_")) {
+              const subKey = key.replace("config_pet_", "");
+              const currentPet = (result as any).pet || {};
+              result = {
+                ...result,
+                pet: {
+                  ...currentPet,
+                  [subKey]: data,
+                },
+              };
+            } else {
+              result = {
+                ...result,
+                [key]: data,
+              };
+            }
+
             if (num === this.configsFiles.length) {
               this.cache.json.add("config", result);
               this._preloadAssetsFromConfig(result);

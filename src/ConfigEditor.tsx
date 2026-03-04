@@ -11,9 +11,14 @@ const LOCAL_KEY = "custom_config";
 
 const configsFiles = [
   // 可動態擴充，key 為 config 名稱，filename 為檔案名
-  { key: "pet", filename: "pet.config.json" },
   { key: "ui", filename: "ui.config.json" },
   { key: "mapping", filename: "mapping.config.json" },
+  { key: "config_pet_assets", filename: "config/pet/assets.json" },
+  { key: "config_pet_resources", filename: "config/pet/resources.json" },
+  { key: "config_pet_statuses", filename: "config/pet/statuses.json" },
+  { key: "config_pet_header", filename: "config/pet/header.json" },
+  { key: "config_pet_mycharacter", filename: "config/pet/character.json" },
+  { key: "config_pet_room", filename: "config/pet/room.json" },
 ];
 
 const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
@@ -39,17 +44,29 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
       }
     }
     // 自動載入 configsFiles 內所有 config
-    const mergedConfig: Record<string, any> = {};
+    const rawConfig: Record<string, any> = {};
     await Promise.all(
       configsFiles.map(async (cfg) => {
         try {
           const res = await fetch(`assets/${cfg.filename}`);
-          mergedConfig[cfg.key] = await res.json();
+          rawConfig[cfg.key] = await res.json();
         } catch {
-          mergedConfig[cfg.key] = null;
+          rawConfig[cfg.key] = null;
         }
       }),
     );
+
+    const mergedConfig: Record<string, any> = {};
+    Object.keys(rawConfig).forEach((key) => {
+      if (key.startsWith("config_pet_")) {
+        const subKey = key.replace("config_pet_", "");
+        if (!mergedConfig.pet) mergedConfig.pet = {};
+        mergedConfig.pet[subKey] = rawConfig[key];
+      } else {
+        mergedConfig[key] = rawConfig[key];
+      }
+    });
+
     setConfig(mergedConfig);
     localStorage.setItem(LOCAL_KEY, JSON.stringify(mergedConfig));
     setLoading(false);
@@ -61,17 +78,29 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
     setConfig(null);
     localStorage.removeItem(LOCAL_KEY);
     // 通用載入方式
-    const mergedConfig: Record<string, any> = {};
+    const rawConfig: Record<string, any> = {};
     await Promise.all(
       configsFiles.map(async (cfg) => {
         try {
           const res = await fetch(`assets/${cfg.filename}`);
-          mergedConfig[cfg.key] = await res.json();
+          rawConfig[cfg.key] = await res.json();
         } catch {
-          mergedConfig[cfg.key] = null;
+          rawConfig[cfg.key] = null;
         }
       }),
     );
+
+    const mergedConfig: Record<string, any> = {};
+    Object.keys(rawConfig).forEach((key) => {
+      if (key.startsWith("config_pet_")) {
+        const subKey = key.replace("config_pet_", "");
+        if (!mergedConfig.pet) mergedConfig.pet = {};
+        mergedConfig.pet[subKey] = rawConfig[key];
+      } else {
+        mergedConfig[key] = rawConfig[key];
+      }
+    });
+
     setConfig(mergedConfig);
     localStorage.setItem(LOCAL_KEY, JSON.stringify(mergedConfig));
     setLoading(false);

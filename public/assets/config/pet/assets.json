@@ -1,0 +1,14 @@
+{
+  "pet_room": {
+    "png": "pet/room.png",
+    "json": "pet/room.json"
+  },
+  "pet_header": {
+    "png": "pet/header/icons.png",
+    "json": "pet/header/icons.json"
+  },
+  "mycharacter": {
+    "png": "pet/afk.png",
+    "json": "pet/afk.json"
+  }
+}

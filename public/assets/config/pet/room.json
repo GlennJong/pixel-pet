@@ -1,0 +1,164 @@
+{
+  "watch": "level",
+  "key": "pet_room",
+  "preload": {
+    "png": "pet/room.png",
+    "json": "pet/room.json"
+  },
+  "animations": [
+    {
+      "prefix": "background",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "back-0",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "back-1",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "back-2",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "back-3",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "back-4",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "empty",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "recorder",
+      "qty": 12,
+      "freq": 8,
+      "repeat": -1
+    },
+    {
+      "prefix": "window",
+      "qty": 9,
+      "freq": 4,
+      "repeat": -1
+    }
+  ],
+  "list": [
+    {
+      "value": 0,
+      "background": "background",
+      "back": "empty",
+      "front": "empty",
+      "extras": [
+        {
+          "animation": "window",
+          "x": 44,
+          "y": -4
+        }
+      ]
+    },
+    {
+      "value": 1,
+      "background": "background",
+      "back": "back-0",
+      "front": "empty",
+      "extras": [
+        {
+          "animation": "window",
+          "x": 44,
+          "y": -4
+        }
+      ]
+    },
+    {
+      "value": 2,
+      "background": "background",
+      "back": "back-1",
+      "front": "empty",
+      "extras": [
+        {
+          "animation": "recorder",
+          "x": 0,
+          "y": 31
+        },
+        {
+          "animation": "window",
+          "x": 44,
+          "y": -4
+        }
+      ]
+    },
+    {
+      "value": 3,
+      "background": "background",
+      "back": "back-2",
+      "front": "empty",
+      "extras": [
+        {
+          "animation": "recorder",
+          "x": 0,
+          "y": 31
+        },
+        {
+          "animation": "window",
+          "x": 44,
+          "y": -4
+        }
+      ]
+    },
+    {
+      "value": 4,
+      "background": "background",
+      "back": "back-3",
+      "front": "empty",
+      "extras": [
+        {
+          "animation": "recorder",
+          "x": 0,
+          "y": 31
+        },
+        {
+          "animation": "window",
+          "x": 44,
+          "y": -4
+        }
+      ]
+    },
+    {
+      "value": 5,
+      "background": "background",
+      "back": "back-4",
+      "front": "empty",
+      "extras": [
+        {
+          "animation": "recorder",
+          "x": 0,
+          "y": 31
+        },
+        {
+          "animation": "window",
+          "x": 44,
+          "y": -4
+        }
+      ]
+    }
+  ]
+}

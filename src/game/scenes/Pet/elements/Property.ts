@@ -48,9 +48,10 @@ export class Property {
   }
 
   private initAnimations = () => {
-    const { key, animations } = this.config;
+    const { key, animations } = this.config || {};
     if (animations) {
       animations.forEach((_ani: TAnimation) => {
+        if (!_ani) return;
         const animationName = `${key}_${_ani.prefix}`;
         if (this.scene.anims.exists(animationName)) return; // prevent recreate after change scene.
 
@@ -89,6 +90,8 @@ export class Property {
   };
 
   private handleRenderPropertyByWatchedState = (value: number) => {
+    if (!this.config || !this.config.list) return;
+
     const { list } = this.config;
     const current = list[value];
     if (!current) return;
