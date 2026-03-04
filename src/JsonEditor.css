@@ -1,0 +1,66 @@
+.json-editor {
+  font-family: "BoutiqueBitmap";
+}
+.json-editor * {
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.json-editor .field-container {
+  position: relative;
+}
+
+.json-editor .remove-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  cursor: pointer;
+  background-color: #9671dc;
+  font-family: "BoutiqueBitmap";
+  color: white;
+  text-align: center;
+  border: none;
+  font-size: 10px;
+  padding: 0px 0px 1px 1px;
+  height: 13px;
+  width: 13px;
+}
+.json-editor .add-btn {
+  cursor: pointer;
+  background-color: #9671dc;
+  font-family: "BoutiqueBitmap";
+  color: white;
+  text-align: center;
+  border: none;
+  font-size: 10px;
+  padding: 6px 0;
+}
+.json-editor .collapse-btn {
+  /* position: absolute;
+  right: 0;
+  top: 12px; */
+  cursor: pointer;
+  background-color: transparent;
+  font-family: "BoutiqueBitmap";
+  color: white;
+  text-align: center;
+  border: none;
+  font-size: 10px;
+  padding: 0px 2px 0px 0px;
+  height: 13px;
+  width: 13px;
+}
+.json-editor .hint-icon {
+}
+.json-editor .hint-icon .hint-trigger {
+  cursor: pointer;
+  background-color: #9671dc;
+  font-family: "BoutiqueBitmap";
+  color: white;
+  text-align: center;
+  border: none;
+  font-size: 10px;
+  padding: 2px 4px;
+  height: 14px;
+  width: 14px;
+}

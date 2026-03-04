@@ -1,0 +1,50 @@
+{
+  "metadata": {
+    "message_id": "a1b2c3d4-e5f6-7g8h-9i0j-k1l2m3n4o5p6",
+    "message_type": "notification",
+    "message_timestamp": "2025-05-30T21:06:36.789Z",
+    "subscription_type": "channel.channel_points_custom_reward_redemption.add",
+    "subscription_version": "1"
+  },
+  "payload": {
+    "subscription": {
+      "id": "f7e8d9c0-b1a2-3b4c-5d6e-7f8g9h0i1j2k",
+      "status": "enabled",
+      "type": "channel.channel_points_custom_reward_redemption.add",
+      "version": "1",
+      "condition": {
+        "broadcaster_user_id": "123456789",
+        "user_id": "987654321 (The user_id of your bot/application that created the subscription)"
+      },
+      "transport": {
+        "method": "websocket",
+        "session_id": "lmn-opq-rst-uvw-xyz"
+      },
+      "created_at": "2025-05-30T20:00:00Z",
+      "cost": 1
+    },
+    "event": {
+      "broadcaster_user_id": "123456789",
+      "broadcaster_user_login": "myawesomechannel",
+      "broadcaster_user_name": "MyAwesomeChannel",
+      "id": "c613c2c5-7f3e-4f3b-b0b3-0d3a5e8f1b2c",
+      "user_id": "543210987",
+      "user_login": "chatter_name",
+      "user_name": "ChatterName",
+      "user_input": "Can you play 'Never Gonna Give You Up'?",
+      "status": "unfulfilled",
+      "redeemed_at": "2025-05-30T21:06:36.789Z",
+      "reward": {
+        "id": "a1b2c3d4-e5f6-7g8h-9i0j-k1l2m3n4o5p6",
+        "title": "Song Request",
+        "prompt": "Enter the song name and artist:",
+        "cost": 500,
+        "is_enabled": true,
+        "is_paused": false,
+        "is_in_stock": true,
+        "should_redemptions_skip_queue": false,
+        "cooldown_expires_at": null
+      }
+    }
+  }
+}

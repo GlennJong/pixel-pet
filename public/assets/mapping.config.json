@@ -1,0 +1,18 @@
+{
+  "drink": {
+    "action": "drink",
+    "matches": {
+      "content": ["補充水分"]
+    }
+  },
+  "write": {
+    "action": "write",
+    "matches": {
+      "content": ["提醒大家存檔"]
+    }
+  },
+  "sleep": {
+    "action": "sleep",
+    "matches": []
+  }
+}

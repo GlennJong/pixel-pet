@@ -1,0 +1,85 @@
+.app-container {
+  display: flex;
+  width: 100%;
+}
+
+.top-bar {
+  position: absolute;
+  right: 0;
+  top: 0;
+  padding: 4px 12px;
+  display: flex;
+  gap: 4px;
+  z-index: 2;
+}
+
+.button {
+  /* Add typical button styles if needed, assuming global 'button' class exists */
+}
+
+.button.open {
+  /* Active state */
+}
+
+.config-panel {
+  height: 100vh;
+}
+
+.game-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  z-index: 1;
+}
+
+.start-connect-btn {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  box-shadow: 2px 4px 12px hsla(0, 0%, 0%, 0.33);
+}
+
+.game-wrapper {
+  transition:
+    opacity 0.3s,
+    pointer-events 0.3s;
+}
+
+.bottom-tools {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+  width: 100%;
+  pointer-events: none; /* Allow click-through */
+}
+
+.tools-content {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+  width: 100%;
+  pointer-events: auto;
+}
+
+.log-panel {
+  width: 100%;
+  padding: 12px 36px;
+  z-index: 1;
+  background-color: hsla(0, 0%, 0%, 0.5);
+  overflow-y: auto;
+  max-height: 100px;
+  pointer-events: auto;
+  color: white;
+  font-family: monospace;
+}
