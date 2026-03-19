@@ -22,17 +22,25 @@ export function runTween<T>(
     let tween: Phaser.Tweens.BaseTween | undefined = obj.scene.tweens.add(data);
 
     return new Promise((resolve) => {
-      if (!tween) {
-        resolve();
-        return;
-      }
-      tween.once("complete", () => {
+      let isResolved = false;
+      const completeInfo = () => {
+        if (isResolved) return;
+        isResolved = true;
         if (tween) {
           tween.remove();
           tween = undefined;
         }
         resolve();
-      });
+      };
+
+      if (!tween) {
+        completeInfo();
+        return;
+      }
+      tween.once("complete", completeInfo);
+      
+      // Failsafe if tween never resolves due to pausing or destruction
+      setTimeout(completeInfo, duration + 100);
     });
   }
 }
