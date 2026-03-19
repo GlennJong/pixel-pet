@@ -8,8 +8,8 @@ export function selectFromPriority<T extends TPriorityObject>(
   const currentData = !Array.isArray(data) ? Object.values(data) : data;
   const sumPriority = currentData.reduce((a, b) => a + b.priority, 0);
   const randomPoint = sumPriority * Math.random();
-  const allActionPoints = currentData.map((_data) =>
-    Math.abs(_data.priority - randomPoint),
+  const allActionPoints = currentData.map((item) =>
+    Math.abs(item.priority - randomPoint),
   );
   const closestPoint = Math.min(...allActionPoints);
 

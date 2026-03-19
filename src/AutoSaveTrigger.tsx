@@ -1,20 +1,26 @@
 import { useState } from "react";
+import {
+  clearAllStoresFromLocalStorage,
+  getIsAutoSaveEnabled,
+  hasSaveData,
+  setIsAutoSaveEnabled,
+} from "./game/store";
 
 function AutoSaveTrigger() {
-  const [isAutoSaved, setIsAutoSaved] = useState<boolean>(() => {
-    const saved = localStorage.getItem("isEnableAutoSave");
-    return saved === "true";
-  });
-  const isSavedExisted = !!localStorage.getItem("pet_store");
+  const [isAutoSaved, setLocalIsAutoSaved] = useState<boolean>(
+    getIsAutoSaveEnabled,
+  );
+  const [saveExists, setSaveExists] = useState<boolean>(hasSaveData);
 
   const handleAutoSaveChange = () => {
     const next = !isAutoSaved;
-    setIsAutoSaved(next);
-    localStorage.setItem("isEnableAutoSave", String(next));
+    setLocalIsAutoSaved(next);
+    setIsAutoSaveEnabled(next);
   };
 
   const handleClickClearLocalStorage = () => {
-    localStorage.removeItem("pet_store");
+    clearAllStoresFromLocalStorage();
+    setSaveExists(false);
   };
 
   return (
@@ -27,8 +33,8 @@ function AutoSaveTrigger() {
         />
         <span>Auto Save</span>
       </label>
-      {!isAutoSaved && isSavedExisted && (
-        <button onClick={handleClickClearLocalStorage}>Clear</button>
+      {(!isAutoSaved && saveExists) && (
+        <button onClick={handleClickClearLocalStorage}>Clear Save</button>
       )}
     </div>
   );

@@ -1,14 +1,14 @@
 import { parseQueryString } from "../utils/common";
 import { fetchGet, fetchPost } from "../utils/fetch";
 import {
-  TWITCH_EVENT_SUBSCRIBE_URL,
-  TWITCH_OAUTH_URL,
-  TWITCH_USER_URL,
+  twitchEventSubscribeUrl,
+  twitchOauthUrl,
+  twitchUserUrl,
 } from "./constants";
 import { TwitchOauthLoginState, TwitchUserState } from "./types";
 
 // Basic methods
-export function openTwitchOauthLogin(client_id: string, redirect_uri: string) {
+export function openTwitchOauthLogin(clientId: string, redirectUri: string) {
   const scope = [
     "user:read:chat",
     "user:bot",
@@ -16,8 +16,8 @@ export function openTwitchOauthLogin(client_id: string, redirect_uri: string) {
     "channel:read:subscriptions",
     "channel:read:redemptions",
   ].join("+");
-  const params = `response_type=token&force_verify=true&client_id=${client_id}&redirect_uri=${redirect_uri}&scope=${scope}`;
-  window.location.href = `${TWITCH_OAUTH_URL}?${params}`;
+  const params = `response_type=token&force_verify=true&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`;
+  window.location.href = `${twitchOauthUrl}?${params}`;
 }
 
 export function getTwitchLoginStateFromQueryString():
@@ -31,15 +31,15 @@ export function getTwitchLoginStateFromQueryString():
 }
 
 export async function getTwitchUserProfile(
-  client_id: string,
-  user_token: string,
+  clientId: string,
+  userToken: string,
 ): Promise<TwitchUserState | undefined> {
   const headers = {
-    "Client-ID": client_id,
-    Authorization: `Bearer ${user_token}`,
+    "Client-ID": clientId,
+    Authorization: `Bearer ${userToken}`,
   };
 
-  const result = await fetchGet(TWITCH_USER_URL, headers);
+  const result = await fetchGet(twitchUserUrl, headers);
   if (result) {
     return result.data[0];
   }
@@ -48,26 +48,26 @@ export async function getTwitchUserProfile(
 // Websocket methods
 export const subscribeMessageForWs = async (
   type: string,
-  ws_session_id: string,
-  client_id: string,
-  user_token: string,
-  user_id: string,
+  wsSessionId: string,
+  clientId: string,
+  userToken: string,
+  userId: string,
 ) => {
-  const url = TWITCH_EVENT_SUBSCRIBE_URL;
+  const url = twitchEventSubscribeUrl;
 
   if (!type) return undefined;
 
   const data = {
     type,
     version: "1",
-    condition: { broadcaster_user_id: user_id, user_id: user_id },
-    transport: { method: "websocket", session_id: ws_session_id },
+    condition: { broadcaster_user_id: userId, user_id: userId },
+    transport: { method: "websocket", session_id: wsSessionId },
   };
 
   const header = {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${user_token}`,
-    "Client-Id": client_id,
+    Authorization: `Bearer ${userToken}`,
+    "Client-Id": clientId,
   };
 
   try {
@@ -84,14 +84,17 @@ type TData =
     }
   | string;
 
-export const _load = (path: string, data: TData): string | undefined => {
+export const getValueByPath = (path: string, data: TData): string | undefined => {
   let result = data;
   const paths = path.split(".");
 
-  paths.forEach((path) => {
-    if (typeof result !== "object" || !result[path]) return;
-    result = result[path];
-  });
+  for (const p of paths) {
+    if (typeof result !== "object" || result === null || !result[p]) {
+       // Stop if path broken
+       return undefined;
+    }
+    result = result[p];
+  }
 
   return typeof result === "object" ? JSON.stringify(result) : result;
 };

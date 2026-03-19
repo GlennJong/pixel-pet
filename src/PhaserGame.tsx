@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import StartGame from "./game";
 import {
-  loadAllStoresFromLocalStorage,
+  getIsAutoSaveEnabled,
   saveAllStoresToLocalStorage,
 } from "./game/store";
 
@@ -9,14 +9,12 @@ export const PhaserGame = () => {
   const gameRef = useRef<Phaser.Game | null>(null);
 
   useEffect(() => {
-    // 啟動時還原 store 狀態
-    loadAllStoresFromLocalStorage();
+    // 啟動遊戲
     gameRef.current = StartGame("game-container");
 
     // 關閉視窗時自動儲存
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      const isEnableAutoSave =
-        localStorage.getItem("isEnableAutoSave") === "true";
+      const isEnableAutoSave = getIsAutoSaveEnabled();
       if (isEnableAutoSave) {
         saveAllStoresToLocalStorage();
       } else {

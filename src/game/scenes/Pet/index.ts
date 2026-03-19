@@ -114,8 +114,9 @@ export default class PetScene extends Scene {
     } else if (key === "space") {
       const action = this.header!.select();
 
+      const ipId = ConfigManager.getInstance().getIpId();
       const task = ConfigManager.getInstance().get(
-        `pet.mycharacter.actions.${action}`,
+        `${ipId}.mycharacter.actions.${action}`,
       );
       this.taskQueueService?.addTask(task);
     }
@@ -126,7 +127,7 @@ export default class PetScene extends Scene {
     let success = false;
     const { action, user, params, effect, dialogues, move } = task;
     try {
-      await this.character?.runFuntionalActionAsync(action);
+      await this.character?.runFunctionalActionAsync(action);
       this.statusHandler?.runEffect(effect);
 
       // Run Dialogue

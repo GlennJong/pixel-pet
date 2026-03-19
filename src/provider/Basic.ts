@@ -1,6 +1,7 @@
 export type TBasic = {
   token: string;
-  client_id: string;
+  clientId?: string;
+  client_id?: string;
 };
 
 export function getBasic(): Promise<TBasic> {

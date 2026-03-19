@@ -1,22 +1,21 @@
 import { ConfigManager } from "@/game/managers/ConfigManagers";
-import { getStoreState, store } from "@/game/store";
+import { getStoreState, store, Store } from "@/game/store";
 import { GAME_CONFIG } from "@/game/config";
 
-const STORE_KEY = "pet.status";
-// Use the config key dynamically
-const CONFIG_KEY = `pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}.statuses`;
-
 export class StatusHandler {
-  private config = ConfigManager.getInstance().get(CONFIG_KEY) || undefined;
-  // Initialize type to number? 'pet.status' seems to be a string ('normal', 'sleep' etc.)
-  // but `store<number>` was used. Checked MainScene.ts: initStore('pet.status', 'normal');
-  // So it should be `store<string>`.
-  private statusState = store<string>(STORE_KEY);
+  private config: any;
+  private statusState?: Store<string>;
+  private ipId: string;
 
-  constructor() {}
+  constructor() {
+    this.ipId = ConfigManager.getInstance().getIpId();
+    const configKey = `${this.ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}.statuses`;
+    this.config = ConfigManager.getInstance().get(configKey) || undefined;
+    this.statusState = store<string>(`${this.ipId}.status`);
+  }
 
   public getStatus(): string {
-    return getStoreState("pet.status");
+    return getStoreState(`${this.ipId}.status`);
   }
 
   public getConfig(): any {

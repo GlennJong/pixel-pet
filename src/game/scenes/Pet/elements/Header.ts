@@ -55,8 +55,8 @@ export class Header extends Phaser.GameObjects.Container {
 
         if (typeof _ani.freq !== "undefined") data.frameRate = _ani.freq;
         if (typeof _ani.duration !== "undefined") data.duration = _ani.duration;
-        if (typeof _ani.repeat_delay !== "undefined")
-          data.repeatDelay = _ani.repeat_delay;
+        const repeatDelay = _ani.repeatDelay ?? _ani.repeat_delay;
+        if (typeof repeatDelay !== "undefined") data.repeatDelay = repeatDelay;
 
         this.scene.anims.create(data);
       });

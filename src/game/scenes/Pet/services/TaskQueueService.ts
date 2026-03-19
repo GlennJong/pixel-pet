@@ -1,18 +1,17 @@
 import Phaser from "phaser";
 
-import { store, setStoreState } from "@/game/store";
+import { store, setStoreState, Store } from "@/game/store";
 import { filterFromMatchList } from "@/game/utils/filterFromMatchList";
 
 import { Message, TaskMappingItem, Task } from "./types";
 import {
   CONFIG_MAPPING_LIST_KEY,
   MESSAGE_QUEUE_STORE_KEY,
-  TASK_QUEUE_STORE_KEY,
 } from "./constants";
 import { ConfigManager } from "@/game/managers/ConfigManagers";
 
 export class TaskQueueService {
-  private taskQueueState = store<Task[]>(TASK_QUEUE_STORE_KEY);
+  private taskQueueState?: Store<Task[]>;
   private messageQueueState = store<Message[]>(MESSAGE_QUEUE_STORE_KEY);
   private timerEvent?: Phaser.Time.TimerEvent;
   private interval?: number;
@@ -20,11 +19,16 @@ export class TaskQueueService {
 
   private onTask?: (task: Task) => boolean | Promise<boolean>;
   private scene: Phaser.Scene;
+  private ipId: string;
+  private taskQueueStoreKey: string;
 
   private retryCounts: Map<string, number> = new Map();
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
+    this.ipId = ConfigManager.getInstance().getIpId();
+    this.taskQueueStoreKey = `${this.ipId}.taskQueue`;
+    this.taskQueueState = store<Task[]>(this.taskQueueStoreKey);
   }
 
   init({
@@ -51,7 +55,7 @@ export class TaskQueueService {
     let updated = false;
     messages.forEach((msg) => {
       const result = filterFromMatchList(msg, this.mappingList);
-      const config = ConfigManager.getInstance().get("pet.mycharacter.actions");
+      const config = ConfigManager.getInstance().get(`${this.ipId}.mycharacter.actions`);
       if (result) {
         console.log({ result });
 
@@ -61,7 +65,7 @@ export class TaskQueueService {
     });
     if (updated) {
       const currentTasks = this.taskQueueState?.get() || [];
-      setStoreState(TASK_QUEUE_STORE_KEY, [...currentTasks, ...tasks]);
+      setStoreState(this.taskQueueStoreKey, [...currentTasks, ...tasks]);
       setStoreState(MESSAGE_QUEUE_STORE_KEY, []);
     }
   };
@@ -74,23 +78,23 @@ export class TaskQueueService {
 
   addTask(task: Task) {
     const queue = this.taskQueueState?.get() || [];
-    setStoreState(TASK_QUEUE_STORE_KEY, [...queue, task]);
+    setStoreState(this.taskQueueStoreKey, [...queue, task]);
   }
 
   addEmergentTask(task: Task) {
     const queue = this.taskQueueState?.get() || [];
-    setStoreState(TASK_QUEUE_STORE_KEY, [task, ...queue]);
+    setStoreState(this.taskQueueStoreKey, [task, ...queue]);
   }
 
   removeTask(index: number) {
     const queue = this.taskQueueState?.get() || [];
     if (index < 0 || index >= queue.length) return;
     queue.splice(index, 1);
-    setStoreState(TASK_QUEUE_STORE_KEY, [...queue]);
+    setStoreState(this.taskQueueStoreKey, [...queue]);
   }
 
   clearQueue() {
-    setStoreState(TASK_QUEUE_STORE_KEY, []);
+    setStoreState(this.taskQueueStoreKey, []);
   }
 
   private async startNextTask() {

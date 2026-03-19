@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  _load,
   getTwitchLoginStateFromQueryString,
   getTwitchUserProfile,
+  getValueByPath,
   openTwitchOauthLogin,
   subscribeMessageForWs,
 } from "./methods";
-import { TWITCH_WS_URL } from "./constants";
+import { twitchWsUrl } from "./constants";
 import {
   TwitchOauthLoginState,
   TwitchUserState,
@@ -14,10 +14,10 @@ import {
 } from "./types";
 
 // constants
-const client_id = import.meta.env["VITE_TWITCH_CLIENT_ID"];
-const redirect_uri = import.meta.env["VITE_TWITCH_OAUTH_REDIRECT_URI"];
+const clientId = import.meta.env["VITE_TWITCH_CLIENT_ID"];
+const redirectUri = import.meta.env["VITE_TWITCH_OAUTH_REDIRECT_URI"];
 
-type ConnectMode = "chat" | "channel_point";
+type ConnectMode = "chat" | "channelPoint";
 
 type WsEventHandler<T> =
   | {
@@ -42,8 +42,8 @@ function useTwitchOauth() {
     const loginData = getTwitchLoginStateFromQueryString();
     if (!loginData) return;
 
-    const { access_token } = loginData;
-    const userData = await getTwitchUserProfile(client_id, access_token);
+    const { access_token: accessToken } = loginData;
+    const userData = await getTwitchUserProfile(clientId, accessToken);
     if (!userData) return;
 
     setTwitchState({ ...loginData, ...userData });
@@ -54,7 +54,7 @@ function useTwitchOauth() {
   }, [handleGetTwitchState]);
 
   function startOauthConnect() {
-    openTwitchOauthLogin(client_id, redirect_uri);
+    openTwitchOauthLogin(clientId, redirectUri);
   }
 
   function startWebsocket(
@@ -74,15 +74,15 @@ function useTwitchOauth() {
         userKey: "event.chatter_user_login",
         contentKey: "event.message.text",
       },
-      channel_point: {
+      channelPoint: {
         type: "channel.channel_points_custom_reward_redemption.add",
         userKey: "event.user_login",
         contentKey: "event.reward.title",
       },
     };
 
-    const { access_token, id } = twitchState;
-    const ws = new WebSocket(TWITCH_WS_URL);
+    const { access_token: accessToken, id } = twitchState;
+    const ws = new WebSocket(twitchWsUrl);
     ws.onopen = () => {
       onOpen && onOpen();
     };
@@ -99,20 +99,20 @@ function useTwitchOauth() {
           const newMsg = data.payload;
           onMessage &&
             onMessage({
-              user: _load(config[mode].userKey, newMsg),
-              content: _load(config[mode].contentKey, newMsg),
+              user: getValueByPath(config[mode].userKey, newMsg),
+              content: getValueByPath(config[mode].contentKey, newMsg),
               createdAt: new Date(),
             });
           receivedMsgRef.current = [...receivedMsgRef.current, newMsg];
           setReceivedMsg([...receivedMsgRef.current]);
         }
       } else {
-        const session_id = data.payload.session.id;
+        const sessionId = data.payload.session.id;
         const isSubscribeSuccess = await subscribeMessageForWs(
           config[mode].type,
-          session_id,
-          client_id,
-          access_token,
+          sessionId,
+          clientId,
+          accessToken,
           id,
         );
         if (isSubscribeSuccess) {

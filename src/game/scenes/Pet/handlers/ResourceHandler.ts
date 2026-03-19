@@ -5,10 +5,11 @@ import { ConfigManager } from "@/game/managers/ConfigManagers";
 export class ResourcesHandler {
   private group: ResourceHandler[] = [];
   constructor(scene: Phaser.Scene) {
-    const resources = ConfigManager.getInstance().get("pet.resources");
+    const ipId = ConfigManager.getInstance().getIpId();
+    const resources = ConfigManager.getInstance().get(`${ipId}.resources`);
 
-    resources.forEach(({ key, min, max }) => {
-      const handler = new ResourceHandler(scene, `pet.${key}`, min, max);
+    resources.forEach(({ key, min, max }: any) => {
+      const handler = new ResourceHandler(scene, `${ipId}.${key}`, min, max);
       handler.init();
       this.group.push(handler);
     });
@@ -31,11 +32,12 @@ export class ResourcesHandler {
 export class ResourceHandler {
   private timer?: Phaser.Time.TimerEvent;
   private scene: Phaser.Scene;
-  private statusState = store<string>("pet.status");
+  private statusState;
   private resourceState: ReturnType<typeof store<number>>;
   private storeKey: string;
   private min: number;
   private max: number;
+  private ipId: string;
 
   constructor(
     scene: Phaser.Scene,
@@ -48,6 +50,8 @@ export class ResourceHandler {
     this.resourceState = store<number>(storeKey);
     this.min = min;
     this.max = max;
+    this.ipId = ConfigManager.getInstance().getIpId();
+    this.statusState = store<string>(`${this.ipId}.status`);
   }
 
   init() {
@@ -60,7 +64,7 @@ export class ResourceHandler {
       this.timer.remove();
       this.timer = undefined;
     }
-    const statuses = ConfigManager.getInstance().get("pet.statuses") as Record<
+    const statuses = ConfigManager.getInstance().get(`${this.ipId}.statuses`) as Record<
       string,
       any
     >;

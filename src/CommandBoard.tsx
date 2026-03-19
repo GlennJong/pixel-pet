@@ -1,25 +1,29 @@
 import { getStoreState, setStoreState, store } from "@/game/store";
 import { useState } from "react";
+import { ConfigManager } from "@/game/managers/ConfigManagers";
 
 function CommandBoard() {
   const [selectedStateOptionIndex, setSelectedStateOptionIndex] = useState(0);
   const [selectedCommandOptionIndex, setSelectedCommandOptionIndex] =
     useState(0);
+  
+  const ipId = ConfigManager.getInstance().getIpId();
+
   const stateOptions = [
-    { label: "裝潢等級 = 1", key: "pet.level", value: () => 1 },
-    { label: "裝潢等級 = 2", key: "pet.level", value: () => 2 },
-    { label: "裝潢等級 = 3", key: "pet.level", value: () => 3 },
-    { label: "角色血量 = 5", key: "pet.hp", value: () => 5 },
+    { label: "裝潢等級 = 1", key: `${ipId}.level`, value: () => 1 },
+    { label: "裝潢等級 = 2", key: `${ipId}.level`, value: () => 2 },
+    { label: "裝潢等級 = 3", key: `${ipId}.level`, value: () => 3 },
+    { label: "角色血量 = 5", key: `${ipId}.hp`, value: () => 5 },
     {
       label: "角色血量 + 5",
-      key: "pet.hp",
-      value: () => getStoreState("pet.hp") + 5,
+      key: `${ipId}.hp`,
+      value: () => getStoreState(`${ipId}.hp`) + 5,
     },
-    { label: "角色金錢 = 0", key: "pet.coin", value: () => 0 },
+    { label: "角色金錢 = 0", key: `${ipId}.coin`, value: () => 0 },
     {
       label: "角色金錢 + 20",
-      key: "pet.coin",
-      value: () => getStoreState("pet.coin") + 20,
+      key: `${ipId}.coin`,
+      value: () => getStoreState(`${ipId}.coin`) + 20,
     },
   ];
   const commandOptions = [

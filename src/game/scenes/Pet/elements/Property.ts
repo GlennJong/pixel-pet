@@ -1,8 +1,5 @@
 import { ConfigManager } from "@/game/managers/ConfigManagers";
-import { store } from "@/game/store";
-
-const STORE_KEY = "pet.status";
-const CONFIG_KEY = "pet.room";
+import { store, Store } from "@/game/store";
 
 type TAnimation = {
   prefix: string;
@@ -10,7 +7,8 @@ type TAnimation = {
   freq: number;
   repeat: number;
   duration: number;
-  repeat_delay: number;
+  repeatDelay?: number;
+  repeat_delay?: number;
 };
 
 const DEFAULT_SPRITE = { key: "", frame: "" };
@@ -22,18 +20,21 @@ export class Property {
   private back?: Phaser.GameObjects.Sprite;
   private front?: Phaser.GameObjects.Sprite;
   private extras: Phaser.GameObjects.Sprite[] = [];
-  private watchState = store<number>(STORE_KEY);
+  private watchState?: Store<number>;
+  private ipId: string;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    this.config = ConfigManager.getInstance().get(CONFIG_KEY);
+    this.ipId = ConfigManager.getInstance().getIpId();
+    this.watchState = store<number>(`${this.ipId}.status`);
+    this.config = ConfigManager.getInstance().get(`${this.ipId}.room`);
   }
 
   init() {
     const { watch } = this.config;
 
     // set watch state
-    this.watchState = store<number>(`pet.${watch}`);
+    this.watchState = store<number>(`${this.ipId}.${watch}`);
     this.watchState?.watch(this.handleRenderPropertyByWatchedState);
 
     // init animations
@@ -67,8 +68,8 @@ export class Property {
 
         if (typeof _ani.freq !== "undefined") data.frameRate = _ani.freq;
         if (typeof _ani.duration !== "undefined") data.duration = _ani.duration;
-        if (typeof _ani.repeat_delay !== "undefined")
-          data.repeatDelay = _ani.repeat_delay;
+        const repeatDelay = _ani.repeatDelay ?? _ani.repeat_delay;
+        if (typeof repeatDelay !== "undefined") data.repeatDelay = repeatDelay;
 
         this.scene.anims.create(data);
       });

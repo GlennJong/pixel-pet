@@ -155,3 +155,23 @@ export function loadAllStoresFromLocalStorage(
     resolve();
   });
 }
+
+// 清除所有 global store 的 localStorage
+export function clearAllStoresFromLocalStorage(storageKey: string = "pet_store") {
+  localStorage.removeItem(storageKey);
+}
+
+// 取得是否開啟自動存檔
+export function getIsAutoSaveEnabled(): boolean {
+  return localStorage.getItem("isEnableAutoSave") === "true";
+}
+
+// 設定是否開啟自動存檔
+export function setIsAutoSaveEnabled(enabled: boolean) {
+  localStorage.setItem("isEnableAutoSave", String(enabled));
+}
+
+// 檢查是否有存檔
+export function hasSaveData(storageKey: string = "pet_store"): boolean {
+  return !!localStorage.getItem(storageKey);
+}

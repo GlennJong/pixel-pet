@@ -9,15 +9,17 @@ export interface AutoActionConfig {
 }
 
 export class AutoActionHandler {
-  private _autoWatchers: { key: string; handler: (v: any) => void }[] = [];
+  private autoWatchers: { key: string; handler: (v: any) => void; ipId?: string }[] = [];
   private cache: Record<string, any> = {};
   private autoActions: AutoActionConfig[] = [];
   private onTrigger?: (action: any) => void;
   private lastTriggeredAction: string | null = null; // Prevent repeated triggers
 
+
   constructor() {
+    const ipId = ConfigManager.getInstance().getIpId();
     const actions = ConfigManager.getInstance().get(
-      `pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}.actions`,
+      `${ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}.actions`,
     );
     // Filter out actions that are not set to auto or have no conditions
     this.autoActions = Object.values(actions).filter(
@@ -37,12 +39,13 @@ export class AutoActionHandler {
       this.autoActions.flatMap((a) => Object.keys(a.condition)),
     );
 
+    const ipId = ConfigManager.getInstance().getIpId();
     watchedKeys.forEach((key) => {
       // Use generic store to get any type of value
-      this.cache[key] = store<any>(`pet.${key}`)?.get();
+      this.cache[key] = store<any>(`${ipId}.${key}`)?.get();
       const handler = this.makeHandler(key);
-      store<any>(`pet.${key}`)?.watch(handler);
-      this._autoWatchers.push({ key, handler });
+      store<any>(`${ipId}.${key}`)?.watch(handler);
+      this.autoWatchers.push({ key, handler, ipId });
     });
   }
 
@@ -109,10 +112,11 @@ export class AutoActionHandler {
   }
 
   clearWatchers() {
-    for (const { key, handler } of this._autoWatchers) {
-      store<any>(`pet.${key}`)?.unwatch(handler);
+    for (const { key, handler, ipId } of this.autoWatchers) {
+      const currentIpId = ipId || "pet";
+      store<any>(`${currentIpId}.${key}`)?.unwatch(handler);
     }
-    this._autoWatchers = [];
+    this.autoWatchers = [];
   }
 
   destroy() {

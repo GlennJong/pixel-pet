@@ -8,32 +8,27 @@ import { selectFromPriority } from "@/game/utils/selectFromPriority";
 import { ConfigManager } from "@/game/managers/ConfigManagers";
 import { getValueFromColonStoreState } from "@/game/store/helper";
 import { GAME_CONFIG } from "@/game/config";
-
-type TDirection = "none" | "left" | "right";
-
-type TAction = {
-  animation: string;
-  isMoving?: boolean;
-  has_direction?: boolean;
-};
-
-type TIdleActions = {
-  priority: number;
-} & TAction;
+import {
+  ActionConfig,
+  IdleActionConfig,
+  PetState,
+  TDirection,
+} from "../types";
 
 export class PetCharacter extends Character {
-  private isActing: boolean = false;
-  private isReady: boolean = false;
+  private state: PetState = PetState.IDLE;
+  private isStarted: boolean = false;
 
-  private idleActions: { [key: string]: TIdleActions };
+  private idleActions: Record<string, IdleActionConfig>;
   private spaceEdge: { from: number; to: number };
   private direction: TDirection = "left";
 
-  public activities: { [key: string]: TAction };
+  public activities: Record<string, ActionConfig>;
 
   constructor(scene: Phaser.Scene) {
+    const ipId = ConfigManager.getInstance().getIpId();
     const config = ConfigManager.getInstance().get(
-      `pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
+      `${ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
     );
 
     super(scene, GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY, {
@@ -55,36 +50,51 @@ export class PetCharacter extends Character {
   }
 
   private handleDefaultIdleAction() {
-    if (this.isActing) return;
-    this.playAnimation(`${GAME_CONFIG.PET.IDLE_PREFIX}-${this.direction}`);
+    if (this.state !== PetState.IDLE) return;
+    const defaultKey = `${GAME_CONFIG.PET.IDLE_PREFIX}-${this.direction}`;
+    const actionConfig = this.idleActions[defaultKey];
+
+    if (actionConfig) {
+      const currentAnimation = getValueFromColonStoreState(
+        actionConfig.animationSet,
+      );
+      const firstAnim = Array.isArray(currentAnimation)
+        ? currentAnimation[0]
+        : currentAnimation;
+      this.playAnimation(firstAnim);
+    } else {
+      this.playAnimation(defaultKey);
+    }
   }
 
   private async handleAutomaticAction() {
-    if (this.isActing) return;
+    if (this.state !== PetState.IDLE) return;
 
     // Idle
-    const currentAction = selectFromPriority<TIdleActions>(this.idleActions);
+    const currentAction =
+      selectFromPriority<IdleActionConfig>(this.idleActions);
     const currentAnimation = getValueFromColonStoreState(
       currentAction.animationSet,
     );
 
-    this.direction = currentAction.direction;
+    this.direction = currentAction.direction as TDirection;
 
     let isMoving = false;
-    if (typeof currentAction.isMoving !== "undefined") {
+    if (currentAction.isMoving) {
       isMoving = getValueFromColonStoreState(currentAction.isMoving);
     }
 
     if (isMoving) {
       this.handleMoveDirection(currentAnimation);
     } else {
-      this.playAnimationSet(currentAnimation, true);
+      this.state = PetState.ACTING;
+      await this.playAnimationSet(currentAnimation);
+      this.state = PetState.IDLE;
       this.handleDefaultIdleAction();
     }
   }
 
-  public handleMoveDirection(animation: string) {
-    this.isActing = true;
+  public handleMoveDirection(animation: string | string[]) {
     this.playAnimationSet(animation);
 
     let isMovingDistanceOverEdge = false;
@@ -97,20 +107,26 @@ export class PetCharacter extends Character {
     }
 
     if (isMovingDistanceOverEdge) {
-      this.isActing = false;
+      this.state = PetState.IDLE;
       this.handleDefaultIdleAction();
     } else {
-      this.moveDirection(this.direction, GAME_CONFIG.PET.MOVE_DISTANCE, () => {
-        this.isActing = false;
-        this.handleDefaultIdleAction();
-      });
+      this.state = PetState.MOVING;
+      // Note: Character.ts defines TDirection locally, which is compatible with our TDirection
+      this.moveDirection(
+        this.direction as any,
+        GAME_CONFIG.PET.MOVE_DISTANCE,
+        () => {
+          this.state = PetState.IDLE;
+          this.handleDefaultIdleAction();
+        },
+      );
     }
   }
 
   private autoActionTimer?: Phaser.Time.TimerEvent;
 
   public startPet() {
-    this.isReady = true;
+    this.isStarted = true;
     if (!this.autoActionTimer) {
       this.autoActionTimer = this.scene.time.addEvent({
         delay: GAME_CONFIG.PET.AUTO_ACTION_DURATION,
@@ -120,58 +136,66 @@ export class PetCharacter extends Character {
     }
   }
   public stopPet() {
-    this.isReady = false;
+    this.isStarted = false;
     if (this.autoActionTimer) {
       this.autoActionTimer.remove();
       this.autoActionTimer = undefined;
     }
   }
 
-  public runFuntionalAction(action: string) {
-    if (this.isActing) return;
+  public async runFunctionalAction(actionKey: string) {
+    if (this.state !== PetState.IDLE) return;
 
-    const actions = ConfigManager.getInstance().get("pet.mycharacter.actions");
+    const ipId = ConfigManager.getInstance().getIpId();
+    const actions = ConfigManager.getInstance().get(
+      `${ipId}.mycharacter.actions`,
+    ) as Record<string, ActionConfig>;
 
-    const { animationSet } = actions[action];
+    const action = actions[actionKey];
+    if (!action) return;
+
+    const { animationSet } = action;
 
     const currentAnimationSet = getValueFromColonStoreState(animationSet);
 
-    this.playAnimationSet(currentAnimationSet);
+    this.state = PetState.ACTING;
+    await this.playAnimationSet(currentAnimationSet);
+    this.state = PetState.IDLE;
+    this.handleDefaultIdleAction();
   }
 
-  private playAnimationSet(animationSet, canInterrupt = false) {
-    const runAnimation = async (func: () => Promise<void>) => {
-      if (!canInterrupt) this.isActing = true;
-      await func();
-      if (!canInterrupt) this.isActing = false;
-    };
+  private async playAnimationSet(
+    animationSet: string | string[],
+    canInterrupt = false,
+  ) {
+    const animations = Array.isArray(animationSet)
+      ? animationSet
+      : [animationSet];
 
-    runAnimation(async () => {
-      for (let i = 0; i < animationSet.length; i++) {
-        await this.playAnimation(animationSet[i]);
-      }
-    });
+    for (const anim of animations) {
+      await this.playAnimation(anim);
+    }
   }
 
-  public async runFuntionalActionAsync(action: string) {
+  public async runFunctionalActionAsync(action: string) {
     await new Promise<void>((resolve) => {
       const timer = this.scene.time.addEvent({
         delay: 50,
         loop: true,
         callback: () => {
-          if (!this.isActing) {
+          if (this.state === PetState.IDLE) {
             timer.remove();
             resolve();
           }
         },
       });
     });
-    this.runFuntionalAction(action);
+    this.runFunctionalAction(action);
   }
 
   public update() {
-    if (!this.isReady) return;
-    if (this.isActing) this.updatePosition();
+    if (!this.isStarted) return;
+    // Movement handled by Tweens in Character.ts, no need to call updatePosition
   }
 
   public destroy() {

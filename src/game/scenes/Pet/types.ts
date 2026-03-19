@@ -1,8 +1,18 @@
+export type TDirection = "none" | "left" | "right" | "top" | "down";
+
+export enum PetState {
+  IDLE = "IDLE",
+  MOVING = "MOVING",
+  ACTING = "ACTING",
+}
+
 export interface PetConfig {
   pet: {
     assets: {
-      pet_room: AssetItem;
-      pet_header: AssetItem;
+      petRoom?: AssetItem;
+      petHeader?: AssetItem;
+      pet_room?: AssetItem;
+      pet_header?: AssetItem;
       mycharacter: AssetItem;
     };
     resources: ResourceItem[];
@@ -42,7 +52,8 @@ export interface AnimationItem {
   qty: number;
   freq: number;
   repeat: number;
-  repeat_delay: number;
+  repeatDelay?: number;
+  repeat_delay?: number;
 }
 
 export interface MenuItem {

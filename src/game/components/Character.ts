@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 
-type TDirection = "none" | "left" | "right" | "top" | "down";
+export type Direction = "none" | "left" | "right" | "top" | "down";
 
 type TAnimation = {
   prefix: string;
@@ -8,7 +8,8 @@ type TAnimation = {
   freq: number;
   repeat: number;
   duration: number;
-  repeat_delay: number;
+  repeatDelay?: number;
+  repeat_delay?: number;
 };
 
 export type CharacterProps = {
@@ -32,24 +33,24 @@ export class Character extends Phaser.GameObjects.Container {
     this.characterKey = key;
 
     if (animations) {
-      animations.forEach((_ani) => {
-        const animationName = `${key}_${_ani.prefix}`;
+      animations.forEach((animConfig) => {
+        const animationName = `${key}_${animConfig.prefix}`;
         if (scene.anims.exists(animationName)) return; // prevent recreate after change scene.
 
         const data: Phaser.Types.Animations.Animation = {
           key: animationName,
           frames: scene.anims.generateFrameNames(key, {
-            prefix: `${_ani.prefix}_`,
+            prefix: `${animConfig.prefix}_`,
             start: 1,
-            end: _ani.qty,
+            end: animConfig.qty,
           }),
-          repeat: _ani.repeat,
+          repeat: animConfig.repeat,
         };
 
-        if (typeof _ani.freq !== "undefined") data.frameRate = _ani.freq;
-        if (typeof _ani.duration !== "undefined") data.duration = _ani.duration;
-        if (typeof _ani.repeat_delay !== "undefined")
-          data.repeatDelay = _ani.repeat_delay;
+        if (typeof animConfig.freq !== "undefined") data.frameRate = animConfig.freq;
+        if (typeof animConfig.duration !== "undefined") data.duration = animConfig.duration;
+        const repeatDelay = animConfig.repeatDelay ?? animConfig.repeat_delay;
+        if (typeof repeatDelay !== "undefined") data.repeatDelay = repeatDelay;
 
         scene.anims.create(data);
       });
@@ -76,6 +77,7 @@ export class Character extends Phaser.GameObjects.Container {
   }
 
   public async playAnimation(key: string, time?: number): Promise<void> {
+    console.log({key})
     return new Promise((resolve) => {
       const animationName = `${this.characterKey}_${key}`;
       const scene = this.scene as Phaser.Scene;
@@ -85,88 +87,70 @@ export class Character extends Phaser.GameObjects.Container {
         return;
       }
       this.character.play(animationName);
-      this.character.on(
-        "animationcomplete",
-        (e: Phaser.Animations.Animation) => {
-          if (e.key === animationName) {
-            if (typeof time !== "undefined") {
-              setTimeout(() => resolve(), time);
-            } else {
-              resolve();
-            }
-            this.character.off("animationcomplete");
+
+      const anim = scene.anims.get(animationName);
+      if (
+        anim &&
+        (anim.repeat === -1 || (anim as any).repeat === Number.POSITIVE_INFINITY) &&
+        typeof time === "undefined"
+      ) {
+        resolve();
+        return;
+      }
+
+      const onComplete = (anim: Phaser.Animations.Animation) => {
+        if (anim.key === animationName) {
+          if (typeof time !== "undefined") {
+            setTimeout(() => resolve(), time);
+          } else {
+            resolve();
           }
-        },
-      );
+          this.character.off("animationcomplete", onComplete);
+        }
+      };
+      this.character.on("animationcomplete", onComplete);
     });
   }
 
   // move action status
-  private currentMoveAction?: {
-    from: { x: number; y: number };
-    to: { x: number; y: number };
-    callback: () => void;
-  };
-  private currentMovingFrame = { total: 60, count: 0 };
+  private currentMoveTween?: Phaser.Tweens.Tween;
 
   // moving
   public moveDirection(
-    direction: TDirection,
+    direction: Direction,
     distance: number,
     callbackFunc: () => void,
+    duration: number = 1000,
   ) {
-    if (!this.currentMoveAction) {
-      let x = this.character.x,
-        y = this.character.y;
+    if (this.currentMoveTween?.isPlaying()) return;
 
-      if (direction === "left") {
-        x -= distance;
-      } else if (direction === "right") {
-        x += distance;
-      } else if (direction === "top") {
-        y -= distance;
-      } else if (direction === "down") {
-        y += distance;
-      }
+    let targetX = this.character.x;
+    let targetY = this.character.y;
 
-      this.currentMoveAction = {
-        from: { x: this.character.x, y: this.character.y },
-        to: { x, y },
-        callback: callbackFunc,
-      };
+    if (direction === "left") {
+      targetX -= distance;
+    } else if (direction === "right") {
+      targetX += distance;
+    } else if (direction === "top") {
+      targetY -= distance;
+    } else if (direction === "down") {
+      targetY += distance;
     }
+
+    this.currentMoveTween = this.scene.tweens.add({
+      targets: [this.character, this.followShadow].filter(Boolean),
+      x: targetX,
+      y: targetY,
+      duration: duration,
+      onComplete: () => {
+        this.currentMoveTween = undefined;
+        callbackFunc();
+      },
+    });
   }
 
   public updatePosition(): void {
-    if (this.currentMoveAction) {
-      // Start count the frames
-      this.currentMovingFrame.count += 1;
-
-      // movement
-      const { from, to } = this.currentMoveAction;
-      const { total, count } = this.currentMovingFrame;
-
-      this.character.setPosition(
-        from.x + ((to.x - from.x) * count) / total,
-        from.y + ((to.y - from.y) * count) / total,
-      );
-
-      if (this.followShadow) {
-        this.followShadow.setPosition(
-          from.x + ((to.x - from.x) * count) / total,
-          from.y + ((to.y - from.y) * count) / total,
-        );
-      }
-
-      if (total == count) {
-        this.character.setPosition(to.x, to.y);
-
-        // reset after moved
-        this.currentMoveAction.callback();
-        this.currentMoveAction = undefined;
-        this.currentMovingFrame.count = 0;
-      }
-    }
+    // Deprecated: Movement handled by Tweens
   }
 
   public destroy() {
