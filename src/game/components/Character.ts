@@ -76,6 +76,8 @@ export class Character extends Phaser.GameObjects.Container {
     this.followShadow = shadow;
   }
 
+  private pendingResolves: Array<() => void> = [];
+
   public async playAnimation(key: string, time?: number): Promise<void> {
     console.log({key})
     return new Promise((resolve) => {
@@ -101,13 +103,18 @@ export class Character extends Phaser.GameObjects.Container {
       const onComplete = (anim: Phaser.Animations.Animation) => {
         if (anim.key === animationName) {
           if (typeof time !== "undefined") {
-            setTimeout(() => resolve(), time);
+            setTimeout(() => {
+              this.pendingResolves = this.pendingResolves.filter((r) => r !== resolve);
+              resolve();
+            }, time);
           } else {
+            this.pendingResolves = this.pendingResolves.filter((r) => r !== resolve);
             resolve();
           }
           this.character.off("animationcomplete", onComplete);
         }
       };
+      this.pendingResolves.push(resolve);
       this.character.on("animationcomplete", onComplete);
     });
   }
@@ -147,6 +154,19 @@ export class Character extends Phaser.GameObjects.Container {
         callbackFunc();
       },
     });
+  }
+
+  public stopAllActions() {
+    this.character.stop(); // Stop current animation
+    this.character.removeAllListeners("animationcomplete");
+    // Resolve all pending animations so they don't block async flows
+    this.pendingResolves.forEach((resolve) => resolve());
+    this.pendingResolves = [];
+    
+    if (this.currentMoveTween?.isPlaying()) {
+      this.currentMoveTween.stop();
+      this.currentMoveTween = undefined;
+    }
   }
 
   public updatePosition(): void {

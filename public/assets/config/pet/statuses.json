@@ -3,7 +3,7 @@
     "hp": {
       "method": "sub",
       "value": 1,
-      "interval": 100
+      "interval": 1000
     }
   },
   "sleep": {

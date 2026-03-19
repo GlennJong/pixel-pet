@@ -162,7 +162,9 @@ export default class PetScene extends Scene {
   }
 
   handleAddEmergencyTask(task: Task) {
-    this.taskQueueService?.addTask(task);
+    this.taskQueueService?.clearQueue(); // Flush any pending normal actions so emergent task runs alone
+    this.character?.interrupt(); // Force character to stop current action and return to IDLE immediately
+    this.taskQueueService?.addEmergentTask(task); // Add task to the front of queue immediately
   }
 
   async handleUpgrade(taskQueueService: any, params: any) {

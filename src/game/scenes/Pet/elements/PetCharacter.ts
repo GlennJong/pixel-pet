@@ -22,6 +22,7 @@ export class PetCharacter extends Character {
   private idleActions: Record<string, IdleActionConfig>;
   private spaceEdge: { from: number; to: number };
   private direction: TDirection = "left";
+  private isInterrupted: boolean = false;
 
   public activities: Record<string, ActionConfig>;
 
@@ -89,6 +90,7 @@ export class PetCharacter extends Character {
     } else {
       this.state = PetState.ACTING;
       await this.playAnimationSet(currentAnimation);
+      if (this.isInterrupted) return;
       this.state = PetState.IDLE;
       this.handleDefaultIdleAction();
     }
@@ -107,6 +109,7 @@ export class PetCharacter extends Character {
     }
 
     if (isMovingDistanceOverEdge) {
+      if (this.isInterrupted) return;
       this.state = PetState.IDLE;
       this.handleDefaultIdleAction();
     } else {
@@ -116,6 +119,7 @@ export class PetCharacter extends Character {
         this.direction as any,
         GAME_CONFIG.PET.MOVE_DISTANCE,
         () => {
+          if (this.isInterrupted) return;
           this.state = PetState.IDLE;
           this.handleDefaultIdleAction();
         },
@@ -160,6 +164,7 @@ export class PetCharacter extends Character {
 
     this.state = PetState.ACTING;
     await this.playAnimationSet(currentAnimationSet);
+    if (this.isInterrupted) return;
     this.state = PetState.IDLE;
     this.handleDefaultIdleAction();
   }
@@ -168,11 +173,13 @@ export class PetCharacter extends Character {
     animationSet: string | string[],
     canInterrupt = false,
   ) {
+    this.isInterrupted = false;
     const animations = Array.isArray(animationSet)
       ? animationSet
       : [animationSet];
 
     for (const anim of animations) {
+      if (this.isInterrupted) break;
       await this.playAnimation(anim);
     }
   }
@@ -191,6 +198,22 @@ export class PetCharacter extends Character {
       });
     });
     this.runFunctionalAction(action);
+  }
+
+  public interrupt() {
+    this.isInterrupted = true;
+    this.state = PetState.IDLE;
+    this.stopAllActions();
+    
+    // Reset auto action timer so it doesn't sneak in before emergent tasks start
+    if (this.autoActionTimer && this.isStarted) {
+      this.autoActionTimer.remove();
+      this.autoActionTimer = this.scene.time.addEvent({
+        delay: GAME_CONFIG.PET.AUTO_ACTION_DURATION,
+        loop: true,
+        callback: () => this.handleAutomaticAction(),
+      });
+    }
   }
 
   public update() {

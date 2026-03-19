@@ -116,7 +116,11 @@ export class TaskQueueService {
         success = false;
       }
       if (success) {
-        this.removeTask(0);
+        const currentQueue = this.taskQueueState?.get() || [];
+        const index = currentQueue.indexOf(task);
+        if (index !== -1) {
+          this.removeTask(index);
+        }
         this.retryCounts.delete(taskId);
       } else {
         const retryCount = (this.retryCounts.get(taskId) || 0) + 1;
@@ -126,7 +130,11 @@ export class TaskQueueService {
             "TaskQueueService: task failed too many times, removing from queue.",
             task,
           );
-          this.removeTask(0);
+          const currentQueue = this.taskQueueState?.get() || [];
+          const index = currentQueue.indexOf(task);
+          if (index !== -1) {
+            this.removeTask(index);
+          }
           this.retryCounts.delete(taskId);
         } else {
           console.warn("TaskQueueService: task failed, will retry.", task);
