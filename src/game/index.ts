@@ -15,10 +15,14 @@ const config: Phaser.Types.Core.GameConfig = {
   width: canvas.width,
   height: canvas.height,
   parent: "game-container",
-  zoom: 2,
+  pixelArt: true,
   backgroundColor: "#000",
-  canvasStyle: `display:block; image-rendering: pixelated; transform: scale(0.5); transform-origin: top left;`,
+  canvasStyle: `display:block; width: 100%; height: 100%; image-rendering: pixelated;`,
   scene: [Preloader, MainScene, TestScene, Pet],
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  }
 };
 
 const StartGame = (parent: string) => {

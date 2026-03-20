@@ -7,6 +7,7 @@ import { setStoreState, store } from "@/game/store";
 import AutoSaveTrigger from "./AutoSaveTrigger";
 import CommandBoard from "./CommandBoard";
 import DebugPanel from "@/game/Console/DebugPanel";
+import PipButton from "./PipButton";
 import "./App.css";
 
 type TRecord = {
@@ -80,6 +81,7 @@ function App() {
           >
             CMD
           </button>
+          <PipButton />
         </div>
 
         {/* Side Panel */}
