@@ -1,8 +1,8 @@
 import { Scene } from "phaser";
 
 // common components
+import { QUEUE_EVENT_INTERVAL } from "@/game/constants";
 import {
-  sceneConverter,
   sceneStarter,
 } from "@/game/components/CircleSceneTransition";
 import { setStoreState } from "@/game/store";
@@ -34,8 +34,6 @@ export default class PetScene extends Scene {
   private keyboardHandler?: KeyboardHandler;
 
   private taskQueueService?: TaskQueueService;
-  // private coinHandler?: CoinHandler;
-  // private resourceHandlerGroup: ResourceHandler[] = [];
   private statusHandler?: StatusHandler;
   private autoActionHandler?: AutoActionHandler;
 
@@ -71,7 +69,7 @@ export default class PetScene extends Scene {
     this.taskQueueService = new TaskQueueService(this);
     this.taskQueueService.init({
       onTask: (task) => this.handleActionQueueTask(task),
-      interval: 300,
+      interval: QUEUE_EVENT_INTERVAL,
     });
 
     this.autoActionHandler = new AutoActionHandler();
@@ -115,20 +113,25 @@ export default class PetScene extends Scene {
       const action = this.header!.select();
 
       const ipId = ConfigManager.getInstance().getIpId();
-      const task = ConfigManager.getInstance().get(
-        `${ipId}.mycharacter.actions.${action}`,
-      );
-      this.taskQueueService?.addTask(task);
+      const actions = ConfigManager.getInstance().get(
+        `${ipId}.mycharacter.actions`,
+      ) || {};
+      const autoActions = ConfigManager.getInstance().get(
+        `${ipId}.mycharacter.autoActions`,
+      ) || {};
+      const task = actions[action] || autoActions[action];
+      if (task) {
+        this.taskQueueService?.addTask(task);
+      }
     }
   };
 
   async handleActionQueueTask(task: Task) {
     if (!this.isPetReady) return false;
     let success = false;
-    const { action, user, params, effect, dialogues, move } = task;
+    const { action, user, params, effect, dialogues } = task;
     try {
       await this.character?.runFunctionalActionAsync(action);
-      this.statusHandler?.runEffect(effect);
 
       // Run Dialogue
       if (this.dialogue) {
@@ -147,11 +150,7 @@ export default class PetScene extends Scene {
       }
 
       this.resources?.runEffect(effect);
-
-      if (move) {
-        setStoreState("global.transmit", params);
-        sceneConverter(this, move);
-      }
+      this.statusHandler?.runEffect(effect);
 
       success = true;
     } catch (err) {

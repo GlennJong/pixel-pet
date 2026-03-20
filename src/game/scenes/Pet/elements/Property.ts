@@ -1,15 +1,6 @@
+import { TAnimation } from "@/game/components/Character";
 import { ConfigManager } from "@/game/managers/ConfigManagers";
 import { store, Store } from "@/game/store";
-
-type TAnimation = {
-  prefix: string;
-  qty: number;
-  freq: number;
-  repeat: number;
-  duration: number;
-  repeatDelay?: number;
-  repeat_delay?: number;
-};
 
 const DEFAULT_SPRITE = { key: "", frame: "" };
 

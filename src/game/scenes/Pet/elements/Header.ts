@@ -4,6 +4,7 @@ import Phaser from "phaser";
 import { ConfigManager } from "@/game/managers/ConfigManagers";
 import { ResourceIcon } from "./ResourceIcon";
 import { getValueFromColonStoreState } from "@/game/store/helper";
+import { TAnimation } from "@/game/components/Character";
 
 const DEFAULT_WIDTH = 160;
 const DEFAULT_HEIGHT = 25;
@@ -86,7 +87,7 @@ export class Header extends Phaser.GameObjects.Container {
     const arrowSpace = 12;
     const gap = 8;
     const y = 7;
-    this.config.menu.forEach(({ animation }, i) => {
+    this.config.menu.forEach(({ animation }, i: number) => {
       const arrow = this.scene.make
         .sprite({
           x: startFrom + gap * i + i * arrowSpace,
@@ -125,10 +126,10 @@ export class Header extends Phaser.GameObjects.Container {
   }
 
   private initResources() {
-    const startFrom = 100;
-    const gap = 30;
+    const startFrom = 80;
+    const gap = 24;
     const y = 7;
-    this.config.resources.forEach(({ resource, animation }, i) => {
+    this.config.resources.forEach(({ resource, animation }, i: number) => {
       const icon = new ResourceIcon(this.scene, {
         x: startFrom + gap * i,
         y,

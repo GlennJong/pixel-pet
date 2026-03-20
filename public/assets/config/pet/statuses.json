@@ -4,6 +4,23 @@
       "method": "sub",
       "value": 1,
       "interval": 5000
+    },
+    "coin": {
+      "method": "add",
+      "value": 1,
+      "interval": 10000
+    },
+    "dirty": {
+      "method": "add",
+      "value": 1,
+      "interval": 10000
+    }
+  },
+  "dirty": {
+    "hp": {
+      "method": "sub",
+      "value": 1,
+      "interval": 5000
     }
   },
   "sleep": {

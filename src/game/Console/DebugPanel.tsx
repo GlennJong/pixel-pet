@@ -66,10 +66,21 @@ function DebugControls({ ipId }: { ipId: string }) {
           }
         },
       },
+      dirty: {
+        value: getStoreState(`${ipId}.dirty`) || 0,
+        min: 0,
+        max: 100,
+        step: 1,
+        onChange: (v) => {
+          if (store(`${ipId}.dirty`) && getStoreState(`${ipId}.dirty`) !== v) {
+            setStoreState(`${ipId}.dirty`, v);
+          }
+        },
+      },
     }),
     "狀態與系統": folder({
       status: {
-        options: ["normal", "sleep", "death"],
+        options: ["normal", "sleep", "death", "dirty"],
         value: getStoreState(`${ipId}.status`) || "normal",
         onChange: (v) => {
           if (store(`${ipId}.status`) && getStoreState(`${ipId}.status`) !== v) {
@@ -95,18 +106,21 @@ function DebugControls({ ipId }: { ipId: string }) {
     const handleHp = (val: number) => set({ hp: val } as Record<string, number>);
     const handleLevel = (val: number) => set({ level: val } as Record<string, number>);
     const handleCoin = (val: number) => set({ coin: val } as Record<string, number>);
+    const handleDirty = (val: number) => set({ dirty: val } as Record<string, number>);
     const handleStatus = (val: string) => set({ status: val } as Record<string, string>);
     const handlePause = (val: boolean) => set({ is_paused: val } as Record<string, boolean>);
 
     const sHp = store<number>(`${ipId}.hp`);
     const sLevel = store<number>(`${ipId}.level`);
     const sCoin = store<number>(`${ipId}.coin`);
+    const sDirty = store<number>(`${ipId}.dirty`);
     const sStatus = store<string>(`${ipId}.status`);
     const sPause = store<boolean>("global.is_paused");
 
     if (sHp) sHp.watch(handleHp);
     if (sLevel) sLevel.watch(handleLevel);
     if (sCoin) sCoin.watch(handleCoin);
+    if (sDirty) sDirty.watch(handleDirty);
     if (sStatus) sStatus.watch(handleStatus);
     if (sPause) sPause.watch(handlePause);
 
@@ -114,6 +128,7 @@ function DebugControls({ ipId }: { ipId: string }) {
       if (sHp) sHp.unwatch(handleHp);
       if (sLevel) sLevel.unwatch(handleLevel);
       if (sCoin) sCoin.unwatch(handleCoin);
+      if (sDirty) sDirty.unwatch(handleDirty);
       if (sStatus) sStatus.unwatch(handleStatus);
       if (sPause) sPause.unwatch(handlePause);
     };

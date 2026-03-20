@@ -55,11 +55,12 @@ export class TaskQueueService {
     let updated = false;
     messages.forEach((msg) => {
       const result = filterFromMatchList(msg, this.mappingList);
-      const config = ConfigManager.getInstance().get(`${this.ipId}.mycharacter.actions`);
+      const actions = ConfigManager.getInstance().get(`${this.ipId}.mycharacter.actions`) || {};
+      const autoActions = ConfigManager.getInstance().get(`${this.ipId}.mycharacter.autoActions`) || {};
       if (result) {
         console.log({ result });
-
-        tasks.push({ ...config[result.action], ...msg, ...result });
+        const targetActionConfig = actions[result.action] || autoActions[result.action] || {};
+        tasks.push({ ...targetActionConfig, ...msg, ...result });
         updated = true;
       }
     });

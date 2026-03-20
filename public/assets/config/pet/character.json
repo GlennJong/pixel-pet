@@ -491,6 +491,75 @@
         }
       ]
     },
+    "lock": {
+      "action": "lock",
+      "animationSet": {
+        "default": [
+          "egg"
+        ]
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-normal",
+              "text": "我已經死了什麼都不能做！"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    },
+    "clean": {
+      "action": "clean",
+      "animationSet": {
+        "default": [
+          "revive"
+        ],
+        "status:dirty": [
+          "revive"
+        ],
+        "status:sleep": [
+          "wake-up",
+          "revive",
+          "lay-down"
+        ]
+      },
+      "condition": {
+        "coin": {
+          "op": ">=",
+          "value": 10
+        }
+      },
+      "user": "system",
+      "effect": {
+        "dirty": {
+          "method": "set",
+          "value": 0
+        },
+        "status": {
+          "method": "set",
+          "value": "normal"
+        },
+        "coin": {
+          "method": "sub",
+          "value": 10
+        }
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-normal",
+              "text": "洗澡！\n花了 10 元，變回乾淨了！"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    }
+  },
+  "autoActions": {
     "die": {
       "action": "die",
       "animationSet": {
@@ -498,7 +567,6 @@
           "lay-down"
         ]
       },
-      "auto": true,
       "condition": {
         "hp": {
           "op": "<=",
@@ -538,7 +606,6 @@
           "revive"
         ]
       },
-      "auto": true,
       "condition": {
         "hp": {
           "op": ">=",
@@ -567,25 +634,6 @@
         }
       ]
     },
-    "lock": {
-      "action": "lock",
-      "animationSet": {
-        "default": [
-          "egg"
-        ]
-      },
-      "dialogues": [
-        {
-          "sentences": [
-            {
-              "portrait": "face-normal",
-              "text": "我已經死了什麼都不能做！"
-            }
-          ],
-          "priority": 2
-        }
-      ]
-    },
     "buyLv1": {
       "action": "buyLv1",
       "animationSet": {
@@ -594,7 +642,6 @@
           "idle-right"
         ]
       },
-      "auto": true,
       "condition": {
         "coin": {
           "op": ">=",
@@ -639,7 +686,6 @@
           "idle-right"
         ]
       },
-      "auto": true,
       "condition": {
         "coin": {
           "op": ">=",
@@ -684,7 +730,6 @@
           "idle-right"
         ]
       },
-      "auto": true,
       "condition": {
         "coin": {
           "op": ">=",
@@ -729,7 +774,6 @@
           "idle-right"
         ]
       },
-      "auto": true,
       "condition": {
         "coin": {
           "op": ">=",
@@ -774,7 +818,6 @@
           "idle-right"
         ]
       },
-      "auto": true,
       "condition": {
         "coin": {
           "op": ">=",
@@ -805,6 +848,41 @@
             {
               "portrait": "face-normal",
               "text": "花了{{coin}}塊錢！\n全部買光光！"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    },
+    "becomeDirty": {
+      "action": "becomeDirty",
+      "animationSet": {
+        "default": [
+          "lay-down"
+        ]
+      },
+      "condition": {
+        "dirty": {
+          "op": ">=",
+          "value": 100
+        },
+        "status": {
+          "op": "==",
+          "value": "normal"
+        }
+      },
+      "effect": {
+        "status": {
+          "method": "set",
+          "value": "dirty"
+        }
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-sad",
+              "text": "太髒了...\n停止賺錢直到清潔！"
             }
           ],
           "priority": 2

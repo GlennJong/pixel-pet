@@ -18,13 +18,21 @@ export class AutoActionHandler {
 
   constructor() {
     const ipId = ConfigManager.getInstance().getIpId();
+    const autoActions = ConfigManager.getInstance().get(
+      `${ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}.autoActions`,
+    );
     const actions = ConfigManager.getInstance().get(
       `${ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}.actions`,
     );
-    // Filter out actions that are not set to auto or have no conditions
-    this.autoActions = Object.values(actions).filter(
-      (a: any) => a.auto && a.condition,
-    );
+    // Combine actions that have run via auto:true or belong to autoActions
+    const allActions = [
+      ...Object.values(autoActions || {}),
+      ...Object.values(actions || {}).filter((a: any) => a.auto),
+    ];
+
+    this.autoActions = allActions.filter(
+      (a: any) => a.condition,
+    ) as AutoActionConfig[];
   }
 
   public init({ onTrigger }: { onTrigger?: (action: any) => void }) {

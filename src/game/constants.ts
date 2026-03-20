@@ -12,3 +12,6 @@ export const pet = {
     height: 32,
   },
 };
+
+// Queue 行列每次檢查與執行任務間的等待時間 (毫秒)
+export const QUEUE_EVENT_INTERVAL = 50;

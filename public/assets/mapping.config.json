@@ -14,5 +14,11 @@
   "sleep": {
     "action": "sleep",
     "matches": []
+  },
+  "clean": {
+    "action": "clean",
+    "matches": {
+      "content": ["洗澡", "清潔"]
+    }
   }
 }

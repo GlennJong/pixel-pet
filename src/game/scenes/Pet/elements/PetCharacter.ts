@@ -154,8 +154,12 @@ export class PetCharacter extends Character {
     const actions = ConfigManager.getInstance().get(
       `${ipId}.mycharacter.actions`,
     ) as Record<string, ActionConfig>;
+    
+    const autoActions = ConfigManager.getInstance().get(
+      `${ipId}.mycharacter.autoActions`,
+    ) as Record<string, ActionConfig>;
 
-    const action = actions[actionKey];
+    const action = actions?.[actionKey] || autoActions?.[actionKey];
     if (!action) return;
 
     const { animationSet } = action;

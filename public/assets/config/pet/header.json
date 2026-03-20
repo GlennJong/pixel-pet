@@ -82,7 +82,7 @@
         "unselected": "write-unselected"
       },
       "action": {
-        "default": "write",
+        "default": "clean",
         "status:normal": "write",
         "status:sleep": "write",
         "status:death": "lock"
@@ -108,6 +108,10 @@
     },
     {
       "resource": "coin",
+      "animation": "coin"
+    },
+    {
+      "resource": "dirty",
       "animation": "coin"
     }
   ]

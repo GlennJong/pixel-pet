@@ -1,3 +1,5 @@
+import { DialogItem } from "../types";
+
 type UserParams = { user?: string };
 type AwardParams = { coin?: number };
 
@@ -10,6 +12,8 @@ export type Message = {
 export type Task = {
   user: string;
   action: string;
+  effect: { [key: string]: any };
+  dialogues: DialogItem[];
   params: UserParams &
     AwardParams & { [key: string]: string | number };
   callback?: () => void;

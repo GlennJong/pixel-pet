@@ -4,7 +4,6 @@ import {
   TDialogData,
 } from "@/game/components/PrimaryDialogue";
 import { selectFromPriority } from "@/game/utils/selectFromPriority";
-import { ConfigManager } from "@/game/managers/ConfigManagers";
 
 type TDialogItem = {
   sentences: TDialogData[];
@@ -15,14 +14,9 @@ const DEFAULT_CHARACTER_KEY = "mycharacter";
 
 export class PetDialogue extends Phaser.GameObjects.Container {
   private dialogue: PrimaryDialogue;
-  private config;
 
   constructor(scene: Phaser.Scene) {
     super(scene);
-
-    this.config = ConfigManager.getInstance().get(
-      `pet.${DEFAULT_CHARACTER_KEY}.actions`,
-    );
 
     // Window
     this.dialogue = new PrimaryDialogue(scene);
