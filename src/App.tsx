@@ -6,6 +6,7 @@ import ConfigEditor from "@/ConfigEditor";
 import { setStoreState, store } from "@/game/store";
 import AutoSaveTrigger from "./AutoSaveTrigger";
 import CommandBoard from "./CommandBoard";
+import DebugPanel from "@/game/Console/DebugPanel";
 import "./App.css";
 
 type TRecord = {
@@ -50,6 +51,7 @@ function App() {
 
   return (
     <div id="app">
+      <DebugPanel />
       <div className="app-container">
         {/* Top Buttons */}
         <div className="top-bar">

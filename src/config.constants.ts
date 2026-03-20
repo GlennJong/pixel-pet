@@ -84,7 +84,6 @@ export const petSceneWording = {
   start: "戰鬥開始",
   finish: "戰鬥結束",
   buy: "買東西（自動觸發）",
-  win: "戰鬥結束：勝利",
   lose: "戰鬥結束：敗北",
 };
 

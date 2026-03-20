@@ -19,14 +19,8 @@ module.exports = {
       "error",
       {
         selector: "default",
-        format: ["camelCase"],
         leadingUnderscore: "allow",
         trailingUnderscore: "allow",
-      },
-      {
-        selector: "variable",
-        modifiers: ["const"],
-        format: ["camelCase", "UPPER_CASE", "PascalCase"],
       },
       {
         selector: "typeLike",
@@ -35,10 +29,6 @@ module.exports = {
       {
         selector: "enumMember",
         format: ["UPPER_CASE", "PascalCase"],
-      },
-      {
-        selector: "import",
-        format: ["camelCase", "PascalCase"],
       },
       {
         selector: "property",

@@ -79,7 +79,6 @@ export class Character extends Phaser.GameObjects.Container {
   private pendingResolves: Array<() => void> = [];
 
   public async playAnimation(key: string, time?: number): Promise<void> {
-    console.log({key})
     return new Promise((resolve) => {
       const animationName = `${this.characterKey}_${key}`;
       const scene = this.scene as Phaser.Scene;

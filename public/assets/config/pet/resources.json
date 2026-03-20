@@ -1,8 +1,8 @@
 [
   {
     "key": "hp",
-    "value": 3,
-    "max": 3,
+    "value": 100,
+    "max": 100,
     "min": 0
   },
   {
@@ -14,11 +14,5 @@
     "key": "level",
     "value": 0,
     "min": 0
-  },
-  {
-    "key": "win",
-    "value": 0,
-    "min": 0,
-    "max": 1
   }
 ]
