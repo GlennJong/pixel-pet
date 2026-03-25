@@ -62,13 +62,15 @@ export class Character extends Phaser.GameObjects.Container {
     const character = scene.add
       .sprite(posX, posY, key)
       .setScale(1)
-      .setOrigin(0);
+      .setOrigin(0)
+      .setVisible(false); // 預設隱藏，避免整張 spritesheet 在動畫準備好前被直接渲染成破圖
 
     this.character = character;
     scene.add.existing(this);
   }
 
   public playStatic(frame: string) {
+    this.character.setVisible(true);
     this.character.setTexture(this.characterKey, frame);
   }
 
@@ -77,6 +79,38 @@ export class Character extends Phaser.GameObjects.Container {
   }
 
   private pendingResolves: Array<() => void> = [];
+
+  public changeTextureKey(newKey: string, animations?: TAnimation[]) {
+    this.characterKey = newKey;
+    
+    if (animations) {
+      animations.forEach((animConfig) => {
+        const animationName = `${newKey}_${animConfig.prefix}`;
+        if (this.scene.anims.exists(animationName)) return;
+
+        const data: Phaser.Types.Animations.Animation = {
+          key: animationName,
+          frames: this.scene.anims.generateFrameNames(newKey, {
+            prefix: `${animConfig.prefix}_`,
+            start: 1,
+            end: animConfig.qty,
+          }),
+          repeat: animConfig.repeat,
+        };
+
+        if (typeof animConfig.freq !== "undefined") data.frameRate = animConfig.freq;
+        if (typeof animConfig.duration !== "undefined") data.duration = animConfig.duration;
+        const repeatDelay = animConfig.repeatDelay ?? animConfig.repeat_delay;
+        if (typeof repeatDelay !== "undefined") data.repeatDelay = repeatDelay;
+
+        this.scene.anims.create(data);
+      });
+    }
+    
+    if (this.character.texture.key !== newKey) {
+      this.character.setTexture(newKey);
+    }
+  }
 
   public async playAnimation(key: string, time?: number): Promise<void> {
     return new Promise((resolve) => {
@@ -87,6 +121,7 @@ export class Character extends Phaser.GameObjects.Container {
         resolve();
         return;
       }
+      this.character.setVisible(true);
       this.character.play(animationName);
 
       const anim = scene.anims.get(animationName);

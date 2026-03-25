@@ -1,0 +1,69 @@
+{
+  "key": "pet_room",
+  "animations": [
+    {
+      "prefix": "background",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "back-0",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "back-1",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "back-2",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "back-3",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "back-4",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "empty",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "recorder",
+      "qty": 12,
+      "freq": 8,
+      "repeat": -1
+    },
+    {
+      "prefix": "window",
+      "qty": 9,
+      "freq": 4,
+      "repeat": -1
+    }
+  ],
+  "background": "background",
+  "back": "empty",
+  "front": "empty",
+  "extras": [
+    {
+      "animation": "window",
+      "x": 44,
+      "y": -4
+    }
+  ]
+}

@@ -24,23 +24,19 @@ export class Property {
   init() {
     const { watch } = this.config;
 
+    // init basic sprites early so they exist
+    this.initBasicSprites();
+
     // set watch state
     this.watchState = store<number>(`${this.ipId}.${watch}`);
-    this.watchState?.watch(this.handleRenderPropertyByWatchedState);
-
-    // init animations
-    this.initAnimations();
-
-    // init basic sprites
-    this.initBasicSprites();
+    this.watchState?.watch((val) => this.handleRenderPropertyByWatchedState(val));
 
     // render first
     const value = this.watchState?.get() || 0;
     this.handleRenderPropertyByWatchedState(value);
   }
 
-  private initAnimations = () => {
-    const { key, animations } = this.config || {};
+  private initAnimations = (key: string, animations: any[]) => {
     if (animations) {
       animations.forEach((_ani: TAnimation) => {
         if (!_ani) return;
@@ -81,22 +77,52 @@ export class Property {
     this.front.setDepth(100);
   };
 
-  private handleRenderPropertyByWatchedState = (value: number) => {
+  private async handleRenderPropertyByWatchedState(value: number) {
     if (!this.config || !this.config.list) return;
 
     const { list } = this.config;
-    const current = list[value];
+    const current = list.find((item: any) => item.value === value) || list[list.length - 1];
     if (!current) return;
 
-    const { background, back, front, extras } = current;
-    this.back?.play(`${this.config.key}_${back}`);
-    this.front?.play(`${this.config.key}_${front}`);
-    this.background?.play(`${this.config.key}_${background}`);
+    const { configFile } = current;
 
-    this.handleRenderExtras(extras);
-  };
+    let roomData = current;
 
-  private handleRenderExtras = (newextras?: any[]) => {
+    if (configFile) {
+      if (!this.scene.cache.json.exists(configFile)) {
+        await new Promise<void>((resolve) => {
+          this.scene.load.json(configFile, `assets/${configFile}`);
+          this.scene.load.once(`filecomplete-json-${configFile}`, () => {
+            resolve();
+          });
+          this.scene.load.start();
+        });
+      }
+      const loadedData = this.scene.cache.json.get(configFile);
+      if (loadedData) {
+        roomData = loadedData;
+      }
+    }
+
+    this.renderRoomData(roomData);
+  }
+
+  private renderRoomData(data: any) {
+    const { background, back, front, extras, key, animations } = data;
+    const assetKey = key || this.config.key;
+
+    if (animations) {
+      this.initAnimations(assetKey, animations);
+    }
+
+    this.back?.play(`${assetKey}_${back}`);
+    this.front?.play(`${assetKey}_${front}`);
+    this.background?.play(`${assetKey}_${background}`);
+
+    this.handleRenderExtras(assetKey, extras);
+  }
+
+  private handleRenderExtras = (assetKey: string, newextras?: any[]) => {
     if (!newextras) return;
 
     if (this.extras.length !== 0) {
@@ -112,7 +138,7 @@ export class Property {
         .setOrigin(0)
         .setPosition(x, y)
         .setDepth(depth)
-        .play(`${this.config.key}_${animation}`);
+        .play(`${assetKey}_${animation}`);
 
       this.extras.push(current);
     });

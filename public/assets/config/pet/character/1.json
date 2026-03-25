@@ -1,0 +1,893 @@
+{
+  "animations": [
+    {
+      "prefix": "face-normal",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "face-angry",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "face-sad",
+      "qty": 1,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "revive",
+      "qty": 7,
+      "freq": 8,
+      "repeat": 0
+    },
+    {
+      "prefix": "egg",
+      "qty": 2,
+      "freq": 1,
+      "repeat": 0
+    },
+    {
+      "prefix": "walk-left",
+      "qty": 6,
+      "freq": 8,
+      "repeat": 4
+    },
+    {
+      "prefix": "walk-right",
+      "qty": 6,
+      "freq": 8,
+      "repeat": 4
+    },
+    {
+      "prefix": "drink",
+      "qty": 7,
+      "freq": 4,
+      "repeat": 0,
+      "repeat_delay": 1000
+    },
+    {
+      "prefix": "write",
+      "qty": 13,
+      "freq": 8,
+      "repeat": 0,
+      "repeat_delay": 1000
+    },
+    {
+      "prefix": "lay-down",
+      "qty": 5,
+      "freq": 8,
+      "repeat": 0
+    },
+    {
+      "prefix": "wake-up",
+      "qty": 5,
+      "freq": 8,
+      "repeat": 0
+    },
+    {
+      "prefix": "sleep",
+      "qty": 5,
+      "freq": 2,
+      "repeat": 0
+    },
+    {
+      "prefix": "idle-left",
+      "qty": 2,
+      "freq": 1,
+      "repeat": 1
+    },
+    {
+      "prefix": "idle-right",
+      "qty": 2,
+      "freq": 1,
+      "repeat": 1
+    },
+    {
+      "prefix": "stare-left",
+      "qty": 6,
+      "freq": 4,
+      "repeat": 0
+    },
+    {
+      "prefix": "stare-right",
+      "qty": 6,
+      "freq": 4,
+      "repeat": 0
+    },
+    {
+      "prefix": "wink-left",
+      "qty": 3,
+      "freq": 4,
+      "repeat": 0
+    },
+    {
+      "prefix": "wink-right",
+      "qty": 3,
+      "freq": 4,
+      "repeat": 0
+    }
+  ],
+  "idleActions": {
+    "idle-left": {
+      "animationSet": {
+        "default": [
+          "idle-left"
+        ],
+        "status:normal": [
+          "idle-left"
+        ],
+        "status:sleep": [
+          "sleep"
+        ],
+        "status:death": [
+          "egg"
+        ]
+      },
+      "priority": 5,
+      "direction": "left"
+    },
+    "idle-right": {
+      "animationSet": {
+        "default": [
+          "idle-right"
+        ],
+        "status:normal": [
+          "idle-right"
+        ],
+        "status:sleep": [
+          "sleep"
+        ],
+        "status:death": [
+          "egg"
+        ]
+      },
+      "priority": 5,
+      "direction": "right"
+    },
+    "stare-left": {
+      "animationSet": {
+        "default": [
+          "stare-left"
+        ],
+        "status:normal": [
+          "stare-left"
+        ],
+        "status:sleep": [
+          "sleep"
+        ],
+        "status:death": [
+          "egg"
+        ]
+      },
+      "priority": 2,
+      "direction": "left"
+    },
+    "stare-right": {
+      "animationSet": {
+        "default": [
+          "stare-right"
+        ],
+        "status:normal": [
+          "stare-right"
+        ],
+        "status:sleep": [
+          "sleep"
+        ],
+        "status:death": [
+          "egg"
+        ]
+      },
+      "priority": 2,
+      "direction": "left"
+    },
+    "walk-left": {
+      "animationSet": {
+        "default": [
+          "walk-left"
+        ],
+        "status:normal": [
+          "walk-left"
+        ],
+        "status:sleep": [
+          "sleep"
+        ],
+        "status:death": [
+          "egg"
+        ]
+      },
+      "priority": 5,
+      "isMoving": {
+        "default": true,
+        "status:normal": true,
+        "status:sleep": false,
+        "status:death": false
+      },
+      "direction": "left"
+    },
+    "walk-right": {
+      "animationSet": {
+        "default": [
+          "walk-right"
+        ],
+        "status:normal": [
+          "walk-right"
+        ],
+        "status:sleep": [
+          "sleep"
+        ],
+        "status:death": [
+          "egg"
+        ]
+      },
+      "priority": 5,
+      "isMoving": {
+        "default": true,
+        "status:normal": true,
+        "status:sleep": false,
+        "status:death": false
+      },
+      "direction": "right"
+    },
+    "wink-left": {
+      "animationSet": {
+        "default": [
+          "wink-left"
+        ],
+        "status:normal": [
+          "wink-left"
+        ],
+        "status:sleep": [
+          "sleep"
+        ],
+        "status:death": [
+          "egg"
+        ]
+      },
+      "priority": 4,
+      "direction": "left"
+    },
+    "wink-right": {
+      "animationSet": {
+        "default": [
+          "wink-right"
+        ],
+        "status:normal": [
+          "wink-right"
+        ],
+        "status:sleep": [
+          "sleep"
+        ],
+        "status:death": [
+          "egg"
+        ]
+      },
+      "priority": 4,
+      "direction": "right"
+    }
+  },
+  "actions": {
+    "drink": {
+      "action": "drink",
+      "animationSet": {
+        "default": [
+          "drink"
+        ],
+        "status:normal": [
+          "drink"
+        ],
+        "status:sleep": [
+          "wake-up",
+          "drink",
+          "lay-down"
+        ],
+        "status:death": [
+          "egg"
+        ]
+      },
+      "user": "system",
+      "effect": {
+        "hp": {
+          "method": "add",
+          "value": 10
+        },
+        "coin": {
+          "method": "add",
+          "value": 10
+        }
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-normal",
+              "text": "感謝 {{user}} 兌換\n補充喝水，為AFK增加了 10 點生命！"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    },
+    "write": {
+      "action": "write",
+      "animationSet": {
+        "default": [
+          "write"
+        ],
+        "status:sleep": [
+          "wake-up",
+          "write",
+          "lay-down"
+        ]
+      },
+      "user": "system",
+      "effect": {
+        "hp": {
+          "method": "add",
+          "value": 10
+        },
+        "coin": {
+          "method": "add",
+          "value": 1
+        }
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-sad",
+              "text": "感謝 {{user}} 兌換\n提醒存檔，為AFK增加了 10 點生命！"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    },
+    "sleep": {
+      "action": "sleep",
+      "animationSet": {
+        "default": [
+          "lay-down"
+        ],
+        "status:normal": [
+          "lay-down"
+        ],
+        "status:sleep": [
+          "wake-up"
+        ],
+        "status:death": [
+          "egg"
+        ]
+      },
+      "user": "system",
+      "effect": {
+        "status": {
+          "method": "set",
+          "value": "sleep"
+        }
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-normal",
+              "text": "休息一下"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    },
+    "awake": {
+      "action": "awake",
+      "animationSet": {
+        "default": [
+          "wake-up"
+        ],
+        "status:normal": [
+          "wake-up"
+        ],
+        "status:sleep": [
+          "wake-up"
+        ],
+        "status:death": [
+          "egg"
+        ]
+      },
+      "user": "system",
+      "effect": {
+        "status": {
+          "method": "set",
+          "value": "normal"
+        }
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-normal",
+              "text": "起床了"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    },
+    "reward": {
+      "action": "reward",
+      "user": "system",
+      "animationSet": {
+        "default": [
+          "idle-left",
+          "idle-right"
+        ]
+      },
+      "auto": true,
+      "condition": {
+        "win": {
+          "op": "==",
+          "value": 1
+        }
+      },
+      "effect": {
+        "coin": {
+          "method": "add",
+          "value": 50
+        },
+        "win": {
+          "method": "set",
+          "value": 0
+        }
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-normal",
+              "text": "我贏了！\n賺到 {{coin}} 元零用錢！"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    },
+    "lose": {
+      "action": "lose",
+      "animationSet": {
+        "default": [
+          "idle-left",
+          "idle-right"
+        ]
+      },
+      "auto": true,
+      "condition": {
+        "win": {
+          "op": "==",
+          "value": -1
+        }
+      },
+      "effect": {
+        "coin": {
+          "method": "sub",
+          "value": 20
+        },
+        "win": {
+          "method": "set",
+          "value": 0
+        }
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-sad",
+              "text": "我輸了！\n損失 {{coin}} 元零用錢！"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    },
+    "lock": {
+      "action": "lock",
+      "animationSet": {
+        "default": [
+          "egg"
+        ]
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-normal",
+              "text": "我已經死了什麼都不能做！"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    },
+    "clean": {
+      "action": "clean",
+      "animationSet": {
+        "default": [
+          "revive"
+        ],
+        "status:dirty": [
+          "revive"
+        ],
+        "status:sleep": [
+          "wake-up",
+          "revive",
+          "lay-down"
+        ]
+      },
+      "condition": {
+        "coin": {
+          "op": ">=",
+          "value": 10
+        }
+      },
+      "user": "system",
+      "effect": {
+        "dirty": {
+          "method": "set",
+          "value": 0
+        },
+        "status": {
+          "method": "set",
+          "value": "normal"
+        },
+        "coin": {
+          "method": "sub",
+          "value": 10
+        }
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-normal",
+              "text": "洗澡！\n花了 10 元，變回乾淨了！"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    }
+  },
+  "autoActions": {
+    "die": {
+      "action": "die",
+      "animationSet": {
+        "default": [
+          "lay-down"
+        ]
+      },
+      "condition": {
+        "hp": {
+          "op": "<=",
+          "value": 0
+        },
+        "status": {
+          "op": "==",
+          "value": "normal"
+        }
+      },
+      "effect": {
+        "coin": {
+          "method": "sub",
+          "value": 10
+        },
+        "status": {
+          "method": "set",
+          "value": "death"
+        }
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-sad",
+              "text": "死了...\n損失 {{coin}} 元零用錢！"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    },
+    "revive": {
+      "action": "revive",
+      "animationSet": {
+        "default": [
+          "revive"
+        ]
+      },
+      "condition": {
+        "hp": {
+          "op": ">=",
+          "value": 100
+        },
+        "status": {
+          "op": "==",
+          "value": "death"
+        }
+      },
+      "effect": {
+        "status": {
+          "method": "set",
+          "value": "normal"
+        }
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-normal",
+              "text": "復活"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    },
+    "buyLv1": {
+      "action": "buyLv1",
+      "animationSet": {
+        "default": [
+          "idle-left",
+          "idle-right"
+        ]
+      },
+      "condition": {
+        "coin": {
+          "op": ">=",
+          "value": 100
+        },
+        "level": {
+          "op": "==",
+          "value": 0
+        },
+        "status": {
+          "op": "==",
+          "value": "normal"
+        }
+      },
+      "effect": {
+        "level": {
+          "method": "set",
+          "value": 1
+        },
+        "coin": {
+          "method": "sub",
+          "value": 100
+        }
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-normal",
+              "text": "花了{{coin}}塊錢！\n買買買"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    },
+    "buyLv2": {
+      "action": "buyLv2",
+      "animationSet": {
+        "default": [
+          "idle-left",
+          "idle-right"
+        ]
+      },
+      "condition": {
+        "coin": {
+          "op": ">=",
+          "value": 150
+        },
+        "level": {
+          "op": "==",
+          "value": 1
+        },
+        "status": {
+          "op": "==",
+          "value": "normal"
+        }
+      },
+      "effect": {
+        "level": {
+          "method": "set",
+          "value": 2
+        },
+        "coin": {
+          "method": "sub",
+          "value": 150
+        }
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-normal",
+              "text": "花了{{coin}}塊錢！\n買買買！"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    },
+    "buyLv3": {
+      "action": "buyLv3",
+      "animationSet": {
+        "default": [
+          "idle-left",
+          "idle-right"
+        ]
+      },
+      "condition": {
+        "coin": {
+          "op": ">=",
+          "value": 200
+        },
+        "level": {
+          "op": "==",
+          "value": 2
+        },
+        "status": {
+          "op": "==",
+          "value": "normal"
+        }
+      },
+      "effect": {
+        "level": {
+          "method": "set",
+          "value": 3
+        },
+        "coin": {
+          "method": "sub",
+          "value": 200
+        }
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-normal",
+              "text": "花了{{coin}}塊錢！\n買買買！！"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    },
+    "buyLv4": {
+      "action": "buyLv4",
+      "animationSet": {
+        "default": [
+          "idle-left",
+          "idle-right"
+        ]
+      },
+      "condition": {
+        "coin": {
+          "op": ">=",
+          "value": 250
+        },
+        "level": {
+          "op": "==",
+          "value": 3
+        },
+        "status": {
+          "op": "==",
+          "value": "normal"
+        }
+      },
+      "effect": {
+        "level": {
+          "method": "set",
+          "value": 4
+        },
+        "coin": {
+          "method": "sub",
+          "value": 250
+        }
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-normal",
+              "text": "花了{{coin}}塊錢！\n買買買！！！！"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    },
+    "buyLv5": {
+      "action": "buyLv5",
+      "animationSet": {
+        "default": [
+          "idle-left",
+          "idle-right"
+        ]
+      },
+      "condition": {
+        "coin": {
+          "op": ">=",
+          "value": 300
+        },
+        "level": {
+          "op": "==",
+          "value": 4
+        },
+        "status": {
+          "op": "==",
+          "value": "normal"
+        }
+      },
+      "effect": {
+        "level": {
+          "method": "set",
+          "value": 5
+        },
+        "coin": {
+          "method": "sub",
+          "value": 300
+        }
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-normal",
+              "text": "花了{{coin}}塊錢！\n全部買光光！"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    },
+    "becomeDirty": {
+      "action": "becomeDirty",
+      "animationSet": {
+        "default": [
+          "lay-down"
+        ]
+      },
+      "condition": {
+        "dirty": {
+          "op": ">=",
+          "value": 100
+        },
+        "status": {
+          "op": "==",
+          "value": "normal"
+        }
+      },
+      "effect": {
+        "status": {
+          "method": "set",
+          "value": "dirty"
+        }
+      },
+      "dialogues": [
+        {
+          "sentences": [
+            {
+              "portrait": "face-sad",
+              "text": "太髒了...\n停止賺錢直到清潔！"
+            }
+          ],
+          "priority": 2
+        }
+      ]
+    }
+  }
+}

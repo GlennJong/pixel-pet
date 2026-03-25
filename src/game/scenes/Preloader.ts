@@ -8,9 +8,18 @@ export class Preloader extends Scene {
 
   private getConfigsFiles(ipId: string) {
     return [
-      { key: "ui", filename: "ui.config.json" },
-      { key: "mapping", filename: "mapping.config.json" },
-      { key: `config_${ipId}_assets`, filename: `config/${ipId}/assets.json` },
+      {
+        key: "ui",
+        filename: "ui.config.json"
+      },
+      {
+        key: "mapping",
+        filename: "mapping.config.json"
+      },
+      {
+        key: `config_${ipId}_assets`,
+        filename: `config/${ipId}/assets.json`
+      },
       {
         key: `config_${ipId}_resources`,
         filename: `config/${ipId}/resources.json`,
@@ -19,12 +28,18 @@ export class Preloader extends Scene {
         key: `config_${ipId}_statuses`,
         filename: `config/${ipId}/statuses.json`,
       },
-      { key: `config_${ipId}_header`, filename: `config/${ipId}/header.json` },
+      {
+        key: `config_${ipId}_header`,
+        filename: `config/${ipId}/header.json`
+      },
       {
         key: `config_${ipId}_mycharacter`,
         filename: `config/${ipId}/character.json`,
       },
-      { key: `config_${ipId}_room`, filename: `config/${ipId}/room.json` },
+      {
+        key: `config_${ipId}_room`,
+        filename: `config/${ipId}/room.json`
+      },
     ];
   }
 

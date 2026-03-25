@@ -6,6 +6,7 @@ import { Character } from "@/game/components/Character";
 // utils
 import { selectFromPriority } from "@/game/utils/selectFromPriority";
 import { ConfigManager } from "@/game/managers/ConfigManagers";
+import { store, Store } from "@/game/store";
 import { getValueFromColonStoreState } from "@/game/store/helper";
 import { GAME_CONFIG } from "@/game/config";
 import {
@@ -16,13 +17,15 @@ import {
 } from "../types";
 
 export class PetCharacter extends Character {
-  private state: PetState = PetState.IDLE;
+  private petState: PetState = PetState.IDLE;
   private isStarted: boolean = false;
 
   private idleActions: Record<string, IdleActionConfig>;
   private spaceEdge: { from: number; to: number };
   private direction: TDirection = "left";
   private isInterrupted: boolean = false;
+  private watchState?: Store<number>;
+  private config: any;
 
   public activities: Record<string, ActionConfig>;
 
@@ -37,21 +40,90 @@ export class PetCharacter extends Character {
       animations: config.animations,
     });
 
+    this.config = config;
     this.character.setDepth(2);
 
     // actions
-    this.idleActions = config.idleActions;
-    this.activities = config.activities;
+    this.idleActions = this.config.idleActions;
+    this.activities = this.config.activities;
 
     // define moving limitation
     this.spaceEdge = GAME_CONFIG.PET.DEFAULT_POSITION.edge;
+
+    // Listen to store if config has watch field
+    if (this.config.watch) {
+      this.watchState = store<number>(`${ipId}.${this.config.watch}`);
+      this.watchState?.watch((val) => this.handleCharacterByWatchedState(val));
+      this.handleCharacterByWatchedState(this.watchState?.get() || 0);
+    }
 
     // default animation
     this.handleAutomaticAction();
   }
 
+  private async handleCharacterByWatchedState(value: number) {
+    if (!this.config || !this.config.list) return;
+
+    const { list } = this.config;
+    // 尋找對應 value 的設定，如果沒有，退而求其次找最後一個或是 default
+    const current = list.find((item: any) => item.value === value) || list[list.length - 1];
+    if (!current) return;
+
+    const { key, configFile } = current;
+    
+    if (configFile) {
+      const loader = new Phaser.Loader.LoaderPlugin(this.scene);
+      
+      // 動態載入角色的專屬設定檔
+      if (!this.scene.cache.json.exists(configFile)) {
+        await new Promise<void>((resolve) => {
+          this.scene.load.json(configFile, `assets/${configFile}`);
+          this.scene.load.once(`filecomplete-json-${configFile}`, () => {
+            resolve();
+          });
+          this.scene.load.start();
+        });
+      }
+
+      const characterData = this.scene.cache.json.get(configFile);
+      if (characterData) {
+        // 更新動作與行為綁定
+        if (characterData.idleActions) this.idleActions = characterData.idleActions;
+        if (characterData.activities) this.activities = characterData.activities;
+        
+        // 切換資源外觀與動畫
+        if (key) {
+          this.changeTextureKey(key, characterData.animations);
+        }
+        
+        // 重新讀取配置到實體內
+        ConfigManager.getInstance().get(`${ConfigManager.getInstance().getIpId()}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`).activities = this.activities;
+        ConfigManager.getInstance().get(`${ConfigManager.getInstance().getIpId()}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`).idleActions = this.idleActions;
+
+
+        // Let it switch state nicely when the skin changes
+        if (this.isStarted) {
+          this.interrupt();
+        } else {
+          // If the game hasn't "started" in the context of actions (but might physically exist), trigger start
+          this.isStarted = true;
+          this.handleDefaultIdleAction();
+        }
+      }
+    } else if (key) {
+      // 兼容舊格式直接換 key
+      this.changeTextureKey(key, this.config.animations);
+      if (this.isStarted) {
+        this.interrupt();
+      } else {
+        this.isStarted = true;
+        this.handleDefaultIdleAction();
+      }
+    }
+  };
+
   private handleDefaultIdleAction() {
-    if (this.state !== PetState.IDLE) return;
+    if (this.petState !== PetState.IDLE) return;
     const defaultKey = `${GAME_CONFIG.PET.IDLE_PREFIX}-${this.direction}`;
     const actionConfig = this.idleActions[defaultKey];
 
@@ -69,11 +141,15 @@ export class PetCharacter extends Character {
   }
 
   private async handleAutomaticAction() {
-    if (this.state !== PetState.IDLE) return;
+    if (this.petState !== PetState.IDLE) return;
+    if (!this.idleActions || Object.keys(this.idleActions).length === 0) return;
 
     // Idle
     const currentAction =
       selectFromPriority<IdleActionConfig>(this.idleActions);
+    
+    if (!currentAction) return;
+
     const currentAnimation = getValueFromColonStoreState(
       currentAction.animationSet,
     );
@@ -88,10 +164,10 @@ export class PetCharacter extends Character {
     if (isMoving) {
       this.handleMoveDirection(currentAnimation);
     } else {
-      this.state = PetState.ACTING;
+      this.petState = PetState.ACTING;
       await this.playAnimationSet(currentAnimation);
       if (this.isInterrupted) return;
-      this.state = PetState.IDLE;
+      this.petState = PetState.IDLE;
       this.handleDefaultIdleAction();
     }
   }
@@ -110,17 +186,17 @@ export class PetCharacter extends Character {
 
     if (isMovingDistanceOverEdge) {
       if (this.isInterrupted) return;
-      this.state = PetState.IDLE;
+      this.petState = PetState.IDLE;
       this.handleDefaultIdleAction();
     } else {
-      this.state = PetState.MOVING;
+      this.petState = PetState.MOVING;
       // Note: Character.ts defines TDirection locally, which is compatible with our TDirection
       this.moveDirection(
         this.direction as any,
         GAME_CONFIG.PET.MOVE_DISTANCE,
         () => {
           if (this.isInterrupted) return;
-          this.state = PetState.IDLE;
+          this.petState = PetState.IDLE;
           this.handleDefaultIdleAction();
         },
       );
@@ -131,6 +207,7 @@ export class PetCharacter extends Character {
 
   public startPet() {
     this.isStarted = true;
+    this.handleDefaultIdleAction();
     if (!this.autoActionTimer) {
       this.autoActionTimer = this.scene.time.addEvent({
         delay: GAME_CONFIG.PET.AUTO_ACTION_DURATION,
@@ -148,7 +225,7 @@ export class PetCharacter extends Character {
   }
 
   public async runFunctionalAction(actionKey: string) {
-    if (this.state !== PetState.IDLE) return;
+    if (this.petState !== PetState.IDLE) return;
 
     const ipId = ConfigManager.getInstance().getIpId();
     const actions = ConfigManager.getInstance().get(
@@ -166,10 +243,10 @@ export class PetCharacter extends Character {
 
     const currentAnimationSet = getValueFromColonStoreState(animationSet);
 
-    this.state = PetState.ACTING;
+    this.petState = PetState.ACTING;
     await this.playAnimationSet(currentAnimationSet);
     if (this.isInterrupted) return;
-    this.state = PetState.IDLE;
+    this.petState = PetState.IDLE;
     this.handleDefaultIdleAction();
   }
 
@@ -194,7 +271,7 @@ export class PetCharacter extends Character {
         delay: 50,
         loop: true,
         callback: () => {
-          if (this.state === PetState.IDLE) {
+          if (this.petState === PetState.IDLE) {
             timer.remove();
             resolve();
           }
@@ -206,7 +283,7 @@ export class PetCharacter extends Character {
 
   public interrupt() {
     this.isInterrupted = true;
-    this.state = PetState.IDLE;
+    this.petState = PetState.IDLE;
     this.stopAllActions();
     
     // Reset auto action timer so it doesn't sneak in before emergent tasks start
@@ -229,6 +306,9 @@ export class PetCharacter extends Character {
     if (this.autoActionTimer) {
       this.autoActionTimer.remove();
       this.autoActionTimer = undefined;
+    }
+    if (this.watchState) {
+      this.watchState.unwatchAll();
     }
     super.destroy();
   }
