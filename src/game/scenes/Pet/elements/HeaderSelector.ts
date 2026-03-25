@@ -1,3 +1,4 @@
+import { TAnimation } from "@/game/components/Character";
 import { ConfigManager } from "@/game/managers/ConfigManagers";
 import Phaser from "phaser";
 
@@ -13,8 +14,8 @@ type TOption = {
 
 export class HeaderSelector extends Phaser.GameObjects.Container {
   private config: any;
-  private arrow: Phaser.GameObjects.Sprite;
-  private icon: Phaser.GameObjects.Sprite;
+  private arrow?: Phaser.GameObjects.Sprite;
+  private icon?: Phaser.GameObjects.Sprite;
   private frameName: string;
 
   constructor(scene: Phaser.Scene, option: TOption) {
@@ -25,55 +26,10 @@ export class HeaderSelector extends Phaser.GameObjects.Container {
 
     this.initAnimations();
 
-    const { x, y, key, frame, start, end, freq } = option;
+    const { frame } = option;
 
     // Icon
-    // this.icon = scene.make.sprite({
-    //   key: key,
-    //   frame: `${frame}-default`,
-    //   x: x,
-    //   y: y,
-    // }).setOrigin(0);
-
     this.frameName = frame;
-
-    // Defind Icon Animation
-    // if (!scene.anims.exists(`${frame}_anim`)) {
-    //   scene.anims.create({
-    //     key: `${frame}_anim`,
-    //     frames: scene.anims.generateFrameNames(key, {
-    //       prefix: `${frame}-`,
-    //       start: start,
-    //       end: end,
-    //     }),
-    //     repeat: -1,
-    //     frameRate: freq,
-    //   });
-    // }
-
-    // this.add(this.icon);
-
-    // Arrow
-    // this.arrow = scene.make.sprite({
-    //   key: 'pet_header_icons',
-    //   frame: 'arrow',
-    //   x: x - 12,
-    //   y: y,
-    // }).setOrigin(0);
-
-    // Defind Arrow Animation
-    // scene.tweens.add({
-    //   targets: this.arrow,
-    //   repeat: -1,
-    //   yoyo: true,
-    //   ease: 'linear',
-    //   duration: 500,
-    //   alpha: 0,
-    //   pause: true,
-    // });
-
-    // this.arrow.visible = false;
-    // this.add(this.arrow);
   }
 
   private initAnimations = () => {
@@ -104,18 +60,26 @@ export class HeaderSelector extends Phaser.GameObjects.Container {
   };
 
   public select() {
-    this.arrow.visible = true;
-    this.icon.play(`${this.frameName}_anim`);
+    if (this.arrow) {
+      this.arrow.visible = true;
+    };
+    if (this.icon) {
+      this.icon.play(`${this.frameName}_anim`);
+    };
   }
 
   public unselect() {
-    this.arrow.visible = false;
-    this.icon.anims.complete();
-    this.icon.setFrame(`${this.frameName}-default`);
+    if (this.icon) {
+      this.icon.anims.complete();
+      this.icon.setFrame(`${this.frameName}-default`);
+    };
+    if (this.arrow) {
+      this.arrow.visible = false;
+    };
   }
 
   public destroy() {
-    this.icon.destroy();
-    this.arrow.destroy();
+    if (this.icon) this.icon.destroy();
+    if (this.arrow) this.arrow.destroy();
   }
 }

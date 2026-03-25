@@ -9,6 +9,11 @@ import { TAnimation } from "@/game/components/Character";
 const DEFAULT_WIDTH = 160;
 const DEFAULT_HEIGHT = 25;
 
+type THeaderAnimation = {
+  unselected: string
+  selected: string
+} & TAnimation
+
 // TODO Constant Naming
 export class Header extends Phaser.GameObjects.Container {
   private selectorGroup: any[] = [];
@@ -87,7 +92,7 @@ export class Header extends Phaser.GameObjects.Container {
     const arrowSpace = 12;
     const gap = 8;
     const y = 7;
-    this.config.menu.forEach(({ animation }, i: number) => {
+    this.config.menu.forEach(({ animation }: { animation: THeaderAnimation }, i: number) => {
       const arrow = this.scene.make
         .sprite({
           x: startFrom + gap * i + i * arrowSpace,
@@ -129,7 +134,7 @@ export class Header extends Phaser.GameObjects.Container {
     const startFrom = 80;
     const gap = 24;
     const y = 7;
-    this.config.resources.forEach(({ resource, animation }, i: number) => {
+    this.config.resources.forEach(({ resource, animation }: { resource: string; animation: THeaderAnimation }, i: number) => {
       const icon = new ResourceIcon(this.scene, {
         x: startFrom + gap * i,
         y,

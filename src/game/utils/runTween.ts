@@ -8,7 +8,7 @@ export function runTween<T>(
 ): Promise<void> | undefined {
   const { scene } = obj;
   if (scene) {
-    const data = {
+    const data: Phaser.Types.Tweens.TweenBuilderConfig = {
       targets: obj,
       repeat: 0,
       duration,

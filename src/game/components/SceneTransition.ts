@@ -16,7 +16,7 @@ export async function sceneConverter(
 }
 
 class ScreenTransition extends Phaser.GameObjects.Container {
-  private cover = Phaser.GameObjects.Image;
+  private cover?: Phaser.GameObjects.Image = undefined;
 
   constructor(scene: Phaser.Scene) {
     super(scene);
@@ -32,10 +32,10 @@ class ScreenTransition extends Phaser.GameObjects.Container {
       .setSize(defaultWidth, defaultHeight);
 
     this.cover = cover;
-    // scene.add.existing(this);
   }
 
   public async run() {
+    if (!this.cover) return;
     await runTween(this.cover, { alpha: 1 }, 1000);
     return;
   }

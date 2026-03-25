@@ -72,7 +72,6 @@ export class PetCharacter extends Character {
     const { key, configFile } = current;
     
     if (configFile) {
-      const loader = new Phaser.Loader.LoaderPlugin(this.scene);
       
       // 動態載入角色的專屬設定檔
       if (!this.scene.cache.json.exists(configFile)) {
@@ -252,7 +251,7 @@ export class PetCharacter extends Character {
 
   private async playAnimationSet(
     animationSet: string | string[],
-    canInterrupt = false,
+    _canInterrupt = false,
   ) {
     this.isInterrupted = false;
     const animations = Array.isArray(animationSet)
