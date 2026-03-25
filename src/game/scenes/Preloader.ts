@@ -141,6 +141,9 @@ export class Preloader extends Scene {
     const data = this.cache.json.get("config");
     ConfigManager.getInstance().setConfig(data);
 
+    // Launch Transition Scene on top
+    this.scene.launch("TransitionScene");
+
     // Start First Scene
     this.scene.start("MainScene");
   }

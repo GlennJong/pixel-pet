@@ -87,19 +87,19 @@ export default class PetScene extends Scene {
     EventBus.on("game-left-keydown", () => {
       this.handleControlButton("left");
     }),
-      EventBus.on("game-right-keydown", () =>
-        this.handleControlButton("right"),
-      ),
-      EventBus.on("game-select-keydown", () =>
-        this.handleControlButton("space"),
-      ),
-      // Run opening scene and start pet
-      (async () => {
-        await sceneStarter(this);
-        this.character?.startPet();
-        this.isPetReady = true;
-        setStoreState("global.is_paused", false);
-      })();
+    EventBus.on("game-right-keydown", () =>
+      this.handleControlButton("right"),
+    ),
+    EventBus.on("game-select-keydown", () =>
+      this.handleControlButton("space"),
+    ),
+    // Run opening scene and start pet
+    (async () => {
+      await sceneStarter(this);
+      this.character?.startPet();
+      this.isPetReady = true;
+      setStoreState("global.is_paused", false);
+    })();
 
     this.events.on("shutdown", this.shutdown, this);
   }
