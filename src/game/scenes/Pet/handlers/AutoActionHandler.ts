@@ -1,5 +1,5 @@
 import { ConfigManager } from "@/game/managers/ConfigManagers";
-import { store } from "@/game/store";
+import { store, getStoreState } from "@/game/store";
 import { GAME_CONFIG } from "@/game/config";
 
 export interface AutoActionConfig {
@@ -16,15 +16,45 @@ export class AutoActionHandler {
   private lastTriggeredAction: string | null = null; // Prevent repeated triggers
 
 
+  private levelWatcher?: any;
+
   constructor() {
+    this.setupActions();
+
     const ipId = ConfigManager.getInstance().getIpId();
-    const actions = ConfigManager.getInstance().get(
-      `${ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}.actions`,
+    const config = ConfigManager.getInstance().get(
+      `${ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
     );
+    if (config.watch && config.list) {
+      this.levelWatcher = store<number>(`${ipId}.${config.watch}`);
+      this.levelWatcher.watch(() => {
+        this.reinit();
+      });
+    }
+  }
+
+  private setupActions() {
+    const ipId = ConfigManager.getInstance().getIpId();
+    const config = ConfigManager.getInstance().get(
+      `${ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
+    );
+    let actions: Record<string, any> = {};
+    if (config.watch && config.list) {
+       const level = getStoreState(`${ipId}.${config.watch}`) || 0;
+       const current = config.list.find((l: any) => l.value === level) || config.list[0];
+       actions = current.actions || {};
+    } else {
+       actions = config.actions || {};
+    }
     // Filter out actions that are not set to auto or have no conditions
     this.autoActions = (Object.values(actions) as AutoActionConfig[]).filter(
       (a: any) => a.auto && a.condition,
     );
+  }
+
+  public reinit() {
+    this.setupActions();
+    this.init({ onTrigger: this.onTrigger });
   }
 
   public init({ onTrigger }: { onTrigger?: (action: any) => void }) {

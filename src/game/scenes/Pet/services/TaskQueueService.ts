@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 
-import { store, setStoreState, Store } from "@/game/store";
+import { store, setStoreState, getStoreState, Store } from "@/game/store";
 import { filterFromMatchList } from "@/game/utils/filterFromMatchList";
 
 import { Message, TaskMappingItem, Task } from "./types";
@@ -55,11 +55,20 @@ export class TaskQueueService {
     let updated = false;
     messages.forEach((msg) => {
       const result = filterFromMatchList(msg, this.mappingList);
-      const config = ConfigManager.getInstance().get(`${this.ipId}.mycharacter.actions`);
+      const characterConfig = ConfigManager.getInstance().get(`${this.ipId}.mycharacter`);
+      let actionsConfig: Record<string, any> = {};
+      if (characterConfig.watch && characterConfig.list) {
+        const level = getStoreState(`${this.ipId}.${characterConfig.watch}`) || 0;
+        const current = characterConfig.list.find((l: any) => l.value === level) || characterConfig.list[0];
+        actionsConfig = current.actions || {};
+      } else {
+        actionsConfig = characterConfig.actions || {};
+      }
+      
       if (result) {
         console.log({ result });
 
-        tasks.push({ ...config[result.action], ...msg, ...result });
+        tasks.push({ ...actionsConfig[result.action], ...msg, ...result });
         updated = true;
       }
     });

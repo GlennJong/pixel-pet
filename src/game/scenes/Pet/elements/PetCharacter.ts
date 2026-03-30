@@ -7,6 +7,7 @@ import { Character } from "@/game/components/Character";
 import { selectFromPriority } from "@/game/utils/selectFromPriority";
 import { ConfigManager } from "@/game/managers/ConfigManagers";
 import { getValueFromColonStoreState } from "@/game/store/helper";
+import { store, Store } from "@/game/store";
 import { GAME_CONFIG } from "@/game/config";
 import {
   ActionConfig,
@@ -23,6 +24,7 @@ export class PetCharacter extends Character {
   private spaceEdge: { from: number; to: number };
   private direction: TDirection = "left";
   private isInterrupted: boolean = false;
+  private watchState?: Store<number>;
 
   public activities: Record<string, ActionConfig>;
 
@@ -32,22 +34,75 @@ export class PetCharacter extends Character {
       `${ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
     );
 
+    let initialAnimations = config.animations || [];
+    if (config.watch && config.list && config.list.length > 0) {
+      const level = store<number>(`${ipId}.${config.watch}`).get() || 0;
+      const initialConfig = config.list.find((l: any) => l.value === level) || config.list[0];
+      if (initialConfig.animations) initialAnimations = initialConfig.animations;
+    }
+
     super(scene, GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY, {
       ...GAME_CONFIG.PET.DEFAULT_POSITION,
-      animations: config.animations,
+      animations: initialAnimations,
     });
 
     this.character.setDepth(2);
 
-    // actions
-    this.idleActions = config.idleActions;
-    this.activities = config.activities;
+    // Initial setup (may be instantly overridden by handleCharacterUpgrade)
+    this.idleActions = config.idleActions || {};
+    this.activities = config.activities || {};
 
     // define moving limitation
     this.spaceEdge = GAME_CONFIG.PET.DEFAULT_POSITION.edge;
 
-    // default animation
-    this.handleAutomaticAction();
+    // setup watcher for level or other state based on config (like room.json)
+    if (config.watch && config.list) {
+      this.watchState = store<number>(`${ipId}.${config.watch}`);
+      this.watchState.watch((value: number) => {
+        this.handleCharacterUpgrade(value, config.list);
+      });
+      this.handleCharacterUpgrade(this.watchState.get() || 0, config.list);
+    } else {
+      // default animation
+      this.handleAutomaticAction();
+    }
+  }
+
+  private handleCharacterUpgrade(value: number, list: any[]) {
+    const current = list.find((item: any) => item.value === value) || list[0];
+    if (!current) return;
+    
+    // Register new animations if provided
+    if (current.animations) {
+      current.animations.forEach((animConfig: any) => {
+        const animationName = `${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}_${animConfig.prefix}`;
+        if (this.scene.anims.exists(animationName)) return; // prevent recreate
+
+        const data: Phaser.Types.Animations.Animation = {
+          key: animationName,
+          frames: this.scene.anims.generateFrameNames(GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY, {
+            prefix: `${animConfig.prefix}_`,
+            start: 1,
+            end: animConfig.qty,
+          }),
+          repeat: animConfig.repeat,
+        };
+
+        if (typeof animConfig.freq !== "undefined") data.frameRate = animConfig.freq;
+        if (typeof animConfig.duration !== "undefined") data.duration = animConfig.duration;
+        const repeatDelay = animConfig.repeatDelay ?? animConfig.repeat_delay;
+        if (typeof repeatDelay !== "undefined") data.repeatDelay = repeatDelay;
+
+        this.scene.anims.create(data);
+      });
+    }
+
+    this.idleActions = current.idleActions;
+    this.activities = current.actions;
+
+    // Restart actions to apply new config
+    this.interrupt();
+    this.handleDefaultIdleAction();
   }
 
   private handleDefaultIdleAction() {
@@ -150,12 +205,8 @@ export class PetCharacter extends Character {
   public async runFunctionalAction(actionKey: string) {
     if (this._state !== PetState.IDLE) return;
 
-    const ipId = ConfigManager.getInstance().getIpId();
-    const actions = ConfigManager.getInstance().get(
-      `${ipId}.mycharacter.actions`,
-    ) as Record<string, ActionConfig>;
-
-    const action = actions[actionKey];
+    if (!this.activities) return;
+    const action = this.activities[actionKey];
     if (!action) return;
 
     const { animationSet } = action;
@@ -222,6 +273,9 @@ export class PetCharacter extends Character {
   }
 
   public destroy() {
+    if (this.watchState) {
+      this.watchState.unwatchAll();
+    }
     if (this.autoActionTimer) {
       this.autoActionTimer.remove();
       this.autoActionTimer = undefined;

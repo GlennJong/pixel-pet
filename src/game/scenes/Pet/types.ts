@@ -73,10 +73,16 @@ export interface StatusConfig {
   };
 }
 
-export interface MyCharacterConfig {
+export interface MyCharacterListItem {
+  value: number;
   animations: AnimationItem[];
   idleActions: Record<string, IdleActionConfig>;
   actions: Record<string, ActionConfig>;
+}
+
+export interface MyCharacterConfig {
+  watch: string;
+  list: MyCharacterListItem[];
 }
 
 export interface IdleActionConfig {

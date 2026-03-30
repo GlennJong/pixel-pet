@@ -5,7 +5,7 @@ import {
   sceneConverter,
   sceneStarter,
 } from "@/game/components/CircleSceneTransition";
-import { setStoreState } from "@/game/store";
+import { setStoreState, getStoreState } from "@/game/store";
 import { EventBus } from "@/game/EventBus";
 
 // partial elements
@@ -115,10 +115,21 @@ export default class PetScene extends Scene {
       const action = this.header!.select();
 
       const ipId = ConfigManager.getInstance().getIpId();
-      const task = ConfigManager.getInstance().get(
-        `${ipId}.mycharacter.actions.${action}`,
-      );
-      this.taskQueueService?.addTask(task);
+      const characterConfig = ConfigManager.getInstance().get(`${ipId}.mycharacter`);
+      
+      let actionsConfig: Record<string, any> = {};
+      if (characterConfig.watch && characterConfig.list) {
+        const level = getStoreState(`${ipId}.${characterConfig.watch}`) || 0;
+        const current = characterConfig.list.find((l: any) => l.value === level) || characterConfig.list[0];
+        actionsConfig = current.actions || {};
+      } else {
+        actionsConfig = characterConfig.actions || {};
+      }
+
+      const task = actionsConfig[action];
+      if (task) {
+        this.taskQueueService?.addTask(task);
+      }
     }
   };
 
