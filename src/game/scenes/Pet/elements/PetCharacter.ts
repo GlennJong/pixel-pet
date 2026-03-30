@@ -14,6 +14,8 @@ import {
   IdleActionConfig,
   PetState,
   TDirection,
+  MyCharacterConfig,
+  MyCharacterListItem,
 } from "../types";
 
 export class PetCharacter extends Character {
@@ -30,14 +32,14 @@ export class PetCharacter extends Character {
 
   constructor(scene: Phaser.Scene) {
     const ipId = ConfigManager.getInstance().getIpId();
-    const config = ConfigManager.getInstance().get(
+    const config = ConfigManager.getInstance().get<MyCharacterConfig>(
       `${ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
     );
 
-    let initialAnimations = config.animations || [];
+    let initialAnimations = (config as any).animations || [];
     if (config.watch && config.list && config.list.length > 0) {
-      const level = store<number>(`${ipId}.${config.watch}`).get() || 0;
-      const initialConfig = config.list.find((l: any) => l.value === level) || config.list[0];
+      const level = store<number>(`${ipId}.${config.watch}`)?.get() || 0;
+      const initialConfig = config.list.find((l) => l.value === level) || config.list[0];
       if (initialConfig.animations) initialAnimations = initialConfig.animations;
     }
 
@@ -49,8 +51,8 @@ export class PetCharacter extends Character {
     this.character.setDepth(2);
 
     // Initial setup (may be instantly overridden by handleCharacterUpgrade)
-    this.idleActions = config.idleActions || {};
-    this.activities = config.activities || {};
+    this.idleActions = (config as any).idleActions || {};
+    this.activities = (config as any).activities || {};
 
     // define moving limitation
     this.spaceEdge = GAME_CONFIG.PET.DEFAULT_POSITION.edge;
@@ -58,23 +60,23 @@ export class PetCharacter extends Character {
     // setup watcher for level or other state based on config (like room.json)
     if (config.watch && config.list) {
       this.watchState = store<number>(`${ipId}.${config.watch}`);
-      this.watchState.watch((value: number) => {
+      this.watchState?.watch((value: number) => {
         this.handleCharacterUpgrade(value, config.list);
       });
-      this.handleCharacterUpgrade(this.watchState.get() || 0, config.list);
+      this.handleCharacterUpgrade(this.watchState?.get() || 0, config.list);
     } else {
       // default animation
       this.handleAutomaticAction();
     }
   }
 
-  private handleCharacterUpgrade(value: number, list: any[]) {
-    const current = list.find((item: any) => item.value === value) || list[0];
+  private handleCharacterUpgrade(value: number, list: MyCharacterListItem[]) {
+    const current = list.find((item) => item.value === value) || list[0];
     if (!current) return;
     
     // Register new animations if provided
     if (current.animations) {
-      current.animations.forEach((animConfig: any) => {
+      current.animations.forEach((animConfig) => {
         const animationName = `${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}_${animConfig.prefix}`;
         if (this.scene.anims.exists(animationName)) return; // prevent recreate
 

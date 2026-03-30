@@ -1,5 +1,5 @@
 import { ConfigManager } from "@/game/managers/ConfigManagers";
-import { store, getStoreState } from "@/game/store";
+import { store, getStoreState, Store } from "@/game/store";
 import { GAME_CONFIG } from "@/game/config";
 
 export interface AutoActionConfig {
@@ -16,7 +16,7 @@ export class AutoActionHandler {
   private lastTriggeredAction: string | null = null; // Prevent repeated triggers
 
 
-  private levelWatcher?: any;
+  private levelWatcher?: Store<number>;
 
   constructor() {
     this.setupActions();
@@ -27,7 +27,7 @@ export class AutoActionHandler {
     );
     if (config.watch && config.list) {
       this.levelWatcher = store<number>(`${ipId}.${config.watch}`);
-      this.levelWatcher.watch(() => {
+      this.levelWatcher?.watch(() => {
         this.reinit();
       });
     }
