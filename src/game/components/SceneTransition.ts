@@ -16,7 +16,7 @@ export async function sceneConverter(
 }
 
 class ScreenTransition extends Phaser.GameObjects.Container {
-  private cover = Phaser.GameObjects.Image;
+  private cover: Phaser.GameObjects.Image;
 
   constructor(scene: Phaser.Scene) {
     super(scene);

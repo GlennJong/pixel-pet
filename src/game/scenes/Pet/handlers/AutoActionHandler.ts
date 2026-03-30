@@ -22,7 +22,7 @@ export class AutoActionHandler {
       `${ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}.actions`,
     );
     // Filter out actions that are not set to auto or have no conditions
-    this.autoActions = Object.values(actions).filter(
+    this.autoActions = (Object.values(actions) as AutoActionConfig[]).filter(
       (a: any) => a.auto && a.condition,
     );
   }

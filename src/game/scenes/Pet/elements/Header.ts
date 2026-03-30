@@ -14,7 +14,7 @@ export class Header extends Phaser.GameObjects.Container {
   private resourceGroup: any[] = [];
   private current = 0;
 
-  private config;
+  private config: import("../types").HeaderConfig;
 
   private background?: Phaser.GameObjects.NineSlice;
   private timer: number | undefined;
@@ -39,7 +39,7 @@ export class Header extends Phaser.GameObjects.Container {
   private initAnimations = () => {
     const { key, animations } = this.config;
     if (animations) {
-      animations.forEach((_ani: TAnimation) => {
+      animations.forEach((_ani: import("../types").AnimationItem) => {
         const animationName = `${key}_${_ani.prefix}`;
         if (this.scene.anims.exists(animationName)) return; // prevent recreate after change scene.
 

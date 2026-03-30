@@ -51,6 +51,7 @@ export interface AnimationItem {
   prefix: string;
   qty: number;
   freq: number;
+  duration?: number;
   repeat: number;
   repeatDelay?: number;
   repeat_delay?: number;

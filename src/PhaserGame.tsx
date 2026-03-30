@@ -31,7 +31,7 @@ export const PhaserGame = () => {
       if (gameRef.current) {
         // 取得目前 active scene
         const sceneManager = gameRef.current.scene;
-        sceneManager.getScenes(true).forEach((scene: Phaser.Scene) => {
+        sceneManager.getScenes(true).forEach((scene: any) => {
           if (typeof scene.shutdown === "function") {
             scene.shutdown();
           }

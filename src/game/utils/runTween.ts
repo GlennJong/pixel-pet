@@ -8,7 +8,7 @@ export function runTween<T>(
 ): Promise<void> | undefined {
   const { scene } = obj;
   if (scene) {
-    const data = {
+    const data: any = {
       targets: obj,
       repeat: 0,
       duration,

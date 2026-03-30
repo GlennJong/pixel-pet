@@ -114,7 +114,7 @@ export class PrimaryDialogue extends Phaser.GameObjects.Container {
   private currentLetterIndex: number = 0;
   private letterDisplaySpeed = DEFAULT_LETTER_DISPLAY_SPEED;
   private autoPageSwitchDelay = DEFAULT_AUTO_PAGE_SWITCH_DELAY;
-  private dialogueFinishedTypingCurrentPage = false;
+
   private resolvePromise: ((value?: unknown) => void) | null = null;
 
   private setPortrait = (portrait: string) => {
@@ -227,7 +227,6 @@ export class PrimaryDialogue extends Phaser.GameObjects.Container {
     this.currentDialogueSegment = this.dialoguePages[this.currentPageIndex];
     this.currentLetterIndex = 0;
     this.textbox!.setText("");
-    this.dialogueFinishedTypingCurrentPage = false;
 
     this.dialogueTimer = this.scene.time.addEvent({
       delay: this.letterDisplaySpeed,
@@ -245,7 +244,6 @@ export class PrimaryDialogue extends Phaser.GameObjects.Container {
       this.currentLetterIndex++;
     } else {
       this.dialogueTimer!.remove();
-      this.dialogueFinishedTypingCurrentPage = true;
 
       if (this.autoPageSwitchDelay === 0) return; // 新增的判斷，如果延遲為0則不自動換頁
 

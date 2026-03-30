@@ -10,8 +10,11 @@ export type Message = {
 export type Task = {
   user: string;
   action: string;
-  params: UserParams &
+  params?: UserParams &
     AwardParams & { [key: string]: string | number };
+  effect?: any;
+  dialogues?: any;
+  move?: any;
   callback?: () => void;
 };
 

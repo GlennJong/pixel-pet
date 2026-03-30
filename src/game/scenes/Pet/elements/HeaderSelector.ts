@@ -13,8 +13,8 @@ type TOption = {
 
 export class HeaderSelector extends Phaser.GameObjects.Container {
   private config: any;
-  private arrow: Phaser.GameObjects.Sprite;
-  private icon: Phaser.GameObjects.Sprite;
+  private arrow!: Phaser.GameObjects.Sprite;
+  private icon!: Phaser.GameObjects.Sprite;
   private frameName: string;
 
   constructor(scene: Phaser.Scene, option: TOption) {
@@ -25,7 +25,7 @@ export class HeaderSelector extends Phaser.GameObjects.Container {
 
     this.initAnimations();
 
-    const { x, y, key, frame, start, end, freq } = option;
+    const { frame } = option;
 
     // Icon
     // this.icon = scene.make.sprite({
@@ -79,7 +79,7 @@ export class HeaderSelector extends Phaser.GameObjects.Container {
   private initAnimations = () => {
     const { key, animations } = this.config;
     if (animations) {
-      animations.forEach((_ani: TAnimation) => {
+      animations.forEach((_ani: import("../types").AnimationItem) => {
         const animationName = `${key}_${_ani.prefix}`;
         if (this.scene.anims.exists(animationName)) return; // prevent recreate after change scene.
 

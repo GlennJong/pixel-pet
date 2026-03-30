@@ -5,7 +5,7 @@ function Connects() {
     useTwitchOauth();
 
   const handleClickConnectTwitchWs = () => {
-    startWebsocket();
+    startWebsocket("chat");
   };
 
   console.log({ messages });

@@ -16,7 +16,7 @@ import {
 } from "../types";
 
 export class PetCharacter extends Character {
-  private state: PetState = PetState.IDLE;
+  private _state: PetState = PetState.IDLE;
   private isStarted: boolean = false;
 
   private idleActions: Record<string, IdleActionConfig>;
@@ -51,7 +51,7 @@ export class PetCharacter extends Character {
   }
 
   private handleDefaultIdleAction() {
-    if (this.state !== PetState.IDLE) return;
+    if (this._state !== PetState.IDLE) return;
     const defaultKey = `${GAME_CONFIG.PET.IDLE_PREFIX}-${this.direction}`;
     const actionConfig = this.idleActions[defaultKey];
 
@@ -69,7 +69,7 @@ export class PetCharacter extends Character {
   }
 
   private async handleAutomaticAction() {
-    if (this.state !== PetState.IDLE) return;
+    if (this._state !== PetState.IDLE) return;
 
     // Idle
     const currentAction =
@@ -88,10 +88,10 @@ export class PetCharacter extends Character {
     if (isMoving) {
       this.handleMoveDirection(currentAnimation);
     } else {
-      this.state = PetState.ACTING;
+      this._state = PetState.ACTING;
       await this.playAnimationSet(currentAnimation);
       if (this.isInterrupted) return;
-      this.state = PetState.IDLE;
+      this._state = PetState.IDLE;
       this.handleDefaultIdleAction();
     }
   }
@@ -110,17 +110,17 @@ export class PetCharacter extends Character {
 
     if (isMovingDistanceOverEdge) {
       if (this.isInterrupted) return;
-      this.state = PetState.IDLE;
+      this._state = PetState.IDLE;
       this.handleDefaultIdleAction();
     } else {
-      this.state = PetState.MOVING;
+      this._state = PetState.MOVING;
       // Note: Character.ts defines TDirection locally, which is compatible with our TDirection
       this.moveDirection(
         this.direction as any,
         GAME_CONFIG.PET.MOVE_DISTANCE,
         () => {
           if (this.isInterrupted) return;
-          this.state = PetState.IDLE;
+          this._state = PetState.IDLE;
           this.handleDefaultIdleAction();
         },
       );
@@ -148,7 +148,7 @@ export class PetCharacter extends Character {
   }
 
   public async runFunctionalAction(actionKey: string) {
-    if (this.state !== PetState.IDLE) return;
+    if (this._state !== PetState.IDLE) return;
 
     const ipId = ConfigManager.getInstance().getIpId();
     const actions = ConfigManager.getInstance().get(
@@ -162,16 +162,16 @@ export class PetCharacter extends Character {
 
     const currentAnimationSet = getValueFromColonStoreState(animationSet);
 
-    this.state = PetState.ACTING;
+    this._state = PetState.ACTING;
     await this.playAnimationSet(currentAnimationSet);
     if (this.isInterrupted) return;
-    this.state = PetState.IDLE;
+    this._state = PetState.IDLE;
     this.handleDefaultIdleAction();
   }
 
   private async playAnimationSet(
     animationSet: string | string[],
-    canInterrupt = false,
+
   ) {
     this.isInterrupted = false;
     const animations = Array.isArray(animationSet)
@@ -190,7 +190,7 @@ export class PetCharacter extends Character {
         delay: 50,
         loop: true,
         callback: () => {
-          if (this.state === PetState.IDLE) {
+          if (this._state === PetState.IDLE) {
             timer.remove();
             resolve();
           }
@@ -202,7 +202,7 @@ export class PetCharacter extends Character {
 
   public interrupt() {
     this.isInterrupted = true;
-    this.state = PetState.IDLE;
+    this._state = PetState.IDLE;
     this.stopAllActions();
     
     // Reset auto action timer so it doesn't sneak in before emergent tasks start

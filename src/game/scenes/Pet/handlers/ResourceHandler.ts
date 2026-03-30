@@ -15,7 +15,7 @@ export class ResourcesHandler {
     });
   }
 
-  runEffect(effect) {
+  runEffect(effect: any) {
     if (!effect) return;
     this.group.forEach((handler) => {
       handler.runEffect(effect);
