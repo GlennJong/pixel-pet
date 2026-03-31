@@ -96,11 +96,11 @@ function DebugControls() {
     const handleCondition = (val: string) => set({ condition: val } as Record<string, string>);
     const handlePause = (val: boolean) => set({ is_paused: val } as Record<string, boolean>);
 
-    const sHp = store<number>(`pet.hp`);
-    const sLevel = store<number>(`pet.level`);
-    const sCoin = store<number>(`pet.coin`);
-    const sCondition = store<string>(`pet.condition`);
-    const sPause = store<boolean>("global.is_paused");
+    const sHp = store(`pet.hp`);
+    const sLevel = store(`pet.level`);
+    const sCoin = store(`pet.coin`);
+    const sCondition = store(`pet.condition`);
+    const sPause = store("global.is_paused");
 
     if (sHp) sHp.watch(handleHp);
     if (sLevel) sLevel.watch(handleLevel);

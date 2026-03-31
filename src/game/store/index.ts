@@ -1,3 +1,5 @@
+import { GlobalStoreState, KnownStoreKey } from "./types";
+
 type ChangeHandler<T> = (newValue: T, oldValue: T) => void;
 
 export class Store<T> {
@@ -40,7 +42,7 @@ export class Store<T> {
 // 全域 store 管理
 const globalStoreMap = new Map<string, Store<any>>();
 
-export function initStore<T>(key: string, initialValue: T): Store<T> {
+export function initStore<K extends KnownStoreKey>(key: K, initialValue: GlobalStoreState[K]): Store<GlobalStoreState[K]> {
   // Forbid parent name already registered as single state
   for (const existKey of globalStoreMap.keys()) {
     if (existKey !== key && existKey.startsWith(key + ".")) {
@@ -53,14 +55,14 @@ export function initStore<T>(key: string, initialValue: T): Store<T> {
     }
   }
   if (globalStoreMap.has(key)) {
-    return globalStoreMap.get(key) as Store<T>;
+    return globalStoreMap.get(key) as Store<GlobalStoreState[K]>;
   }
-  const store = new Store<T>(initialValue, key);
+  const store = new Store<GlobalStoreState[K]>(initialValue, key);
   globalStoreMap.set(key, store);
   return store;
 }
 
-export function store<T>(key: string): Store<T> | undefined {
+export function store<K extends KnownStoreKey>(key: K): Store<GlobalStoreState[K]> | undefined {
   // Forbid parent name already registered as single state
   for (const existKey of globalStoreMap.keys()) {
     if (key !== existKey && key.startsWith(existKey + ".")) {
@@ -69,7 +71,7 @@ export function store<T>(key: string): Store<T> | undefined {
       );
     }
   }
-  return globalStoreMap.get(key) as Store<T> | undefined;
+  return globalStoreMap.get(key) as Store<GlobalStoreState[K]> | undefined;
 }
 
 // Select a group of store values by key prefix, auto-combine nested objects
@@ -109,7 +111,7 @@ export function getStoreState(groupKey: string): any {
 }
 
 // Set store value by key, forbid parent group key
-export function setStoreState<T>(key: string, value: T): void {
+export function setStoreState<K extends KnownStoreKey>(key: K, value: GlobalStoreState[K]): void {
   // Forbid parent name already registered as single state
   for (const existKey of globalStoreMap.keys()) {
     if (key !== existKey && key.startsWith(existKey + ".")) {
@@ -123,7 +125,7 @@ export function setStoreState<T>(key: string, value: T): void {
       );
     }
   }
-  const storeRef = globalStoreMap.get(key) as Store<T> | undefined;
+  const storeRef = globalStoreMap.get(key) as Store<GlobalStoreState[K]> | undefined;
   if (!storeRef) throw new Error(`[Store] '${key}' 尚未初始化`);
   storeRef.set(value);
 }
@@ -147,7 +149,7 @@ export function loadAllStoresFromLocalStorage(
     try {
       const data = JSON.parse(raw);
       for (const key in data) {
-        initStore(key, data[key]);
+        initStore(key as KnownStoreKey, data[key]);
       }
     } catch (e) {
       console.warn("[Store] localStorage 還原失敗", e);

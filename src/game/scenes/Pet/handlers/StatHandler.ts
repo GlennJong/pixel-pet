@@ -33,7 +33,7 @@ export class StatHandler {
   private timer?: Phaser.Time.TimerEvent;
   private scene: Phaser.Scene;
   private conditionState;
-  private statState: ReturnType<typeof store<number>>;
+  private statState: ReturnType<typeof store>;
   private storeKey: string;
   private min: number;
   private max: number;
@@ -47,11 +47,11 @@ export class StatHandler {
   ) {
     this.scene = scene;
     this.storeKey = storeKey;
-    this.statState = store<number>(storeKey);
+    this.statState = store(storeKey as any) as any;
     this.min = min;
     this.max = max;
     
-    this.conditionState = store<string>(`pet.condition`);
+    this.conditionState = store(`pet.condition`);
   }
 
   init() {
@@ -95,7 +95,7 @@ export class StatHandler {
           this.min,
           Math.min(this.max, currentValue + newValue),
         );
-        setStoreState(this.storeKey, result);
+        setStoreState(this.storeKey as any, result);
       },
     });
   };
@@ -115,17 +115,17 @@ export class StatHandler {
     const current = getStoreState(this.storeKey) as number;
     if (statEffect.method === "add") {
       setStoreState(
-        this.storeKey,
+        this.storeKey as any,
         Math.min(this.max, current + statEffect.value),
       );
     } else if (statEffect.method === "sub") {
       setStoreState(
-        this.storeKey,
+        this.storeKey as any,
         Math.max(this.min, current - statEffect.value),
       );
     } else if (statEffect.method === "set") {
       setStoreState(
-        this.storeKey,
+        this.storeKey as any,
         Math.max(this.min, Math.min(this.max, statEffect.value)),
       );
     }

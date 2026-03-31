@@ -11,7 +11,7 @@ export class ConditionHandler {
     
     const configKey = `pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}.conditions`;
     this.config = ConfigManager.getInstance().get(configKey) || undefined;
-    this.conditionState = store<string>(`pet.condition`);
+    this.conditionState = store(`pet.condition`);
   }
 
   public getCondition(): string {

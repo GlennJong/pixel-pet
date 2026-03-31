@@ -12,7 +12,7 @@ import { ConfigManager } from "@/game/managers/ConfigManagers";
 
 export class TaskQueueService {
   private taskQueueState?: Store<Task[]>;
-  private messageQueueState = store<Message[]>(MESSAGE_QUEUE_STORE_KEY);
+  private messageQueueState = store(MESSAGE_QUEUE_STORE_KEY);
   private timerEvent?: Phaser.Time.TimerEvent;
   private interval?: number;
   private commandMapList: CommandMap[] = [];
@@ -28,7 +28,7 @@ export class TaskQueueService {
     this.scene = scene;
     
     this.taskQueueStoreKey = `pet.taskQueue`;
-    this.taskQueueState = store<Task[]>(this.taskQueueStoreKey);
+    this.taskQueueState = store(this.taskQueueStoreKey as any) as any;
   }
 
   init({
@@ -76,7 +76,7 @@ export class TaskQueueService {
     });
     if (updated) {
       const currentTasks = this.taskQueueState?.get() || [];
-      setStoreState(this.taskQueueStoreKey, [...currentTasks, ...tasks]);
+      setStoreState(this.taskQueueStoreKey as any, [...currentTasks, ...tasks]);
       setStoreState(MESSAGE_QUEUE_STORE_KEY, []);
     }
   };
@@ -89,23 +89,23 @@ export class TaskQueueService {
 
   addTask(task: Task) {
     const queue = this.taskQueueState?.get() || [];
-    setStoreState(this.taskQueueStoreKey, [...queue, task]);
+    setStoreState(this.taskQueueStoreKey as any, [...queue, task]);
   }
 
   addEmergentTask(task: Task) {
     const queue = this.taskQueueState?.get() || [];
-    setStoreState(this.taskQueueStoreKey, [task, ...queue]);
+    setStoreState(this.taskQueueStoreKey as any, [task, ...queue]);
   }
 
   removeTask(index: number) {
     const queue = this.taskQueueState?.get() || [];
     if (index < 0 || index >= queue.length) return;
     queue.splice(index, 1);
-    setStoreState(this.taskQueueStoreKey, [...queue]);
+    setStoreState(this.taskQueueStoreKey as any, [...queue]);
   }
 
   clearQueue() {
-    setStoreState(this.taskQueueStoreKey, []);
+    setStoreState(this.taskQueueStoreKey as any, []);
   }
 
   private async startNextTask() {

@@ -30,7 +30,7 @@ export class MainScene extends Scene {
     const stats =
       ConfigManager.getInstance().get<StatItem[]>(`pet.stats`) || [];
     stats.forEach(({ key, value }: any) => {
-      initStore(`pet.${key}`, value || 0);
+      initStore(`pet.${key}` as any, value || 0);
     });
     initStore(`pet.hp`, GAME_CONFIG.PET.DEFAULT_HP);
     initStore(`pet.coin`, GAME_CONFIG.PET.DEFAULT_COIN);

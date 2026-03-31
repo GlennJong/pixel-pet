@@ -4,7 +4,7 @@ import { store } from "@/game/store";
 const DEFAULT_VALUE = 0;
 
 export class StatIcon extends Phaser.GameObjects.Container {
-  private storeState: ReturnType<typeof store<number>>;
+  private storeState: ReturnType<typeof store>;
   private text: Phaser.GameObjects.Text;
   private value: number;
   private targetValue: number | undefined;
@@ -16,7 +16,7 @@ export class StatIcon extends Phaser.GameObjects.Container {
     super(scene);
 
     const { x, y, key, animation } = option;
-    this.storeState = store<number>(key);
+    this.storeState = store(key as any);
     this.value =
       typeof this.storeState?.get() === "number"
         ? this.storeState.get()

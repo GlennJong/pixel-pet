@@ -26,7 +26,7 @@ export class Room {
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     
-    this.watchState = store<number>(`pet.condition`);
+    // this.watchState = store(`pet.condition`);
     this.config = ConfigManager.getInstance().get(`pet.room`);
   }
 
@@ -34,7 +34,7 @@ export class Room {
     const { watch } = this.config;
 
     // set watch state
-    this.watchState = store<number>(`pet.${watch}`);
+    this.watchState = store(`pet.${watch}` as any);
     this.watchState?.watch(this.handleRenderRoomByWatchedState);
 
     // init animations

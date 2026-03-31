@@ -38,7 +38,7 @@ export class PetCharacter extends Character {
 
     let initialAnimations = (config as any).animations || [];
     if (config.watch && config.stages && config.stages.length > 0) {
-      const level = store<number>(`pet.${config.watch}`)?.get() || 0;
+      const level = store(`pet.${config.watch}` as any)?.get() || 0;
       const initialConfig = config.stages.find((l) => l.value === level) || config.stages[0];
       if (initialConfig.animations) initialAnimations = initialConfig.animations;
     }
@@ -59,7 +59,7 @@ export class PetCharacter extends Character {
 
     // setup watcher for level or other state based on config (like room.json)
     if (config.watch && config.stages) {
-      this.watchState = store<number>(`pet.${config.watch}`);
+      this.watchState = store(`pet.${config.watch}` as any);
       this.watchState?.watch((value: number) => {
         this.handleCharacterUpgrade(value, config.stages);
       });

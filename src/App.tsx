@@ -44,7 +44,7 @@ function App() {
     const myStore = store("global.messageQueue");
     setStoreState("global.messageQueue", [
       ...(Array.isArray(myStore?.get())
-        ? (myStore.get() as { user?: string; content?: string }[])
+        ? (myStore.get() as { user: string; content: string }[])
         : []),
       { user, content },
     ]);

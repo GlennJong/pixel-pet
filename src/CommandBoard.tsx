@@ -25,14 +25,14 @@ function CommandBoard() {
   const handlePushMessage = (user: string, content: string) => {
     const myStore = store('global.messageQueue');
     setStoreState('global.messageQueue', [
-      ...(Array.isArray(myStore?.get()) ? myStore.get() as { user?: string, content?: string }[] : []),
+      ...(Array.isArray(myStore?.get()) ? myStore.get() as { user: string, content: string }[] : []),
       { user, content }
     ])
   }
 
   const handleClickStateButton = () => {
     const currentState = stateOptions[selectedStateOptionIndex];
-    setStoreState(currentState.key, currentState.value());
+    setStoreState(currentState.key as any, currentState.value());
   }
   const handleClickCommandButton = () => {
     const currentState = commandOptions[selectedCommandOptionIndex];

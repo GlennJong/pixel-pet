@@ -15,7 +15,7 @@ export class IconCoin extends Phaser.GameObjects.Container {
     super(scene);
 
     
-    this.coinState = store<number>(`pet.coin`);
+    this.coinState = store(`pet.coin`);
 
     // Watch coin change
     this.value =

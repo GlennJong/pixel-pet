@@ -26,7 +26,7 @@ export class AutoActionHandler {
       `pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
     );
     if (config.watch && config.stages) {
-      this.levelWatcher = store<number>(`pet.${config.watch}`);
+      this.levelWatcher = store(`pet.${config.watch}` as any);
       this.levelWatcher?.watch(() => {
         this.reinit();
       });
@@ -72,9 +72,9 @@ export class AutoActionHandler {
     
     watchedKeys.forEach((key) => {
       // Use generic store to get any type of value
-      this.cache[key] = store<any>(`pet.${key}`)?.get();
+      this.cache[key] = store(`pet.${key}` as any)?.get();
       const handler = this.makeHandler(key);
-      store<any>(`pet.${key}`)?.watch(handler);
+      store(`pet.${key}` as any)?.watch(handler);
       this.autoWatchers.push({ key, handler });
     });
   }
@@ -144,7 +144,7 @@ export class AutoActionHandler {
   clearWatchers() {
     for (const { key, handler } of this.autoWatchers) {
       
-      store<any>(`pet.${key}`)?.unwatch(handler);
+      store(`pet.${key}` as any)?.unwatch(handler);
     }
     this.autoWatchers = [];
   }

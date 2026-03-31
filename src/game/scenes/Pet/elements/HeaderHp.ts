@@ -18,7 +18,7 @@ export class IconHp extends Phaser.GameObjects.Container {
     super(scene);
     
     
-    this.hpState = store<number>(`pet.hp`);
+    this.hpState = store(`pet.hp`);
 
     this.value =
       typeof this.hpState?.get() === "number"
