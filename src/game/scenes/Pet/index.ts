@@ -12,30 +12,33 @@ import { EventBus } from "@/game/EventBus";
 import { Header } from "./elements/Header";
 import { PetCharacter } from "./elements/PetCharacter";
 import { PetDialogue } from "./elements/PetDialogue";
+import { Room } from "./elements/Room";
 
 // services
 import { TaskQueueService } from "./services/TaskQueueService";
+import { Task } from "./services/types";
 
 // handlers
 import { KeyboardHandler } from "./handlers/KeyboardHander";
-import { Task } from "./services/types";
-import { ConfigManager } from "@/game/managers/ConfigManagers";
 import { ConditionHandler } from "./handlers/ConditionHandler";
 import { AutoActionHandler } from "./handlers/AutoActionHandler";
 import { StatsHandler } from "./handlers/StatHandler";
-import { Room } from "./elements/Room";
+
+// config
+import { ConfigManager } from "@/game/managers/ConfigManagers";
+import { GAME_CONFIG } from "@/game/constants";
+import { StatItem } from "./types/common";
+import { initRuntimeData } from "@/game/runtimeData";
 
 export default class PetScene extends Scene {
   private header?: Header;
   private room?: Room;
   private character?: PetCharacter;
-  private stats?: StatsHandler;
   private dialogue?: PetDialogue;
+  
+  private stats?: StatsHandler;
   private keyboardHandler?: KeyboardHandler;
-
   private taskQueueService?: TaskQueueService;
-  // private coinHandler?: CoinHandler;
-  // private statHandlerGroup: StatHandler[] = [];
   private conditionHandler?: ConditionHandler;
   private autoActionHandler?: AutoActionHandler;
 
@@ -44,30 +47,53 @@ export default class PetScene extends Scene {
   constructor() {
     super("Pet");
   }
+
   create() {
-    // ============= Mechanism =============
+    this.initDomainData();
+    
     setRuntimeData("global.is_paused", true);
 
-    // charactor
-    this.character = new PetCharacter(this);
+    this.initViews();
+    this.initSystems();
+    this.initControls();
+    
+    this.startScene();
 
-    // room
+    this.events.on("shutdown", this.shutdown, this);
+  }
+
+  private initDomainData() {
+    const stats = ConfigManager.getInstance().get<StatItem[]>(`pet.stats`) || [];
+
+    const defaultStats: Record<string, number | string | any[]> = {
+      hp: GAME_CONFIG.PET.DEFAULT_HP,
+      coin: GAME_CONFIG.PET.DEFAULT_COIN,
+      level: GAME_CONFIG.PET.DEFAULT_LEVEL,
+      condition: "normal",
+      taskQueue: [],
+    };
+
+    stats.forEach(({ key, value }: { key: string; value: any }) => {
+      defaultStats[key] = value || 0;
+    });
+
+    for (const [key, value] of Object.entries(defaultStats)) {
+      initRuntimeData(`pet.${key}` as any, value);
+    }
+  }
+
+  private initViews() {
+    this.character = new PetCharacter(this);
     this.room = new Room(this);
     this.room.init();
-
-    // header
     this.header = new Header(this);
-
-    // dialogue
     this.dialogue = new PetDialogue(this);
+  }
 
-    // Stats Handler
+  private initSystems() {
     this.stats = new StatsHandler(this);
-
-    // Condition handler
     this.conditionHandler = new ConditionHandler();
 
-    // queue init
     this.taskQueueService = new TaskQueueService(this);
     this.taskQueueService.init({
       onTask: (task) => this.handleActionQueueTask(task),
@@ -78,32 +104,25 @@ export default class PetScene extends Scene {
     this.autoActionHandler.init({
       onTrigger: (action) => this.handleAddEmergencyTask(action),
     });
+  }
 
-    // Build Keyboard
+  private initControls() {
     this.keyboardHandler = new KeyboardHandler(this, {
       onLeft: () => this.handleControlButton("left"),
       onRight: () => this.handleControlButton("right"),
       onSpace: () => this.handleControlButton("space"),
     });
 
-    EventBus.on("game-left-keydown", () => {
-      this.handleControlButton("left");
-    }),
-      EventBus.on("game-right-keydown", () =>
-        this.handleControlButton("right"),
-      ),
-      EventBus.on("game-select-keydown", () =>
-        this.handleControlButton("space"),
-      ),
-      // Run opening scene and start pet
-      (async () => {
-        await sceneStarter(this);
-        this.character?.startPet();
-        this.isPetReady = true;
-        setRuntimeData("global.is_paused", false);
-      })();
+    EventBus.on("game-left-keydown", () => this.handleControlButton("left"));
+    EventBus.on("game-right-keydown", () => this.handleControlButton("right"));
+    EventBus.on("game-select-keydown", () => this.handleControlButton("space"));
+  }
 
-    this.events.on("shutdown", this.shutdown, this);
+  private async startScene() {
+    await sceneStarter(this);
+    this.character?.startPet();
+    this.isPetReady = true;
+    setRuntimeData("global.is_paused", false);
   }
 
   private handleControlButton = (key: string) => {
@@ -113,25 +132,27 @@ export default class PetScene extends Scene {
       this.header!.moveNext();
     } else if (key === "space") {
       const action = this.header!.select();
-
-      
-      const characterConfig = ConfigManager.getInstance().get(`pet.mycharacter`);
-      
-      let actionsConfig: Record<string, any> = {};
-      if (characterConfig.watch && characterConfig.stages) {
-        const level = getRuntimeDataGroup(`pet.${characterConfig.watch}`) || 0;
-        const current = characterConfig.stages.find((l: any) => l.value === level) || characterConfig.stages[0];
-        actionsConfig = current.actions || {};
-      } else {
-        actionsConfig = characterConfig.actions || {};
-      }
-
-      const task = actionsConfig[action];
+      const task = this.resolveActionTask(action);
       if (task) {
         this.taskQueueService?.addTask(task);
       }
     }
   };
+
+  private resolveActionTask(actionName: string): Task | null {
+    const characterConfig = ConfigManager.getInstance().get(`pet.mycharacter`);
+    let actionsConfig: Record<string, any> = {};
+    
+    if (characterConfig.watch && characterConfig.stages) {
+      const level = getRuntimeDataGroup(`pet.${characterConfig.watch}`) || 0;
+      const current = characterConfig.stages.find((l: any) => l.value === level) || characterConfig.stages[0];
+      actionsConfig = current.actions || {};
+    } else {
+      actionsConfig = characterConfig.actions || {};
+    }
+
+    return actionsConfig[actionName] || null;
+  }
 
   async handleActionQueueTask(task: Task) {
     if (!this.isPetReady) return false;
@@ -140,11 +161,10 @@ export default class PetScene extends Scene {
     try {
       await this.character?.runFunctionalActionAsync(action);
       this.conditionHandler?.runEffect(effect);
+      this.stats?.runEffect(effect);
 
-      // Run Dialogue
-      if (this.dialogue) {
-        let effectReplacement = {};
-
+      if (this.dialogue && dialogues) {
+        let effectReplacement: Record<string, any> = {};
         if (effect) {
           effectReplacement = Object.fromEntries(
             Object.entries(effect).map(([key, obj]) => [
@@ -156,8 +176,6 @@ export default class PetScene extends Scene {
         const replacement = { user, ...effectReplacement, ...params };
         await this.dialogue.runDialogue(dialogues, replacement);
       }
-
-      this.stats?.runEffect(effect);
 
       if (move) {
         setRuntimeData("global.transmit", params);
@@ -173,9 +191,9 @@ export default class PetScene extends Scene {
   }
 
   handleAddEmergencyTask(task: Task) {
-    this.taskQueueService?.clearQueue(); // Flush any pending normal actions so emergent task runs alone
-    this.character?.interrupt(); // Force character to stop current action and return to IDLE immediately
-    this.taskQueueService?.addEmergentTask(task); // Add task to the front of queue immediately
+    this.taskQueueService?.clearQueue();
+    this.character?.interrupt();
+    this.taskQueueService?.addEmergentTask(task);
   }
 
   async handleUpgrade(taskQueueService: any, params: any) {
@@ -197,6 +215,7 @@ export default class PetScene extends Scene {
     this.header?.destroy();
     this.room?.destroy();
     this.dialogue?.destroy();
+    
     this.autoActionHandler?.destroy();
     this.taskQueueService?.destroy();
     this.stats?.destroy();
