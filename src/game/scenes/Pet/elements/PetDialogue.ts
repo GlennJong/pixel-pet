@@ -1,4 +1,4 @@
-import { setStoreState } from "@/game/store";
+import { setRuntimeData } from "@/game/runtimeData";
 import {
   PrimaryDialogue,
   TDialogData,
@@ -22,8 +22,8 @@ export class PetDialogue extends Phaser.GameObjects.Container {
     // Window
     this.dialogue = new PrimaryDialogue(scene);
     this.dialogue.initDialogue({
-      onDialogueStart: () => setStoreState("global.is_paused", true),
-      onDialogueEnd: () => setStoreState("global.is_paused", false),
+      onDialogueStart: () => setRuntimeData("global.is_paused", true),
+      onDialogueEnd: () => setRuntimeData("global.is_paused", false),
     });
   }
 

@@ -2,8 +2,8 @@ import { useEffect, useRef } from "react";
 import StartGame from "./game";
 import {
   getIsAutoSaveEnabled,
-  saveAllStoresToLocalStorage,
-} from "./game/store";
+  saveAllRuntimeDataToLocalStorage,
+} from "./game/runtimeData";
 
 export const PhaserGame = () => {
   const gameRef = useRef<Phaser.Game | null>(null);
@@ -16,7 +16,7 @@ export const PhaserGame = () => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       const isEnableAutoSave = getIsAutoSaveEnabled();
       if (isEnableAutoSave) {
-        saveAllStoresToLocalStorage();
+        saveAllRuntimeDataToLocalStorage();
       } else {
         // 顯示離開警告
         e.preventDefault();

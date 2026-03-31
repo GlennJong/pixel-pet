@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 
-import { store, setStoreState, getStoreState, Store } from "@/game/store";
+import { runtimeData, setRuntimeData, getRuntimeDataGroup, ObservableValue } from "@/game/runtimeData";
 import { filterFromMatchList } from "@/game/utils/filterFromMatchList";
 
 import { Message, CommandMap, Task } from "./types";
@@ -11,8 +11,8 @@ import {
 import { ConfigManager } from "@/game/managers/ConfigManagers";
 
 export class TaskQueueService {
-  private taskQueueState?: Store<Task[]>;
-  private messageQueueState = store(MESSAGE_QUEUE_STORE_KEY);
+  private taskQueueState?: ObservableValue<Task[]>;
+  private messageQueueState = runtimeData(MESSAGE_QUEUE_STORE_KEY);
   private timerEvent?: Phaser.Time.TimerEvent;
   private interval?: number;
   private commandMapList: CommandMap[] = [];
@@ -28,7 +28,7 @@ export class TaskQueueService {
     this.scene = scene;
     
     this.taskQueueStoreKey = `pet.taskQueue`;
-    this.taskQueueState = store(this.taskQueueStoreKey as any) as any;
+    this.taskQueueState = runtimeData(this.taskQueueStoreKey as any) as any;
   }
 
   init({
@@ -60,7 +60,7 @@ export class TaskQueueService {
       const characterConfig = ConfigManager.getInstance().get(`pet.mycharacter`);
       let actionsConfig: Record<string, any> = {};
       if (characterConfig.watch && characterConfig.stages) {
-        const level = getStoreState(`pet.${characterConfig.watch}`) || 0;
+        const level = getRuntimeDataGroup(`pet.${characterConfig.watch}`) || 0;
         const current = characterConfig.stages.find((l: any) => l.value === level) || characterConfig.stages[0];
         actionsConfig = current.actions || {};
       } else {
@@ -76,8 +76,8 @@ export class TaskQueueService {
     });
     if (updated) {
       const currentTasks = this.taskQueueState?.get() || [];
-      setStoreState(this.taskQueueStoreKey as any, [...currentTasks, ...tasks]);
-      setStoreState(MESSAGE_QUEUE_STORE_KEY, []);
+      setRuntimeData(this.taskQueueStoreKey as any, [...currentTasks, ...tasks]);
+      setRuntimeData(MESSAGE_QUEUE_STORE_KEY, []);
     }
   };
 
@@ -89,23 +89,23 @@ export class TaskQueueService {
 
   addTask(task: Task) {
     const queue = this.taskQueueState?.get() || [];
-    setStoreState(this.taskQueueStoreKey as any, [...queue, task]);
+    setRuntimeData(this.taskQueueStoreKey as any, [...queue, task]);
   }
 
   addEmergentTask(task: Task) {
     const queue = this.taskQueueState?.get() || [];
-    setStoreState(this.taskQueueStoreKey as any, [task, ...queue]);
+    setRuntimeData(this.taskQueueStoreKey as any, [task, ...queue]);
   }
 
   removeTask(index: number) {
     const queue = this.taskQueueState?.get() || [];
     if (index < 0 || index >= queue.length) return;
     queue.splice(index, 1);
-    setStoreState(this.taskQueueStoreKey as any, [...queue]);
+    setRuntimeData(this.taskQueueStoreKey as any, [...queue]);
   }
 
   clearQueue() {
-    setStoreState(this.taskQueueStoreKey as any, []);
+    setRuntimeData(this.taskQueueStoreKey as any, []);
   }
 
   private async startNextTask() {

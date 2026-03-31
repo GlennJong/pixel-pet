@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { store, getStoreState, setStoreState } from "@/game/store";
+import { runtimeData, getRuntimeDataGroup, setRuntimeData } from "@/game/runtimeData";
 import { ConfigManager } from "@/game/managers/ConfigManagers";
 
 export class StatsHandler {
@@ -33,7 +33,7 @@ export class StatHandler {
   private timer?: Phaser.Time.TimerEvent;
   private scene: Phaser.Scene;
   private conditionState;
-  private statState: ReturnType<typeof store>;
+  private statState: ReturnType<typeof runtimeData>;
   private storeKey: string;
   private min: number;
   private max: number;
@@ -47,11 +47,11 @@ export class StatHandler {
   ) {
     this.scene = scene;
     this.storeKey = storeKey;
-    this.statState = store(storeKey as any) as any;
+    this.statState = runtimeData(storeKey as any) as any;
     this.min = min;
     this.max = max;
     
-    this.conditionState = store(`pet.condition`);
+    this.conditionState = runtimeData(`pet.condition`);
   }
 
   init() {
@@ -81,9 +81,9 @@ export class StatHandler {
       delay: rule.interval,
       loop: true,
       callback: () => {
-        const isStopped = getStoreState("global.is_paused");
+        const isStopped = getRuntimeDataGroup("global.is_paused");
         if (isStopped) return;
-        const currentValue = getStoreState(this.storeKey) as number;
+        const currentValue = getRuntimeDataGroup(this.storeKey) as number;
         const { method, value } = rule;
         let newValue = 0;
         if (method === "sub") {
@@ -95,7 +95,7 @@ export class StatHandler {
           this.min,
           Math.min(this.max, currentValue + newValue),
         );
-        setStoreState(this.storeKey as any, result);
+        setRuntimeData(this.storeKey as any, result);
       },
     });
   };
@@ -112,19 +112,19 @@ export class StatHandler {
     const key = this.getStatKey();
     const statEffect = effect[key];
     if (!statEffect) return;
-    const current = getStoreState(this.storeKey) as number;
+    const current = getRuntimeDataGroup(this.storeKey) as number;
     if (statEffect.method === "add") {
-      setStoreState(
+      setRuntimeData(
         this.storeKey as any,
         Math.min(this.max, current + statEffect.value),
       );
     } else if (statEffect.method === "sub") {
-      setStoreState(
+      setRuntimeData(
         this.storeKey as any,
         Math.max(this.min, current - statEffect.value),
       );
     } else if (statEffect.method === "set") {
-      setStoreState(
+      setRuntimeData(
         this.storeKey as any,
         Math.max(this.min, Math.min(this.max, statEffect.value)),
       );

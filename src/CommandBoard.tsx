@@ -1,4 +1,4 @@
-import { getStoreState, setStoreState, store } from "@/game/store";
+import { getRuntimeDataGroup, setRuntimeData, runtimeData } from "@/game/runtimeData";
 import { useState } from "react";
 
 
@@ -10,9 +10,9 @@ function CommandBoard() {
     { label: '裝潢等級 = 2', key: 'pet.level', value: () => 2 },
     { label: '裝潢等級 = 3', key: 'pet.level', value: () => 3 },
     { label: '角色血量 = 5', key: 'pet.hp', value: () => 5 },
-    { label: '角色血量 + 5', key: 'pet.hp', value: () => getStoreState('pet.hp') + 5 },
+    { label: '角色血量 + 5', key: 'pet.hp', value: () => getRuntimeDataGroup('pet.hp') + 5 },
     { label: '角色金錢 = 0', key: 'pet.coin', value: () => 0 },
-    { label: '角色金錢 + 20', key: 'pet.coin', value: () => getStoreState('pet.coin') + 20 },
+    { label: '角色金錢 + 20', key: 'pet.coin', value: () => getRuntimeDataGroup('pet.coin') + 20 },
   ]
   const commandOptions = [
     { label: '補充水分', value: () => handlePushMessage('test', '補充水分') },
@@ -23,8 +23,8 @@ function CommandBoard() {
     { label: '戰鬥：安迪', value: () => handlePushMessage('jennie_congee', '上上打招呼') },
   ]
   const handlePushMessage = (user: string, content: string) => {
-    const myStore = store('global.messageQueue');
-    setStoreState('global.messageQueue', [
+    const myStore = runtimeData('global.messageQueue');
+    setRuntimeData('global.messageQueue', [
       ...(Array.isArray(myStore?.get()) ? myStore.get() as { user: string, content: string }[] : []),
       { user, content }
     ])
@@ -32,7 +32,7 @@ function CommandBoard() {
 
   const handleClickStateButton = () => {
     const currentState = stateOptions[selectedStateOptionIndex];
-    setStoreState(currentState.key as any, currentState.value());
+    setRuntimeData(currentState.key as any, currentState.value());
   }
   const handleClickCommandButton = () => {
     const currentState = commandOptions[selectedCommandOptionIndex];

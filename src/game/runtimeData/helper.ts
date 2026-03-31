@@ -1,4 +1,4 @@
-import { getStoreState } from "@/game/store";
+import { getRuntimeDataGroup } from "@/game/runtimeData";
 
 // How to use:
 // {
@@ -7,7 +7,7 @@ import { getStoreState } from "@/game/store";
 //   "storeKey:storeValue2": "value3",
 // }
 
-export function getValueFromColonStoreState(
+export function getValueFromColonRuntimeData(
   data: { [key: string]: any; default?: any } = {},
 ) {
   if (data.default === undefined) return ErrorEvent;
@@ -18,7 +18,7 @@ export function getValueFromColonStoreState(
   for (const [key, value] of Object.entries(data)) {
     if (key !== "default") {
       const [stateKey, stateValue] = key.split(":");
-      if (getStoreState(`pet.${stateKey}`) === stateValue) {
+      if (getRuntimeDataGroup(`pet.${stateKey}`) === stateValue) {
         result = value;
       }
     }

@@ -1,5 +1,5 @@
 import { ConfigManager } from "@/game/managers/ConfigManagers";
-import { store, Store } from "@/game/store";
+import { runtimeData, ObservableValue } from "@/game/runtimeData";
 
 type TAnimation = {
   prefix: string;
@@ -20,13 +20,13 @@ export class Room {
   private back?: Phaser.GameObjects.Sprite;
   private front?: Phaser.GameObjects.Sprite;
   private extras: Phaser.GameObjects.Sprite[] = [];
-  private watchState?: Store<number>;
+  private watchState?: ObservableValue<number>;
   
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     
-    // this.watchState = store(`pet.condition`);
+    // this.watchState = runtimeData(`pet.condition`);
     this.config = ConfigManager.getInstance().get(`pet.room`);
   }
 
@@ -34,7 +34,7 @@ export class Room {
     const { watch } = this.config;
 
     // set watch state
-    this.watchState = store(`pet.${watch}` as any);
+    this.watchState = runtimeData(`pet.${watch}` as any);
     this.watchState?.watch(this.handleRenderRoomByWatchedState);
 
     // init animations

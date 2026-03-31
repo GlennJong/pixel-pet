@@ -1,12 +1,12 @@
 import Phaser from "phaser";
-import { store, Store } from "@/game/store";
+import { runtimeData, ObservableValue } from "@/game/runtimeData";
 
 const DEFAULT_HP = 88;
 const FONT_FAMILY = "Tiny5";
 const FONT_SIZE = 8;
 
 export class IconHp extends Phaser.GameObjects.Container {
-  private hpState?: Store<number>;
+  private hpState?: ObservableValue<number>;
   private icon: Phaser.GameObjects.Sprite;
   private text: Phaser.GameObjects.Text;
   private value: number;
@@ -18,7 +18,7 @@ export class IconHp extends Phaser.GameObjects.Container {
     super(scene);
     
     
-    this.hpState = store(`pet.hp`);
+    this.hpState = runtimeData(`pet.hp`);
 
     this.value =
       typeof this.hpState?.get() === "number"

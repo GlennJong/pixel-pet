@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useControls, folder } from "leva";
-import { getStoreState, setStoreState, store } from "@/game/store";
+import { getRuntimeDataGroup, setRuntimeData, runtimeData } from "@/game/runtimeData";
 
 export default function DebugPanel() {
   if (!import.meta.env.DEV) return null;
@@ -15,7 +15,7 @@ function DebugPanelInner() {
 
   useEffect(() => {
     const checkStore = setInterval(() => {
-      if (store(`pet.hp`)) {
+      if (runtimeData(`pet.hp`)) {
         setIsReady(true);
         clearInterval(checkStore);
       }
@@ -32,35 +32,35 @@ function DebugControls() {
   const [, set] = useControls(() => ({
     "屬性 (Properties)": folder({
       hp: {
-        value: getStoreState(`pet.hp`) || 100,
+        value: getRuntimeDataGroup(`pet.hp`) || 100,
         min: 0,
         max: 100,
         step: 1,
         onChange: (v) => {
-          if (store(`pet.hp`) && getStoreState(`pet.hp`) !== v) {
-            setStoreState(`pet.hp`, v);
+          if (runtimeData(`pet.hp`) && getRuntimeDataGroup(`pet.hp`) !== v) {
+            setRuntimeData(`pet.hp`, v);
           }
         },
       },
       level: {
-        value: getStoreState(`pet.level`) || 0,
+        value: getRuntimeDataGroup(`pet.level`) || 0,
         min: 0,
         max: 5,
         step: 1,
         onChange: (v) => {
-          if (store(`pet.level`) && getStoreState(`pet.level`) !== v) {
-            setStoreState(`pet.level`, v);
+          if (runtimeData(`pet.level`) && getRuntimeDataGroup(`pet.level`) !== v) {
+            setRuntimeData(`pet.level`, v);
           }
         },
       },
       coin: {
-        value: getStoreState(`pet.coin`) || 0,
+        value: getRuntimeDataGroup(`pet.coin`) || 0,
         min: 0,
         max: 9999,
         step: 10,
         onChange: (v) => {
-          if (store(`pet.coin`) && getStoreState(`pet.coin`) !== v) {
-            setStoreState(`pet.coin`, v);
+          if (runtimeData(`pet.coin`) && getRuntimeDataGroup(`pet.coin`) !== v) {
+            setRuntimeData(`pet.coin`, v);
           }
         },
       },
@@ -68,19 +68,19 @@ function DebugControls() {
     "狀態與系統": folder({
       condition: {
         options: ["normal", "sleep", "death"],
-        value: getStoreState(`pet.condition`) || "normal",
+        value: getRuntimeDataGroup(`pet.condition`) || "normal",
         onChange: (v) => {
-          if (store(`pet.condition`) && getStoreState(`pet.condition`) !== v) {
-            setStoreState(`pet.condition`, v);
+          if (runtimeData(`pet.condition`) && getRuntimeDataGroup(`pet.condition`) !== v) {
+            setRuntimeData(`pet.condition`, v);
           }
         },
       },
       is_paused: {
-        value: getStoreState("global.is_paused") || false,
+        value: getRuntimeDataGroup("global.is_paused") || false,
         label: "暫停遊戲",
         onChange: (v) => {
-          if (store("global.is_paused") && getStoreState("global.is_paused") !== v) {
-            setStoreState("global.is_paused", v);
+          if (runtimeData("global.is_paused") && getRuntimeDataGroup("global.is_paused") !== v) {
+            setRuntimeData("global.is_paused", v);
           }
         },
       },
@@ -96,11 +96,11 @@ function DebugControls() {
     const handleCondition = (val: string) => set({ condition: val } as Record<string, string>);
     const handlePause = (val: boolean) => set({ is_paused: val } as Record<string, boolean>);
 
-    const sHp = store(`pet.hp`);
-    const sLevel = store(`pet.level`);
-    const sCoin = store(`pet.coin`);
-    const sCondition = store(`pet.condition`);
-    const sPause = store("global.is_paused");
+    const sHp = runtimeData(`pet.hp`);
+    const sLevel = runtimeData(`pet.level`);
+    const sCoin = runtimeData(`pet.coin`);
+    const sCondition = runtimeData(`pet.condition`);
+    const sPause = runtimeData("global.is_paused");
 
     if (sHp) sHp.watch(handleHp);
     if (sLevel) sLevel.watch(handleLevel);

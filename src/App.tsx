@@ -3,7 +3,7 @@ import { PhaserGame } from "@/PhaserGame";
 import useTwitchOauth from "@/hooks/useTwitchOauth";
 import Console from "@/game/Console";
 // import ConfigEditor from "@/ConfigEditor";
-import { setStoreState, store } from "@/game/store";
+import { setRuntimeData, runtimeData } from "@/game/runtimeData";
 import AutoSaveTrigger from "./AutoSaveTrigger";
 import DebugPanel from "@/game/Console/DebugPanel";
 import PipButton from "./PipButton";
@@ -41,8 +41,8 @@ function App() {
   };
 
   const handlePushMessage = (user: string, content: string) => {
-    const myStore = store("global.messageQueue");
-    setStoreState("global.messageQueue", [
+    const myStore = runtimeData("global.messageQueue");
+    setRuntimeData("global.messageQueue", [
       ...(Array.isArray(myStore?.get())
         ? (myStore.get() as { user: string; content: string }[])
         : []),

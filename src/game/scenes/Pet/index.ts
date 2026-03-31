@@ -5,7 +5,7 @@ import {
   sceneConverter,
   sceneStarter,
 } from "@/game/components/CircleSceneTransition";
-import { setStoreState, getStoreState } from "@/game/store";
+import { setRuntimeData, getRuntimeDataGroup } from "@/game/runtimeData";
 import { EventBus } from "@/game/EventBus";
 
 // partial elements
@@ -46,7 +46,7 @@ export default class PetScene extends Scene {
   }
   create() {
     // ============= Mechanism =============
-    setStoreState("global.is_paused", true);
+    setRuntimeData("global.is_paused", true);
 
     // charactor
     this.character = new PetCharacter(this);
@@ -100,7 +100,7 @@ export default class PetScene extends Scene {
         await sceneStarter(this);
         this.character?.startPet();
         this.isPetReady = true;
-        setStoreState("global.is_paused", false);
+        setRuntimeData("global.is_paused", false);
       })();
 
     this.events.on("shutdown", this.shutdown, this);
@@ -119,7 +119,7 @@ export default class PetScene extends Scene {
       
       let actionsConfig: Record<string, any> = {};
       if (characterConfig.watch && characterConfig.stages) {
-        const level = getStoreState(`pet.${characterConfig.watch}`) || 0;
+        const level = getRuntimeDataGroup(`pet.${characterConfig.watch}`) || 0;
         const current = characterConfig.stages.find((l: any) => l.value === level) || characterConfig.stages[0];
         actionsConfig = current.actions || {};
       } else {
@@ -160,7 +160,7 @@ export default class PetScene extends Scene {
       this.stats?.runEffect(effect);
 
       if (move) {
-        setStoreState("global.transmit", params);
+        setRuntimeData("global.transmit", params);
         sceneConverter(this, move);
       }
 

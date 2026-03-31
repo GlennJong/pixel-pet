@@ -1,7 +1,7 @@
 import { Task, Message } from "../scenes/Pet/services/types";
 
 // 定義整個遊戲全域會用到的 State 及其型別
-export interface GlobalStoreState {
+export interface RuntimeDataSchema {
   "global.is_paused": boolean;
   "global.transmit": any;
   "global.messageQueue": Message[];
@@ -14,4 +14,4 @@ export interface GlobalStoreState {
 
 }
 
-export type KnownStoreKey = keyof GlobalStoreState;
+export type KnownRuntimeDataKey = keyof RuntimeDataSchema;

@@ -3,7 +3,7 @@ import Phaser from "phaser";
 // elements
 import { ConfigManager } from "@/game/managers/ConfigManagers";
 import { StatIcon } from "./StatIcon";
-import { getValueFromColonStoreState } from "@/game/store/helper";
+import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
 
 const DEFAULT_WIDTH = 160;
 const DEFAULT_HEIGHT = 25;
@@ -164,7 +164,7 @@ export class Header extends Phaser.GameObjects.Container {
 
   public select() {
     const { action } = this.config.menu[this.current];
-    const currentAction = getValueFromColonStoreState(action);
+    const currentAction = getValueFromColonRuntimeData(action);
     return currentAction;
   }
 

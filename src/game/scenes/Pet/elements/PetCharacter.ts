@@ -6,8 +6,8 @@ import { Character } from "@/game/components/Character";
 // utils
 import { selectFromPriority } from "@/game/utils/selectFromPriority";
 import { ConfigManager } from "@/game/managers/ConfigManagers";
-import { getValueFromColonStoreState } from "@/game/store/helper";
-import { store, Store } from "@/game/store";
+import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
+import { runtimeData, ObservableValue } from "@/game/runtimeData";
 import { GAME_CONFIG } from "@/game/constants";
 import {
   ActionDef,
@@ -26,7 +26,7 @@ export class PetCharacter extends Character {
   private spaceEdge: { from: number; to: number };
   private direction: TDirection = "left";
   private isInterrupted: boolean = false;
-  private watchState?: Store<number>;
+  private watchState?: ObservableValue<number>;
 
   public activities: Record<string, ActionDef>;
 
@@ -38,7 +38,7 @@ export class PetCharacter extends Character {
 
     let initialAnimations = (config as any).animations || [];
     if (config.watch && config.stages && config.stages.length > 0) {
-      const level = store(`pet.${config.watch}` as any)?.get() || 0;
+      const level = runtimeData(`pet.${config.watch}` as any)?.get() || 0;
       const initialConfig = config.stages.find((l) => l.value === level) || config.stages[0];
       if (initialConfig.animations) initialAnimations = initialConfig.animations;
     }
@@ -59,7 +59,7 @@ export class PetCharacter extends Character {
 
     // setup watcher for level or other state based on config (like room.json)
     if (config.watch && config.stages) {
-      this.watchState = store(`pet.${config.watch}` as any);
+      this.watchState = runtimeData(`pet.${config.watch}` as any);
       this.watchState?.watch((value: number) => {
         this.handleCharacterUpgrade(value, config.stages);
       });
@@ -113,7 +113,7 @@ export class PetCharacter extends Character {
     const actionConfig = this.idleActions[defaultKey];
 
     if (actionConfig) {
-      const currentAnimation = getValueFromColonStoreState(
+      const currentAnimation = getValueFromColonRuntimeData(
         actionConfig.animationSet,
       );
       const firstAnim = Array.isArray(currentAnimation)
@@ -131,7 +131,7 @@ export class PetCharacter extends Character {
     // Idle
     const currentAction =
       selectFromPriority<IdleActionDef>(this.idleActions);
-    const currentAnimation = getValueFromColonStoreState(
+    const currentAnimation = getValueFromColonRuntimeData(
       currentAction.animationSet,
     );
 
@@ -139,7 +139,7 @@ export class PetCharacter extends Character {
 
     let isMoving = false;
     if (currentAction.isMoving) {
-      isMoving = getValueFromColonStoreState(currentAction.isMoving);
+      isMoving = getValueFromColonRuntimeData(currentAction.isMoving);
     }
 
     if (isMoving) {
@@ -213,7 +213,7 @@ export class PetCharacter extends Character {
 
     const { animationSet } = action;
 
-    const currentAnimationSet = getValueFromColonStoreState(animationSet);
+    const currentAnimationSet = getValueFromColonRuntimeData(animationSet);
 
     this._state = PetState.ACTING;
     await this.playAnimationSet(currentAnimationSet);

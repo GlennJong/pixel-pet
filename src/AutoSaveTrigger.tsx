@@ -1,10 +1,10 @@
 import { useState } from "react";
 import {
-  clearAllStoresFromLocalStorage,
+  clearAllRuntimeDataFromLocalStorage,
   getIsAutoSaveEnabled,
   hasSaveData,
   setIsAutoSaveEnabled,
-} from "./game/store";
+} from "./game/runtimeData";
 
 function AutoSaveTrigger() {
   const [isAutoSaved, setLocalIsAutoSaved] = useState<boolean>(
@@ -19,7 +19,7 @@ function AutoSaveTrigger() {
   };
 
   const handleClickClearLocalStorage = () => {
-    clearAllStoresFromLocalStorage();
+    clearAllRuntimeDataFromLocalStorage();
     setSaveExists(false);
   };
 

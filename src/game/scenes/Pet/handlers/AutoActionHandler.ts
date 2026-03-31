@@ -1,5 +1,5 @@
 import { ConfigManager } from "@/game/managers/ConfigManagers";
-import { store, getStoreState, Store } from "@/game/store";
+import { runtimeData, getRuntimeDataGroup, ObservableValue } from "@/game/runtimeData";
 import { GAME_CONFIG } from "@/game/constants";
 
 export interface AutoActionConfig {
@@ -16,7 +16,7 @@ export class AutoActionHandler {
   private lastTriggeredAction: string | null = null; // Prevent repeated triggers
 
 
-  private levelWatcher?: Store<number>;
+  private levelWatcher?: ObservableValue<number>;
 
   constructor() {
     this.setupActions();
@@ -26,7 +26,7 @@ export class AutoActionHandler {
       `pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
     );
     if (config.watch && config.stages) {
-      this.levelWatcher = store(`pet.${config.watch}` as any);
+      this.levelWatcher = runtimeData(`pet.${config.watch}` as any);
       this.levelWatcher?.watch(() => {
         this.reinit();
       });
@@ -40,7 +40,7 @@ export class AutoActionHandler {
     );
     let actions: Record<string, any> = {};
     if (config.watch && config.stages) {
-       const level = getStoreState(`pet.${config.watch}`) || 0;
+       const level = getRuntimeDataGroup(`pet.${config.watch}`) || 0;
        const current = config.stages.find((l: any) => l.value === level) || config.stages[0];
        actions = current.actions || {};
     } else {
@@ -71,10 +71,10 @@ export class AutoActionHandler {
 
     
     watchedKeys.forEach((key) => {
-      // Use generic store to get any type of value
-      this.cache[key] = store(`pet.${key}` as any)?.get();
+      // Use generic runtimeData to get any type of value
+      this.cache[key] = runtimeData(`pet.${key}` as any)?.get();
       const handler = this.makeHandler(key);
-      store(`pet.${key}` as any)?.watch(handler);
+      runtimeData(`pet.${key}` as any)?.watch(handler);
       this.autoWatchers.push({ key, handler });
     });
   }
@@ -144,7 +144,7 @@ export class AutoActionHandler {
   clearWatchers() {
     for (const { key, handler } of this.autoWatchers) {
       
-      store(`pet.${key}` as any)?.unwatch(handler);
+      runtimeData(`pet.${key}` as any)?.unwatch(handler);
     }
     this.autoWatchers = [];
   }

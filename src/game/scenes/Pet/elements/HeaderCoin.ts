@@ -1,10 +1,10 @@
 import Phaser from "phaser";
-import { store, Store } from "@/game/store";
+import { runtimeData, ObservableValue } from "@/game/runtimeData";
 
 const DEFAULT_COIN = 888;
 
 export class IconCoin extends Phaser.GameObjects.Container {
-  private coinState?: Store<number>;
+  private coinState?: ObservableValue<number>;
 
   private text: Phaser.GameObjects.Text;
   private value: number;
@@ -15,7 +15,7 @@ export class IconCoin extends Phaser.GameObjects.Container {
     super(scene);
 
     
-    this.coinState = store(`pet.coin`);
+    this.coinState = runtimeData(`pet.coin`);
 
     // Watch coin change
     this.value =
