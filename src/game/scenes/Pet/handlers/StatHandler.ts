@@ -2,14 +2,14 @@ import Phaser from "phaser";
 import { store, getStoreState, setStoreState } from "@/game/store";
 import { ConfigManager } from "@/game/managers/ConfigManagers";
 
-export class ResourcesHandler {
-  private group: ResourceHandler[] = [];
+export class StatsHandler {
+  private group: StatHandler[] = [];
   constructor(scene: Phaser.Scene) {
     const ipId = ConfigManager.getInstance().getIpId();
-    const resources = ConfigManager.getInstance().get(`${ipId}.resources`);
+    const stats = ConfigManager.getInstance().get(`${ipId}.stats`);
 
-    resources.forEach(({ key, min, max }: any) => {
-      const handler = new ResourceHandler(scene, `${ipId}.${key}`, min, max);
+    stats.forEach(({ key, min, max }: any) => {
+      const handler = new StatHandler(scene, `${ipId}.${key}`, min, max);
       handler.init();
       this.group.push(handler);
     });
@@ -29,11 +29,11 @@ export class ResourcesHandler {
   }
 }
 
-export class ResourceHandler {
+export class StatHandler {
   private timer?: Phaser.Time.TimerEvent;
   private scene: Phaser.Scene;
   private statusState;
-  private resourceState: ReturnType<typeof store<number>>;
+  private statState: ReturnType<typeof store<number>>;
   private storeKey: string;
   private min: number;
   private max: number;
@@ -47,7 +47,7 @@ export class ResourceHandler {
   ) {
     this.scene = scene;
     this.storeKey = storeKey;
-    this.resourceState = store<number>(storeKey);
+    this.statState = store<number>(storeKey);
     this.min = min;
     this.max = max;
     this.ipId = ConfigManager.getInstance().getIpId();
@@ -74,8 +74,8 @@ export class ResourceHandler {
     const statusObj = statuses[status];
     if (!statusObj || typeof statusObj !== "object") return;
     const rules = statusObj as Record<string, any>;
-    if (!rules || !rules[this.getResourceKey()]) return;
-    const rule = rules[this.getResourceKey()];
+    if (!rules || !rules[this.getStatKey()]) return;
+    const rule = rules[this.getStatKey()];
 
     this.timer = this.scene.time.addEvent({
       delay: rule.interval,
@@ -101,7 +101,7 @@ export class ResourceHandler {
   };
 
   // 取得資源 key (如 'hp', 'mp')
-  private getResourceKey(): string {
+  private getStatKey(): string {
     const parts = this.storeKey.split(".");
     return parts[parts.length - 1];
   }
@@ -109,30 +109,30 @@ export class ResourceHandler {
   public runEffect = (effect: Record<string, any>): void => {
     if (!effect) return;
 
-    const key = this.getResourceKey();
-    const resourceEffect = effect[key];
-    if (!resourceEffect) return;
+    const key = this.getStatKey();
+    const statEffect = effect[key];
+    if (!statEffect) return;
     const current = getStoreState(this.storeKey) as number;
-    if (resourceEffect.method === "add") {
+    if (statEffect.method === "add") {
       setStoreState(
         this.storeKey,
-        Math.min(this.max, current + resourceEffect.value),
+        Math.min(this.max, current + statEffect.value),
       );
-    } else if (resourceEffect.method === "sub") {
+    } else if (statEffect.method === "sub") {
       setStoreState(
         this.storeKey,
-        Math.max(this.min, current - resourceEffect.value),
+        Math.max(this.min, current - statEffect.value),
       );
-    } else if (resourceEffect.method === "set") {
+    } else if (statEffect.method === "set") {
       setStoreState(
         this.storeKey,
-        Math.max(this.min, Math.min(this.max, resourceEffect.value)),
+        Math.max(this.min, Math.min(this.max, statEffect.value)),
       );
     }
   };
 
   destroy() {
-    this.resourceState?.unwatchAll();
+    this.statState?.unwatchAll();
     if (this.timer) {
       this.timer.remove();
       this.timer = undefined;

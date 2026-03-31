@@ -7,7 +7,7 @@ import {
 } from "@/game/store";
 import { ConfigManager } from "../managers/ConfigManagers";
 import { GAME_CONFIG } from "@/game/config";
-import { ResourceItem } from "./Pet/types";
+import { StatItem } from "./Pet/types";
 
 export class MainScene extends Scene {
   constructor() {
@@ -27,9 +27,9 @@ export class MainScene extends Scene {
     initStore("global.messageQueue", []);
 
     const ipId = ConfigManager.getInstance().getIpId();
-    const resources =
-      ConfigManager.getInstance().get<ResourceItem[]>(`${ipId}.resources`) || [];
-    resources.forEach(({ key, value }: any) => {
+    const stats =
+      ConfigManager.getInstance().get<StatItem[]>(`${ipId}.stats`) || [];
+    stats.forEach(({ key, value }: any) => {
       initStore(`${ipId}.${key}`, value || 0);
     });
     initStore(`${ipId}.hp`, GAME_CONFIG.PET.DEFAULT_HP);

@@ -12,8 +12,8 @@ export class Preloader extends Scene {
       { key: "mapping", filename: "mapping.config.json" },
       { key: `config_${ipId}_assets`, filename: `config/${ipId}/assets.json` },
       {
-        key: `config_${ipId}_resources`,
-        filename: `config/${ipId}/resources.json`,
+        key: `config_${ipId}_stats`,
+        filename: `config/${ipId}/stats.json`,
       },
       {
         key: `config_${ipId}_statuses`,

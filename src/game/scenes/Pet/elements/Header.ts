@@ -2,7 +2,7 @@ import Phaser from "phaser";
 
 // elements
 import { ConfigManager } from "@/game/managers/ConfigManagers";
-import { ResourceIcon } from "./ResourceIcon";
+import { StatIcon } from "./StatIcon";
 import { getValueFromColonStoreState } from "@/game/store/helper";
 
 const DEFAULT_WIDTH = 160;
@@ -11,7 +11,7 @@ const DEFAULT_HEIGHT = 25;
 // TODO Constant Naming
 export class Header extends Phaser.GameObjects.Container {
   private selectorGroup: any[] = [];
-  private resourceGroup: any[] = [];
+  private statGroup: any[] = [];
   private current = 0;
 
   private config: import("../types").HeaderConfig;
@@ -28,7 +28,7 @@ export class Header extends Phaser.GameObjects.Container {
 
     this.initBackground();
     this.initMenu();
-    this.initResources();
+    this.initStats();
 
     this.handleUpdateSelector();
 
@@ -124,19 +124,19 @@ export class Header extends Phaser.GameObjects.Container {
     });
   }
 
-  private initResources() {
+  private initStats() {
     const startFrom = 100;
     const gap = 30;
     const y = 7;
-    this.config.resources.forEach(({ resource, animation }, i) => {
-      const icon = new ResourceIcon(this.scene, {
+    this.config.stats.forEach(({ stat, animation }, i) => {
+      const icon = new StatIcon(this.scene, {
         x: startFrom + gap * i,
         y,
-        key: `pet.${resource}`,
+        key: `pet.${stat}`,
         animation: `${this.config.key}_${animation}`,
       });
       this.add(icon);
-      this.resourceGroup.push(icon);
+      this.statGroup.push(icon);
     });
   }
 
@@ -169,7 +169,7 @@ export class Header extends Phaser.GameObjects.Container {
   }
 
   update() {
-    this.resourceGroup.forEach((icon) => icon.update());
+    this.statGroup.forEach((icon) => icon.update());
   }
 
   public destroy() {

@@ -101,13 +101,13 @@
       }
     }
   ],
-  "resources": [
+  "stats": [
     {
-      "resource": "hp",
+      "stat": "hp",
       "animation": "heart"
     },
     {
-      "resource": "coin",
+      "stat": "coin",
       "animation": "coin"
     }
   ]

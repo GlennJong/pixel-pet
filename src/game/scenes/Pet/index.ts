@@ -22,20 +22,20 @@ import { Task } from "./services/types";
 import { ConfigManager } from "@/game/managers/ConfigManagers";
 import { StatusHandler } from "./handlers/StatusHandler";
 import { AutoActionHandler } from "./handlers/AutoActionHandler";
-import { ResourcesHandler } from "./handlers/ResourceHandler";
+import { StatsHandler } from "./handlers/StatHandler";
 import { Property } from "./elements/Property";
 
 export default class PetScene extends Scene {
   private header?: Header;
   private property?: Property;
   private character?: PetCharacter;
-  private resources?: ResourcesHandler;
+  private stats?: StatsHandler;
   private dialogue?: PetDialogue;
   private keyboardHandler?: KeyboardHandler;
 
   private taskQueueService?: TaskQueueService;
   // private coinHandler?: CoinHandler;
-  // private resourceHandlerGroup: ResourceHandler[] = [];
+  // private statHandlerGroup: StatHandler[] = [];
   private statusHandler?: StatusHandler;
   private autoActionHandler?: AutoActionHandler;
 
@@ -61,8 +61,8 @@ export default class PetScene extends Scene {
     // dialogue
     this.dialogue = new PetDialogue(this);
 
-    // Resources Handler
-    this.resources = new ResourcesHandler(this);
+    // Stats Handler
+    this.stats = new StatsHandler(this);
 
     // Status handler
     this.statusHandler = new StatusHandler();
@@ -157,7 +157,7 @@ export default class PetScene extends Scene {
         await this.dialogue.runDialogue(dialogues, replacement);
       }
 
-      this.resources?.runEffect(effect);
+      this.stats?.runEffect(effect);
 
       if (move) {
         setStoreState("global.transmit", params);
@@ -199,7 +199,7 @@ export default class PetScene extends Scene {
     this.dialogue?.destroy();
     this.autoActionHandler?.destroy();
     this.taskQueueService?.destroy();
-    this.resources?.destroy();
+    this.stats?.destroy();
 
     EventBus.off("game-left-keydown");
     EventBus.off("game-right-keydown");

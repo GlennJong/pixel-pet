@@ -3,7 +3,7 @@ import { store } from "@/game/store";
 
 const DEFAULT_VALUE = 0;
 
-export class ResourceIcon extends Phaser.GameObjects.Container {
+export class StatIcon extends Phaser.GameObjects.Container {
   private storeState: ReturnType<typeof store<number>>;
   private text: Phaser.GameObjects.Text;
   private value: number;

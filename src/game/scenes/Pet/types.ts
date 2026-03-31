@@ -15,7 +15,7 @@ export interface PetConfig {
       pet_header?: AssetItem;
       mycharacter: AssetItem;
     };
-    resources: ResourceItem[];
+    stats: StatItem[];
     header: HeaderConfig;
     statuses: Record<string, StatusConfig>;
     mycharacter: MyCharacterConfig;
@@ -28,7 +28,7 @@ export interface AssetItem {
   json: string;
 }
 
-export interface ResourceItem {
+export interface StatItem {
   key: string;
   value: number;
   max?: number;
@@ -44,7 +44,7 @@ export interface HeaderConfig {
   animations: AnimationItem[];
   arrow: { animation: string };
   menu: MenuItem[];
-  resources: { resource: string; animation: string }[];
+  stats: { stat: string; animation: string }[];
 }
 
 export interface AnimationItem {

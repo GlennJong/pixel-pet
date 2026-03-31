@@ -14,7 +14,7 @@ const configsFiles = [
   { key: "ui", filename: "ui.config.json" },
   { key: "mapping", filename: "mapping.config.json" },
   { key: "config_pet_assets", filename: "config/pet/assets.json" },
-  { key: "config_pet_resources", filename: "config/pet/resources.json" },
+  { key: "config_pet_stats", filename: "config/pet/stats.json" },
   { key: "config_pet_statuses", filename: "config/pet/statuses.json" },
   { key: "config_pet_header", filename: "config/pet/header.json" },
   { key: "config_pet_mycharacter", filename: "config/pet/character.json" },
