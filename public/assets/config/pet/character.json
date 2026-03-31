@@ -1,6 +1,6 @@
 {
   "watch": "level",
-  "list": [
+  "stages": [
     {
       "value": 0,
       "animations": [

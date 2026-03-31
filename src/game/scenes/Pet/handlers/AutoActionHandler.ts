@@ -25,7 +25,7 @@ export class AutoActionHandler {
     const config = ConfigManager.getInstance().get(
       `${ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
     );
-    if (config.watch && config.list) {
+    if (config.watch && config.stages) {
       this.levelWatcher = store<number>(`${ipId}.${config.watch}`);
       this.levelWatcher?.watch(() => {
         this.reinit();
@@ -39,9 +39,9 @@ export class AutoActionHandler {
       `${ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
     );
     let actions: Record<string, any> = {};
-    if (config.watch && config.list) {
+    if (config.watch && config.stages) {
        const level = getStoreState(`${ipId}.${config.watch}`) || 0;
-       const current = config.list.find((l: any) => l.value === level) || config.list[0];
+       const current = config.stages.find((l: any) => l.value === level) || config.stages[0];
        actions = current.actions || {};
     } else {
        actions = config.actions || {};

@@ -91,10 +91,10 @@ export class Room {
   };
 
   private handleRenderRoomByWatchedState = (value: number) => {
-    if (!this.config || !this.config.list) return;
+    if (!this.config || !this.config.stages) return;
 
-    const { list } = this.config;
-    const current = list[value];
+    const { stages } = this.config;
+    const current = stages[value];
     if (!current) return;
 
     const { background, back, front, extras } = current;

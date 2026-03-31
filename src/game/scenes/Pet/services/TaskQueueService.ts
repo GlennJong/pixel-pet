@@ -57,9 +57,9 @@ export class TaskQueueService {
       const result = filterFromMatchList(msg, this.mappingList);
       const characterConfig = ConfigManager.getInstance().get(`${this.ipId}.mycharacter`);
       let actionsConfig: Record<string, any> = {};
-      if (characterConfig.watch && characterConfig.list) {
+      if (characterConfig.watch && characterConfig.stages) {
         const level = getStoreState(`${this.ipId}.${characterConfig.watch}`) || 0;
-        const current = characterConfig.list.find((l: any) => l.value === level) || characterConfig.list[0];
+        const current = characterConfig.stages.find((l: any) => l.value === level) || characterConfig.stages[0];
         actionsConfig = current.actions || {};
       } else {
         actionsConfig = characterConfig.actions || {};
