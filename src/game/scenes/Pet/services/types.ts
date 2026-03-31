@@ -18,7 +18,7 @@ export type Task = {
   callback?: () => void;
 };
 
-export type TaskTriggerItem = {
+export type CommandMap = {
   action: string;
   matches: { [key: string]: string[] };
   params: { [key: string]: string | number };

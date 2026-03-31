@@ -3,9 +3,9 @@ import Phaser from "phaser";
 import { store, setStoreState, getStoreState, Store } from "@/game/store";
 import { filterFromMatchList } from "@/game/utils/filterFromMatchList";
 
-import { Message, TaskTriggerItem, Task } from "./types";
+import { Message, CommandMap, Task } from "./types";
 import {
-  CONFIG_TRIGGERS_LIST_KEY,
+  CONFIG_COMMAND_MAP_KEY,
   MESSAGE_QUEUE_STORE_KEY,
 } from "./constants";
 import { ConfigManager } from "@/game/managers/ConfigManagers";
@@ -15,7 +15,7 @@ export class TaskQueueService {
   private messageQueueState = store<Message[]>(MESSAGE_QUEUE_STORE_KEY);
   private timerEvent?: Phaser.Time.TimerEvent;
   private interval?: number;
-  private triggerList: TaskTriggerItem[] = [];
+  private commandMapList: CommandMap[] = [];
 
   private onTask?: (task: Task) => boolean | Promise<boolean>;
   private scene: Phaser.Scene;
@@ -40,8 +40,10 @@ export class TaskQueueService {
   }) {
     this.onTask = onTask;
     this.interval = interval || this.interval;
-    this.triggerList = Object.values(
-      this.scene.cache.json.get("config")[CONFIG_TRIGGERS_LIST_KEY],
+
+    console.log(this.scene.cache.json.get("config"))
+    this.commandMapList = Object.values(
+      this.scene.cache.json.get("config")[CONFIG_COMMAND_MAP_KEY],
     );
 
     this.messageQueueState?.watch(this.handleMessageQueueChange);
@@ -54,7 +56,7 @@ export class TaskQueueService {
     const tasks: Task[] = [];
     let updated = false;
     messages.forEach((msg) => {
-      const result = filterFromMatchList(msg, this.triggerList);
+      const result = filterFromMatchList(msg, this.commandMapList);
       const characterConfig = ConfigManager.getInstance().get(`${this.ipId}.mycharacter`);
       let actionsConfig: Record<string, any> = {};
       if (characterConfig.watch && characterConfig.stages) {

@@ -2,10 +2,9 @@ import { useRef, useState } from "react";
 import { PhaserGame } from "@/PhaserGame";
 import useTwitchOauth from "@/hooks/useTwitchOauth";
 import Console from "@/game/Console";
-import ConfigEditor from "@/ConfigEditor";
+// import ConfigEditor from "@/ConfigEditor";
 import { setStoreState, store } from "@/game/store";
 import AutoSaveTrigger from "./AutoSaveTrigger";
-import CommandBoard from "./CommandBoard";
 import DebugPanel from "@/game/Console/DebugPanel";
 import PipButton from "./PipButton";
 import "./App.css";
@@ -85,7 +84,7 @@ function App() {
         </div>
 
         {/* Side Panel */}
-        {isConfigOpen && (
+        {/* {isConfigOpen && (
           <div className="config-panel">
             <ConfigEditor
               onChange={() => {
@@ -94,7 +93,7 @@ function App() {
               }}
             />
           </div>
-        )}
+        )} */}
 
         {/* Main Game Area */}
         <div className="game-container">
@@ -126,7 +125,6 @@ function App() {
       <div className="bottom-tools">
         <div className="tools-content">
           <AutoSaveTrigger />
-          {isCmdOpen && <CommandBoard />}
         </div>
 
         {isLogOpen && (

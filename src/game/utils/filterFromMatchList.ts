@@ -10,11 +10,11 @@ interface GenericActionWithMatches {
 export function filterFromMatchList<
   T extends Record<string, string | number>,
   U extends GenericActionWithMatches,
->(data: T, triggerList: U[]): U | null {
+>(data: T, commandMapList: U[]): U | null {
   let bestMatch: U | null = null;
   let highestMatchScore: number = -1;
 
-  for (const action of triggerList) {
+  for (const action of commandMapList) {
     let currentMatchScore: number = 0;
     const matches = action.matches;
 
