@@ -18,14 +18,6 @@ export type Task = {
   callback?: () => void;
 };
 
-export type Task2 = {
-  action: string; // 必須要有的行動
-
-  // user: string;
-  params?: AwardParams & { [key: string]: string | number };
-  callback?: () => void;
-};
-
 export type TaskMappingItem = {
   action: string;
   matches: { [key: string]: string[] };

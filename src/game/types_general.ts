@@ -1,54 +1,16 @@
 
-export type TDirection = "none" | "left" | "right" | "top" | "down";
+// export type TDirection = "none" | "left" | "right" | "top" | "down";
 
-export enum PetState {
-  IDLE = "IDLE",
-  MOVING = "MOVING",
-  ACTING = "ACTING",
-}
+// export enum PetState {
+//   IDLE = "IDLE",
+//   MOVING = "MOVING",
+//   ACTING = "ACTING",
+// }
 
-export interface PetConfig {
-  pet: {
-    assets: {
-      petRoom?: AssetItem;
-      petHeader?: AssetItem;
-      pet_room?: AssetItem;
-      pet_header?: AssetItem;
-      mycharacter: AssetItem;
-    };
-    stats: StatItem[];
-    header: HeaderConfig;
-    conditions: Record<string, ConditionConfig>;
-    mycharacter: MyCharacterConfig;
-    room: RoomConfig;
-  };
-}
 
-export interface AssetItem {
-  png: string;
-  json: string;
-}
 
-export interface StatItem {
-  key: string;
-  value: number;
-  max?: number;
-  min?: number;
-}
-
-export interface HeaderConfig {
-  key: string;
-  preload: {
-    png: string;
-    json: string;
-  };
-  animations: AnimationItem[];
-  arrow: { animation: string };
-  menu: MenuItem[];
-  stats: { stat: string; animation: string }[];
-}
-
-export interface AnimationItem {
+// partials
+export interface AnimationSchema {
   prefix: string;
   qty: number;
   freq: number;
@@ -58,6 +20,51 @@ export interface AnimationItem {
   repeat_delay?: number;
 }
 
+export interface Asset {
+  [key: string]: {
+    png: string;
+    json: string;
+  };
+}
+
+export interface Stat {
+  key: string;
+  value: number;
+  max?: number;
+  min?: number;
+}
+
+
+
+// ====
+
+export interface PetSchema {
+  pet: {
+    assets: Asset;
+    stats: Stat[];
+    header: HeaderShema;
+    conditions: ConditionSchema;
+    mycharacter: MyCharacterSchema;
+    room: RoomConfig;
+  };
+}
+
+export interface ConditionSchema {
+  [key: string]: Condition;
+}
+export interface HeaderShema {
+  key: string;
+  preload: {
+    png: string;
+    json: string;
+  };
+  animations: AnimationSchema[];
+  arrow: { animation: string };
+  menu: MenuItem[];
+  stats: { stat: string; animation: string }[];
+}
+
+
 export interface MenuItem {
   animation: {
     selected: string;
@@ -66,7 +73,7 @@ export interface MenuItem {
   action: Record<string, string>;
 }
 
-export interface ConditionConfig {
+export interface Condition {
   hp: {
     method: string;
     value: number;
@@ -76,12 +83,12 @@ export interface ConditionConfig {
 
 export interface MyCharacterListItem {
   value: number;
-  animations: AnimationItem[];
+  animations: AnimationSchema[];
   idleActions: Record<string, IdleActionConfig>;
   actions: Record<string, ActionConfig>;
 }
 
-export interface MyCharacterConfig {
+export interface MyCharacterSchema {
   watch: string;
   list: MyCharacterListItem[];
 }
@@ -122,7 +129,7 @@ export interface RoomConfig {
     png: string;
     json: string;
   };
-  animations: AnimationItem[];
+  animations: AnimationSchema[];
   list: RoomListItem[];
 }
 

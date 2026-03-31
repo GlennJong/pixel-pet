@@ -10,36 +10,36 @@ import { getValueFromColonStoreState } from "@/game/store/helper";
 import { store, Store } from "@/game/store";
 import { GAME_CONFIG } from "@/game/config";
 import {
-  ActionConfig,
-  IdleActionConfig,
+  ActionDef,
+  IdleActionDef,
   PetState,
   TDirection,
-  MyCharacterConfig,
-  MyCharacterListItem,
+  CharacterConfig,
+  CharacterStageItem,
 } from "../types";
 
 export class PetCharacter extends Character {
   private _state: PetState = PetState.IDLE;
   private isStarted: boolean = false;
 
-  private idleActions: Record<string, IdleActionConfig>;
+  private idleActions: Record<string, IdleActionDef>;
   private spaceEdge: { from: number; to: number };
   private direction: TDirection = "left";
   private isInterrupted: boolean = false;
   private watchState?: Store<number>;
 
-  public activities: Record<string, ActionConfig>;
+  public activities: Record<string, ActionDef>;
 
   constructor(scene: Phaser.Scene) {
     const ipId = ConfigManager.getInstance().getIpId();
-    const config = ConfigManager.getInstance().get<MyCharacterConfig>(
+    const config = ConfigManager.getInstance().get<CharacterConfig>(
       `${ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
     );
 
     let initialAnimations = (config as any).animations || [];
-    if (config.watch && config.list && config.list.length > 0) {
+    if (config.watch && config.stages && config.stages.length > 0) {
       const level = store<number>(`${ipId}.${config.watch}`)?.get() || 0;
-      const initialConfig = config.list.find((l) => l.value === level) || config.list[0];
+      const initialConfig = config.stages.find((l) => l.value === level) || config.stages[0];
       if (initialConfig.animations) initialAnimations = initialConfig.animations;
     }
 
@@ -58,19 +58,19 @@ export class PetCharacter extends Character {
     this.spaceEdge = GAME_CONFIG.PET.DEFAULT_POSITION.edge;
 
     // setup watcher for level or other state based on config (like room.json)
-    if (config.watch && config.list) {
+    if (config.watch && config.stages) {
       this.watchState = store<number>(`${ipId}.${config.watch}`);
       this.watchState?.watch((value: number) => {
-        this.handleCharacterUpgrade(value, config.list);
+        this.handleCharacterUpgrade(value, config.stages);
       });
-      this.handleCharacterUpgrade(this.watchState?.get() || 0, config.list);
+      this.handleCharacterUpgrade(this.watchState?.get() || 0, config.stages);
     } else {
       // default animation
       this.handleAutomaticAction();
     }
   }
 
-  private handleCharacterUpgrade(value: number, list: MyCharacterListItem[]) {
+  private handleCharacterUpgrade(value: number, list: CharacterStageItem[]) {
     const current = list.find((item) => item.value === value) || list[0];
     if (!current) return;
     
@@ -130,7 +130,7 @@ export class PetCharacter extends Character {
 
     // Idle
     const currentAction =
-      selectFromPriority<IdleActionConfig>(this.idleActions);
+      selectFromPriority<IdleActionDef>(this.idleActions);
     const currentAnimation = getValueFromColonStoreState(
       currentAction.animationSet,
     );

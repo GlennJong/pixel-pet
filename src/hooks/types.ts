@@ -20,7 +20,6 @@ export type TwitchUserState = {
 export type TwitchWsMessagePayload = {
   subscription: {
     id: string;
-    condition: string;
     type: string;
     version: string;
     condition: {
