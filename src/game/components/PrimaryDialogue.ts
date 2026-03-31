@@ -397,7 +397,6 @@ export class PrimaryDialogue extends Phaser.GameObjects.Container {
     // Release callback references to avoid closure leaks
     this.onDialogueStart = undefined;
     this.onDialogueEnd = undefined;
-    // Release event listeners (if any)
     // this.scene.input.off('pointerdown', this.boundAdvancePage);
   }
 }

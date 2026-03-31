@@ -92,7 +92,7 @@ export class Character extends Phaser.GameObjects.Container {
       const anim = scene.anims.get(animationName);
       if (
         anim &&
-        (anim.repeat === -1 || (anim as any).repeat === Number.POSITIVE_INFINITY) &&
+        (anim.repeat === -1 || anim.repeat === Number.POSITIVE_INFINITY) &&
         typeof time === "undefined"
       ) {
         resolve();

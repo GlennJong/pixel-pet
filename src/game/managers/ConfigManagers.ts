@@ -7,11 +7,13 @@ export class ConfigManager {
   private ipId: string = "pet";
 
   private constructor() {}
+  
 
   static getInstance(): ConfigManager {
     if (!ConfigManager.instance) {
       ConfigManager.instance = new ConfigManager();
     }
+
     return ConfigManager.instance;
   }
 
@@ -33,6 +35,8 @@ export class ConfigManager {
   }
 
   get<T = any>(path: string): T {
+    console.log(this.config)
+
     return path.split(".").reduce((obj, key) => obj?.[key], this.config) as T;
   }
 
