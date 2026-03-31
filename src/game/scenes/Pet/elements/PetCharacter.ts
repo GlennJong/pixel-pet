@@ -8,7 +8,7 @@ import { selectFromPriority } from "@/game/utils/selectFromPriority";
 import { ConfigManager } from "@/game/managers/ConfigManagers";
 import { getValueFromColonStoreState } from "@/game/store/helper";
 import { store, Store } from "@/game/store";
-import { GAME_CONFIG } from "@/game/config";
+import { GAME_CONFIG } from "@/game/constants";
 import {
   ActionDef,
   IdleActionDef,

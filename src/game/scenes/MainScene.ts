@@ -6,7 +6,7 @@ import {
   loadAllStoresFromLocalStorage,
 } from "@/game/store";
 import { ConfigManager } from "../managers/ConfigManagers";
-import { GAME_CONFIG } from "@/game/config";
+import { GAME_CONFIG } from "@/game/constants";
 import { StatItem } from "./Pet/types";
 
 export class MainScene extends Scene {

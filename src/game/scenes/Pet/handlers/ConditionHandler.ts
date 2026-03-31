@@ -1,6 +1,6 @@
 import { ConfigManager } from "@/game/managers/ConfigManagers";
 import { getStoreState, store, Store } from "@/game/store";
-import { GAME_CONFIG } from "@/game/config";
+import { GAME_CONFIG } from "@/game/constants";
 
 export class ConditionHandler {
   private config: any;

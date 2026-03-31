@@ -1,6 +1,6 @@
 import { ConfigManager } from "@/game/managers/ConfigManagers";
 import { store, getStoreState, Store } from "@/game/store";
-import { GAME_CONFIG } from "@/game/config";
+import { GAME_CONFIG } from "@/game/constants";
 
 export interface AutoActionConfig {
   auto: boolean;
