@@ -17,7 +17,7 @@ export interface PetConfig {
     };
     stats: StatItem[];
     header: HeaderConfig;
-    statuses: Record<string, StatusConfig>;
+    conditions: Record<string, ConditionConfig>;
     mycharacter: MyCharacterConfig;
     room: RoomConfig;
   };
@@ -65,7 +65,7 @@ export interface MenuItem {
   action: Record<string, string>;
 }
 
-export interface StatusConfig {
+export interface ConditionConfig {
   hp: {
     method: string;
     value: number;

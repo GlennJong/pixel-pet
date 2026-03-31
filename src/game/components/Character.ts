@@ -118,7 +118,7 @@ export class Character extends Phaser.GameObjects.Container {
     });
   }
 
-  // move action status
+  // move action condition
   private currentMoveTween?: Phaser.Tweens.Tween;
 
   // moving

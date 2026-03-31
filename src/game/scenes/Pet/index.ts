@@ -20,7 +20,7 @@ import { TaskQueueService } from "./services/TaskQueueService";
 import { KeyboardHandler } from "./handlers/KeyboardHander";
 import { Task } from "./services/types";
 import { ConfigManager } from "@/game/managers/ConfigManagers";
-import { StatusHandler } from "./handlers/StatusHandler";
+import { ConditionHandler } from "./handlers/ConditionHandler";
 import { AutoActionHandler } from "./handlers/AutoActionHandler";
 import { StatsHandler } from "./handlers/StatHandler";
 import { Property } from "./elements/Property";
@@ -36,7 +36,7 @@ export default class PetScene extends Scene {
   private taskQueueService?: TaskQueueService;
   // private coinHandler?: CoinHandler;
   // private statHandlerGroup: StatHandler[] = [];
-  private statusHandler?: StatusHandler;
+  private conditionHandler?: ConditionHandler;
   private autoActionHandler?: AutoActionHandler;
 
   private isPetReady: boolean = false;
@@ -64,8 +64,8 @@ export default class PetScene extends Scene {
     // Stats Handler
     this.stats = new StatsHandler(this);
 
-    // Status handler
-    this.statusHandler = new StatusHandler();
+    // Condition handler
+    this.conditionHandler = new ConditionHandler();
 
     // queue init
     this.taskQueueService = new TaskQueueService(this);
@@ -139,7 +139,7 @@ export default class PetScene extends Scene {
     const { action, user, params, effect, dialogues, move } = task;
     try {
       await this.character?.runFunctionalActionAsync(action);
-      this.statusHandler?.runEffect(effect);
+      this.conditionHandler?.runEffect(effect);
 
       // Run Dialogue
       if (this.dialogue) {

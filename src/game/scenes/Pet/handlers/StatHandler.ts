@@ -32,7 +32,7 @@ export class StatsHandler {
 export class StatHandler {
   private timer?: Phaser.Time.TimerEvent;
   private scene: Phaser.Scene;
-  private statusState;
+  private conditionState;
   private statState: ReturnType<typeof store<number>>;
   private storeKey: string;
   private min: number;
@@ -51,12 +51,12 @@ export class StatHandler {
     this.min = min;
     this.max = max;
     this.ipId = ConfigManager.getInstance().getIpId();
-    this.statusState = store<string>(`${this.ipId}.status`);
+    this.conditionState = store<string>(`${this.ipId}.condition`);
   }
 
   init() {
-    this.statusState?.watch(this.handleSetRule);
-    this.handleSetRule(this.statusState?.get());
+    this.conditionState?.watch(this.handleSetRule);
+    this.handleSetRule(this.conditionState?.get());
   }
 
   private handleSetRule = (_value: unknown): void => {
@@ -64,16 +64,16 @@ export class StatHandler {
       this.timer.remove();
       this.timer = undefined;
     }
-    const statuses = ConfigManager.getInstance().get(`${this.ipId}.statuses`) as Record<
+    const conditions = ConfigManager.getInstance().get(`${this.ipId}.conditions`) as Record<
       string,
       any
     >;
-    const status = this.statusState?.get();
+    const condition = this.conditionState?.get();
 
-    if (!status || !statuses || typeof statuses !== "object") return;
-    const statusObj = statuses[status];
-    if (!statusObj || typeof statusObj !== "object") return;
-    const rules = statusObj as Record<string, any>;
+    if (!condition || !conditions || typeof conditions !== "object") return;
+    const conditionObj = conditions[condition];
+    if (!conditionObj || typeof conditionObj !== "object") return;
+    const rules = conditionObj as Record<string, any>;
     if (!rules || !rules[this.getStatKey()]) return;
     const rule = rules[this.getStatKey()];
 

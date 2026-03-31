@@ -68,12 +68,12 @@ function DebugControls({ ipId }: { ipId: string }) {
       },
     }),
     "狀態與系統": folder({
-      status: {
+      condition: {
         options: ["normal", "sleep", "death"],
-        value: getStoreState(`${ipId}.status`) || "normal",
+        value: getStoreState(`${ipId}.condition`) || "normal",
         onChange: (v) => {
-          if (store(`${ipId}.status`) && getStoreState(`${ipId}.status`) !== v) {
-            setStoreState(`${ipId}.status`, v);
+          if (store(`${ipId}.condition`) && getStoreState(`${ipId}.condition`) !== v) {
+            setStoreState(`${ipId}.condition`, v);
           }
         },
       },
@@ -95,26 +95,26 @@ function DebugControls({ ipId }: { ipId: string }) {
     const handleHp = (val: number) => set({ hp: val } as Record<string, number>);
     const handleLevel = (val: number) => set({ level: val } as Record<string, number>);
     const handleCoin = (val: number) => set({ coin: val } as Record<string, number>);
-    const handleStatus = (val: string) => set({ status: val } as Record<string, string>);
+    const handleCondition = (val: string) => set({ condition: val } as Record<string, string>);
     const handlePause = (val: boolean) => set({ is_paused: val } as Record<string, boolean>);
 
     const sHp = store<number>(`${ipId}.hp`);
     const sLevel = store<number>(`${ipId}.level`);
     const sCoin = store<number>(`${ipId}.coin`);
-    const sStatus = store<string>(`${ipId}.status`);
+    const sCondition = store<string>(`${ipId}.condition`);
     const sPause = store<boolean>("global.is_paused");
 
     if (sHp) sHp.watch(handleHp);
     if (sLevel) sLevel.watch(handleLevel);
     if (sCoin) sCoin.watch(handleCoin);
-    if (sStatus) sStatus.watch(handleStatus);
+    if (sCondition) sCondition.watch(handleCondition);
     if (sPause) sPause.watch(handlePause);
 
     return () => {
       if (sHp) sHp.unwatch(handleHp);
       if (sLevel) sLevel.unwatch(handleLevel);
       if (sCoin) sCoin.unwatch(handleCoin);
-      if (sStatus) sStatus.unwatch(handleStatus);
+      if (sCondition) sCondition.unwatch(handleCondition);
       if (sPause) sPause.unwatch(handlePause);
     };
   }, [ipId, set]);

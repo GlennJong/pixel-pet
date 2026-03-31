@@ -1,4 +1,4 @@
-export const petStatusWording = {
+export const petConditionWording = {
   normal: "普通狀態",
   sleep: "睡覺狀態",
   death: "等待復活狀態",

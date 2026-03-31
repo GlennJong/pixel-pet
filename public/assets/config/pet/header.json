@@ -71,9 +71,9 @@
       },
       "action": {
         "default": "drink",
-        "status:normal": "drink",
-        "status:sleep": "drink",
-        "status:death": "lock"
+        "condition:normal": "drink",
+        "condition:sleep": "drink",
+        "condition:death": "lock"
       }
     },
     {
@@ -83,9 +83,9 @@
       },
       "action": {
         "default": "write",
-        "status:normal": "write",
-        "status:sleep": "write",
-        "status:death": "lock"
+        "condition:normal": "write",
+        "condition:sleep": "write",
+        "condition:death": "lock"
       }
     },
     {
@@ -95,9 +95,9 @@
       },
       "action": {
         "default": "sleep",
-        "status:normal": "sleep",
-        "status:sleep": "awake",
-        "status:death": "lock"
+        "condition:normal": "sleep",
+        "condition:sleep": "awake",
+        "condition:death": "lock"
       }
     }
   ],

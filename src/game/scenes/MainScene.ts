@@ -36,7 +36,7 @@ export class MainScene extends Scene {
     initStore(`${ipId}.coin`, GAME_CONFIG.PET.DEFAULT_COIN);
     initStore(`${ipId}.level`, GAME_CONFIG.PET.DEFAULT_LEVEL);
 
-    initStore(`${ipId}.status`, "normal");
+    initStore(`${ipId}.condition`, "normal");
     initStore(`${ipId}.taskQueue`, []);
 
     this.scene.start("Pet");

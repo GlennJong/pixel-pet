@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import JsonEditor from "./JsonEditor";
 import {
-  petStatusWording,
+  petConditionWording,
   idleActionsWording,
   actionsWording,
   templates,
@@ -15,7 +15,7 @@ const configsFiles = [
   { key: "mapping", filename: "mapping.config.json" },
   { key: "config_pet_assets", filename: "config/pet/assets.json" },
   { key: "config_pet_stats", filename: "config/pet/stats.json" },
-  { key: "config_pet_statuses", filename: "config/pet/statuses.json" },
+  { key: "config_pet_conditions", filename: "config/pet/conditions.json" },
   { key: "config_pet_header", filename: "config/pet/header.json" },
   { key: "config_pet_mycharacter", filename: "config/pet/character.json" },
   { key: "config_pet_room", filename: "config/pet/room.json" },
@@ -160,10 +160,10 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
       </div>
       <JsonEditor
         title="資源狀態設計"
-        wording={petStatusWording}
-        value={config.pet.statuses}
+        wording={petConditionWording}
+        value={config.pet.conditions}
         onChange={(data) => {
-          config.pet.statuses = data;
+          config.pet.conditions = data;
           setConfig({ ...config });
         }}
       />
@@ -233,7 +233,7 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
       <JsonEditor
         title="自動動作：死亡"
         wording={actionsWording}
-        hide={["animationSet", "action", "user", "portrait", "auto", "status"]}
+        hide={["animationSet", "action", "user", "portrait", "auto", "condition"]}
         value={config.pet.mycharacter.list[0].actions.die}
         template={templates}
         onChange={(data) => {
@@ -251,7 +251,7 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
           "portrait",
           "auto",
           "effect",
-          "status",
+          "condition",
         ]}
         value={config.pet.mycharacter.list[0].actions.revive}
         template={templates}

@@ -121,13 +121,13 @@
             "default": [
               "idle-left"
             ],
-            "status:normal": [
+            "condition:normal": [
               "idle-left"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "sleep"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
@@ -139,13 +139,13 @@
             "default": [
               "idle-right"
             ],
-            "status:normal": [
+            "condition:normal": [
               "idle-right"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "sleep"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
@@ -157,13 +157,13 @@
             "default": [
               "stare-left"
             ],
-            "status:normal": [
+            "condition:normal": [
               "stare-left"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "sleep"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
@@ -175,13 +175,13 @@
             "default": [
               "stare-right"
             ],
-            "status:normal": [
+            "condition:normal": [
               "stare-right"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "sleep"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
@@ -193,22 +193,22 @@
             "default": [
               "walk-left"
             ],
-            "status:normal": [
+            "condition:normal": [
               "walk-left"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "sleep"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
           "priority": 5,
           "isMoving": {
             "default": true,
-            "status:normal": true,
-            "status:sleep": false,
-            "status:death": false
+            "condition:normal": true,
+            "condition:sleep": false,
+            "condition:death": false
           },
           "direction": "left"
         },
@@ -217,22 +217,22 @@
             "default": [
               "walk-right"
             ],
-            "status:normal": [
+            "condition:normal": [
               "walk-right"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "sleep"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
           "priority": 5,
           "isMoving": {
             "default": true,
-            "status:normal": true,
-            "status:sleep": false,
-            "status:death": false
+            "condition:normal": true,
+            "condition:sleep": false,
+            "condition:death": false
           },
           "direction": "right"
         },
@@ -241,13 +241,13 @@
             "default": [
               "wink-left"
             ],
-            "status:normal": [
+            "condition:normal": [
               "wink-left"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "sleep"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
@@ -259,13 +259,13 @@
             "default": [
               "wink-right"
             ],
-            "status:normal": [
+            "condition:normal": [
               "wink-right"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "sleep"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
@@ -280,15 +280,15 @@
             "default": [
               "drink"
             ],
-            "status:normal": [
+            "condition:normal": [
               "drink"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "wake-up",
               "drink",
               "lay-down"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
@@ -321,7 +321,7 @@
             "default": [
               "write"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "wake-up",
               "write",
               "lay-down"
@@ -356,19 +356,19 @@
             "default": [
               "lay-down"
             ],
-            "status:normal": [
+            "condition:normal": [
               "lay-down"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "wake-up"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
           "user": "system",
           "effect": {
-            "status": {
+            "condition": {
               "method": "set",
               "value": "sleep"
             }
@@ -391,19 +391,19 @@
             "default": [
               "wake-up"
             ],
-            "status:normal": [
+            "condition:normal": [
               "wake-up"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "wake-up"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
           "user": "system",
           "effect": {
-            "status": {
+            "condition": {
               "method": "set",
               "value": "normal"
             }
@@ -508,7 +508,7 @@
               "op": "<=",
               "value": 0
             },
-            "status": {
+            "condition": {
               "op": "==",
               "value": "normal"
             }
@@ -518,7 +518,7 @@
               "method": "sub",
               "value": 10
             },
-            "status": {
+            "condition": {
               "method": "set",
               "value": "death"
             }
@@ -548,13 +548,13 @@
               "op": ">=",
               "value": 100
             },
-            "status": {
+            "condition": {
               "op": "==",
               "value": "death"
             }
           },
           "effect": {
-            "status": {
+            "condition": {
               "method": "set",
               "value": "normal"
             }
@@ -608,7 +608,7 @@
               "op": "==",
               "value": 0
             },
-            "status": {
+            "condition": {
               "op": "==",
               "value": "normal"
             }
@@ -653,7 +653,7 @@
               "op": "==",
               "value": 1
             },
-            "status": {
+            "condition": {
               "op": "==",
               "value": "normal"
             }
@@ -698,7 +698,7 @@
               "op": "==",
               "value": 2
             },
-            "status": {
+            "condition": {
               "op": "==",
               "value": "normal"
             }
@@ -743,7 +743,7 @@
               "op": "==",
               "value": 3
             },
-            "status": {
+            "condition": {
               "op": "==",
               "value": "normal"
             }
@@ -788,7 +788,7 @@
               "op": "==",
               "value": 4
             },
-            "status": {
+            "condition": {
               "op": "==",
               "value": "normal"
             }
@@ -937,13 +937,13 @@
             "default": [
               "idle-left"
             ],
-            "status:normal": [
+            "condition:normal": [
               "idle-left"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "sleep"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
@@ -955,13 +955,13 @@
             "default": [
               "idle-right"
             ],
-            "status:normal": [
+            "condition:normal": [
               "idle-right"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "sleep"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
@@ -973,13 +973,13 @@
             "default": [
               "stare-left"
             ],
-            "status:normal": [
+            "condition:normal": [
               "stare-left"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "sleep"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
@@ -991,13 +991,13 @@
             "default": [
               "stare-right"
             ],
-            "status:normal": [
+            "condition:normal": [
               "stare-right"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "sleep"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
@@ -1009,22 +1009,22 @@
             "default": [
               "walk-left"
             ],
-            "status:normal": [
+            "condition:normal": [
               "walk-left"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "sleep"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
           "priority": 5,
           "isMoving": {
             "default": true,
-            "status:normal": true,
-            "status:sleep": false,
-            "status:death": false
+            "condition:normal": true,
+            "condition:sleep": false,
+            "condition:death": false
           },
           "direction": "left"
         },
@@ -1033,22 +1033,22 @@
             "default": [
               "walk-right"
             ],
-            "status:normal": [
+            "condition:normal": [
               "walk-right"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "sleep"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
           "priority": 5,
           "isMoving": {
             "default": true,
-            "status:normal": true,
-            "status:sleep": false,
-            "status:death": false
+            "condition:normal": true,
+            "condition:sleep": false,
+            "condition:death": false
           },
           "direction": "right"
         },
@@ -1057,13 +1057,13 @@
             "default": [
               "wink-left"
             ],
-            "status:normal": [
+            "condition:normal": [
               "wink-left"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "sleep"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
@@ -1075,13 +1075,13 @@
             "default": [
               "wink-right"
             ],
-            "status:normal": [
+            "condition:normal": [
               "wink-right"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "sleep"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
@@ -1096,15 +1096,15 @@
             "default": [
               "drink"
             ],
-            "status:normal": [
+            "condition:normal": [
               "drink"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "wake-up",
               "drink",
               "lay-down"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
@@ -1137,7 +1137,7 @@
             "default": [
               "write"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "wake-up",
               "write",
               "lay-down"
@@ -1172,19 +1172,19 @@
             "default": [
               "lay-down"
             ],
-            "status:normal": [
+            "condition:normal": [
               "lay-down"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "wake-up"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
           "user": "system",
           "effect": {
-            "status": {
+            "condition": {
               "method": "set",
               "value": "sleep"
             }
@@ -1207,19 +1207,19 @@
             "default": [
               "wake-up"
             ],
-            "status:normal": [
+            "condition:normal": [
               "wake-up"
             ],
-            "status:sleep": [
+            "condition:sleep": [
               "wake-up"
             ],
-            "status:death": [
+            "condition:death": [
               "egg"
             ]
           },
           "user": "system",
           "effect": {
-            "status": {
+            "condition": {
               "method": "set",
               "value": "normal"
             }
@@ -1324,7 +1324,7 @@
               "op": "<=",
               "value": 0
             },
-            "status": {
+            "condition": {
               "op": "==",
               "value": "normal"
             }
@@ -1334,7 +1334,7 @@
               "method": "sub",
               "value": 10
             },
-            "status": {
+            "condition": {
               "method": "set",
               "value": "death"
             }
@@ -1364,13 +1364,13 @@
               "op": ">=",
               "value": 100
             },
-            "status": {
+            "condition": {
               "op": "==",
               "value": "death"
             }
           },
           "effect": {
-            "status": {
+            "condition": {
               "method": "set",
               "value": "normal"
             }
@@ -1424,7 +1424,7 @@
               "op": "==",
               "value": 0
             },
-            "status": {
+            "condition": {
               "op": "==",
               "value": "normal"
             }
@@ -1469,7 +1469,7 @@
               "op": "==",
               "value": 1
             },
-            "status": {
+            "condition": {
               "op": "==",
               "value": "normal"
             }
@@ -1514,7 +1514,7 @@
               "op": "==",
               "value": 2
             },
-            "status": {
+            "condition": {
               "op": "==",
               "value": "normal"
             }
@@ -1559,7 +1559,7 @@
               "op": "==",
               "value": 3
             },
-            "status": {
+            "condition": {
               "op": "==",
               "value": "normal"
             }
@@ -1604,7 +1604,7 @@
               "op": "==",
               "value": 4
             },
-            "status": {
+            "condition": {
               "op": "==",
               "value": "normal"
             }

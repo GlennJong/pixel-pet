@@ -16,8 +16,8 @@ export class Preloader extends Scene {
         filename: `config/${ipId}/stats.json`,
       },
       {
-        key: `config_${ipId}_statuses`,
-        filename: `config/${ipId}/statuses.json`,
+        key: `config_${ipId}_conditions`,
+        filename: `config/${ipId}/conditions.json`,
       },
       { key: `config_${ipId}_header`, filename: `config/${ipId}/header.json` },
       {

@@ -26,7 +26,7 @@ export class Property {
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.ipId = ConfigManager.getInstance().getIpId();
-    this.watchState = store<number>(`${this.ipId}.status`);
+    this.watchState = store<number>(`${this.ipId}.condition`);
     this.config = ConfigManager.getInstance().get(`${this.ipId}.room`);
   }
 

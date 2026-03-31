@@ -2,36 +2,36 @@ import { ConfigManager } from "@/game/managers/ConfigManagers";
 import { getStoreState, store, Store } from "@/game/store";
 import { GAME_CONFIG } from "@/game/config";
 
-export class StatusHandler {
+export class ConditionHandler {
   private config: any;
-  private statusState?: Store<string>;
+  private conditionState?: Store<string>;
   private ipId: string;
 
   constructor() {
     this.ipId = ConfigManager.getInstance().getIpId();
-    const configKey = `${this.ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}.statuses`;
+    const configKey = `${this.ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}.conditions`;
     this.config = ConfigManager.getInstance().get(configKey) || undefined;
-    this.statusState = store<string>(`${this.ipId}.status`);
+    this.conditionState = store<string>(`${this.ipId}.condition`);
   }
 
-  public getStatus(): string {
-    return getStoreState(`${this.ipId}.status`);
+  public getCondition(): string {
+    return getStoreState(`${this.ipId}.condition`);
   }
 
   public getConfig(): any {
-    const current = this.getStatus();
+    const current = this.getCondition();
     return this.config?.[current];
   }
 
   public runEffect = (effect: any) => {
     if (!effect) return;
-    const { status } = effect;
-    if (status?.method === "set") {
-      this.statusState?.set(status.value);
+    const { condition } = effect;
+    if (condition?.method === "set") {
+      this.conditionState?.set(condition.value);
     }
   };
 
   destroy() {
-    this.statusState?.unwatchAll();
+    this.conditionState?.unwatchAll();
   }
 }
