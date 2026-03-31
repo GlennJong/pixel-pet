@@ -11,14 +11,14 @@ const LOCAL_KEY = "custom_config";
 
 const configsFiles = [
   // 可動態擴充，key 為 config 名稱，filename 為檔案名
-  { key: "ui", filename: "ui.config.json" },
-  { key: "mapping", filename: "mapping.config.json" },
-  { key: "config_pet_assets", filename: "config/pet/assets.json" },
-  { key: "config_pet_stats", filename: "config/pet/stats.json" },
-  { key: "config_pet_conditions", filename: "config/pet/conditions.json" },
-  { key: "config_pet_header", filename: "config/pet/header.json" },
-  { key: "config_pet_mycharacter", filename: "config/pet/character.json" },
-  { key: "config_pet_room", filename: "config/pet/room.json" },
+  { key: "ui", filename: "configs/global/ui.json" },
+  { key: "mapping", filename: "configs/global/mapping.json" },
+  { key: "config_pet_assets", filename: "configs/pet/assets.json" },
+  { key: "config_pet_stats", filename: "configs/pet/stats.json" },
+  { key: "config_pet_conditions", filename: "configs/pet/conditions.json" },
+  { key: "config_pet_header", filename: "configs/pet/header.json" },
+  { key: "config_pet_mycharacter", filename: "configs/pet/character.json" },
+  { key: "config_pet_room", filename: "configs/pet/room.json" },
 ];
 
 const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
@@ -48,7 +48,7 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
     await Promise.all(
       configsFiles.map(async (cfg) => {
         try {
-          const res = await fetch(`assets/${cfg.filename}`);
+          const res = await fetch(`${cfg.filename}`);
           rawConfig[cfg.key] = await res.json();
         } catch {
           rawConfig[cfg.key] = null;
@@ -82,7 +82,7 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
     await Promise.all(
       configsFiles.map(async (cfg) => {
         try {
-          const res = await fetch(`assets/${cfg.filename}`);
+          const res = await fetch(`${cfg.filename}`);
           rawConfig[cfg.key] = await res.json();
         } catch {
           rawConfig[cfg.key] = null;

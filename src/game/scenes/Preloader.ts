@@ -8,23 +8,23 @@ export class Preloader extends Scene {
 
   private getConfigsFiles(ipId: string) {
     return [
-      { key: "ui", filename: "ui.config.json" },
-      { key: "mapping", filename: "mapping.config.json" },
-      { key: `config_${ipId}_assets`, filename: `config/${ipId}/assets.json` },
+      { key: "ui", filename: "configs/global/ui.json" },
+      { key: "mapping", filename: "configs/global/mapping.json" },
+      { key: `config_${ipId}_assets`, filename: `configs/${ipId}/assets.json` },
       {
         key: `config_${ipId}_stats`,
-        filename: `config/${ipId}/stats.json`,
+        filename: `configs/${ipId}/stats.json`,
       },
       {
         key: `config_${ipId}_conditions`,
-        filename: `config/${ipId}/conditions.json`,
+        filename: `configs/${ipId}/conditions.json`,
       },
-      { key: `config_${ipId}_header`, filename: `config/${ipId}/header.json` },
+      { key: `config_${ipId}_header`, filename: `configs/${ipId}/header.json` },
       {
         key: `config_${ipId}_mycharacter`,
-        filename: `config/${ipId}/character.json`,
+        filename: `configs/${ipId}/character.json`,
       },
-      { key: `config_${ipId}_room`, filename: `config/${ipId}/room.json` },
+      { key: `config_${ipId}_room`, filename: `configs/${ipId}/room.json` },
     ];
   }
 
@@ -33,7 +33,7 @@ export class Preloader extends Scene {
   }
 
   preload() {
-    this.load.setPath("assets");
+    this.load.setPath("");
 
     // 只讀 localStorage，不再讀 window.globalConfig
     let customConfig: any = null;
@@ -99,8 +99,8 @@ export class Preloader extends Scene {
     }
 
     // Preload Fonts
-    this.load.font("BoutiqueBitmap", "fonts/BoutiqueBitmap9x9.ttf", "truetype");
-    this.load.font("Tiny5", "fonts/Tiny5-Regular.ttf", "truetype");
+    this.load.font("BoutiqueBitmap", "assets/fonts/BoutiqueBitmap9x9.ttf", "truetype");
+    this.load.font("Tiny5", "assets/fonts/Tiny5-Regular.ttf", "truetype");
   }
 
   _preloadAssetsFromConfig(data: any, ipId: string = "pet") {

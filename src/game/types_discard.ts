@@ -1,13 +1,13 @@
 
-type MappingSchema = typeof import('../../public/assets/mapping.config.json')
-type UiSchema = typeof import('../../public/assets/ui.config.json')
+type MappingSchema = typeof import('../../public/configs/global/mapping.json')
+type UiSchema = typeof import('../../public/configs/global/ui.json')
 
-export type PetAssetsSchema = typeof import('../../public/assets/config/pet/assets.json')
-export type PetCharacterSchema = typeof import('../../public/assets/config/pet/character.json')
-export type PetConditionsSchema = typeof import('../../public/assets/config/pet/conditions.json')
-export type PetHeaderSchema = typeof import('../../public/assets/config/pet/header.json')
-export type PetRoomSchema = typeof import('../../public/assets/config/pet/room.json')
-export type PetStatsSchema = typeof import('../../public/assets/config/pet/stats.json')
+export type PetAssetsSchema = typeof import('../../public/configs/pet/assets.json')
+export type PetCharacterSchema = typeof import('../../public/configs/pet/character.json')
+export type PetConditionsSchema = typeof import('../../public/configs/pet/conditions.json')
+export type PetHeaderSchema = typeof import('../../public/configs/pet/header.json')
+export type PetRoomSchema = typeof import('../../public/configs/pet/room.json')
+export type PetStatsSchema = typeof import('../../public/configs/pet/stats.json')
 
 
 export type PetSchema = {

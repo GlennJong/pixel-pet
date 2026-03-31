@@ -1,0 +1,14 @@
+{
+  "pet_room": {
+    "png": "assets/sprites/pet/room/spritesheet.png",
+    "json": "assets/sprites/pet/room/spritesheet.json"
+  },
+  "pet_header": {
+    "png": "assets/sprites/pet/header/icons/spritesheet.png",
+    "json": "assets/sprites/pet/header/icons/spritesheet.json"
+  },
+  "mycharacter": {
+    "png": "assets/sprites/pet/afk/spritesheet.png",
+    "json": "assets/sprites/pet/afk/spritesheet.json"
+  }
+}

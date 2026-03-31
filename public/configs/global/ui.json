@@ -1,0 +1,23 @@
+{
+  "dialogue_frame": {
+    "key": "dialogue_frame",
+    "preload": {
+      "png": "assets/sprites/dialogue/frame/spritesheet.png",
+      "json": "assets/sprites/dialogue/frame/spritesheet.json"
+    }
+  },
+  "pet_header_icons": {
+    "key": "pet_header_icons",
+    "preload": {
+      "png": "assets/sprites/pet/header/icons/spritesheet.png",
+      "json": "assets/sprites/pet/header/icons/spritesheet.json"
+    }
+  },
+  "pet_header_frame": {
+    "key": "pet_header_frame",
+    "preload": {
+      "png": "assets/sprites/pet/header/frame/spritesheet.png",
+      "json": "assets/sprites/pet/header/frame/spritesheet.json"
+    }
+  }
+}

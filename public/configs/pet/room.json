@@ -2,8 +2,8 @@
   "watch": "level",
   "key": "pet_room",
   "preload": {
-    "png": "pet/room.png",
-    "json": "pet/room.json"
+    "png": "assets/sprites/pet/room/spritesheet.png",
+    "json": "assets/sprites/pet/room/spritesheet.json"
   },
   "animations": [
     {
