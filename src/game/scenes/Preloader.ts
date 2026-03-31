@@ -7,25 +7,25 @@ export class Preloader extends Scene {
     super("Preloader");
   }
 
-  private getConfigsFiles(ipId: string) {
+  private getConfigsFiles() {
     return [
       { key: "ui", filename: "configs/global/ui.json" },
       { key: CONFIG_COMMAND_MAP_KEY, filename: "configs/global/commands.json" },
-      { key: `config_${ipId}_assets`, filename: `configs/${ipId}/assets.json` },
+      { key: `config_pet_assets`, filename: `configs/pet/assets.json` },
       {
-        key: `config_${ipId}_stats`,
-        filename: `configs/${ipId}/stats.json`,
+        key: `config_pet_stats`,
+        filename: `configs/pet/stats.json`,
       },
       {
-        key: `config_${ipId}_conditions`,
-        filename: `configs/${ipId}/conditions.json`,
+        key: `config_pet_conditions`,
+        filename: `configs/pet/conditions.json`,
       },
-      { key: `config_${ipId}_header`, filename: `configs/${ipId}/header.json` },
+      { key: `config_pet_header`, filename: `configs/pet/header.json` },
       {
-        key: `config_${ipId}_mycharacter`,
-        filename: `configs/${ipId}/character.json`,
+        key: `config_pet_mycharacter`,
+        filename: `configs/pet/character.json`,
       },
-      { key: `config_${ipId}_room`, filename: `configs/${ipId}/room.json` },
+      { key: `config_pet_room`, filename: `configs/pet/room.json` },
     ];
   }
 
@@ -36,7 +36,6 @@ export class Preloader extends Scene {
   preload() {
     this.load.setPath("");
 
-    // 只讀 localStorage，不再讀 window.globalConfig
     let customConfig: any = null;
     if (typeof window !== "undefined") {
       try {
@@ -47,20 +46,12 @@ export class Preloader extends Scene {
       }
     }
 
-    // customConfig = null; // TODO
     if (customConfig) {
-      // Assuming customConfig always applies to the default 'pet' for now
-      ConfigManager.getInstance().setIpId("pet");
       this.cache.json.add("config", customConfig);
-      this._preloadAssetsFromConfig(customConfig, "pet");
+      this._preloadAssetsFromConfig(customConfig);
     } else {
-      // Allow dynamic IP loading, e.g. from URL or default to "pet"
-      const urlParams = new URLSearchParams(window.location.search);
-      const ipId = urlParams.get("ip") || "pet";
-      ConfigManager.getInstance().setIpId(ipId);
-      const configsFiles = this.getConfigsFiles(ipId);
+      const configsFiles = this.getConfigsFiles();
 
-      // Main config json file
       let num = 0;
       let result = {};
 
@@ -71,14 +62,12 @@ export class Preloader extends Scene {
           (_key: unknown, _type: unknown, data: any) => {
             num += 1;
 
-            if (key.startsWith(`config_${ipId}_`)) {
-              const subKey = key.replace(`config_${ipId}_`, "");
-              // Keep it named 'pet' internally for now, or use [ipId] if you prefer all code to dynamic. 
-              // For compatibility, we map it to 'pet' or use the ipId directly.
-              const currentPet = (result as any)[ipId] || {};
+            if (key.startsWith(`config_pet_`)) {
+              const subKey = key.replace(`config_pet_`, "");
+              const currentPet = (result as any)["pet"] || {};
               result = {
                 ...result,
-                [ipId]: {
+                pet: {
                   ...currentPet,
                   [subKey]: data,
                 },
@@ -92,30 +81,27 @@ export class Preloader extends Scene {
 
             if (num === configsFiles.length) {
               this.cache.json.add("config", result);
-              this._preloadAssetsFromConfig(result, ipId);
+              this._preloadAssetsFromConfig(result);
             }
           },
         );
       }
     }
 
-    // Preload Fonts
     this.load.font("BoutiqueBitmap", "assets/fonts/BoutiqueBitmap9x9.ttf", "truetype");
     this.load.font("Tiny5", "assets/fonts/Tiny5-Regular.ttf", "truetype");
   }
 
-  _preloadAssetsFromConfig(data: any, ipId: string = "pet") {
-    const { ui, [ipId]: currentIpConfig } = data;
-    // Preload ui assets
+  _preloadAssetsFromConfig(data: any) {
+    const { ui, pet: currentConfig } = data;
     if (ui) {
       Object.keys(ui).map((key) => {
         this.load.atlas(ui[key].key, ui[key].preload.png, ui[key].preload.json);
       });
     }
-    // Preload pet assets
-    if (currentIpConfig?.assets) {
+    if (currentConfig?.assets) {
       for (const [key, { png, json }] of Object.entries(
-        currentIpConfig.assets as Record<string, { png: string; json: string }>,
+        currentConfig.assets as Record<string, { png: string; json: string }>,
       )) {
         this.load.atlas(key, png, json);
       }
@@ -123,11 +109,8 @@ export class Preloader extends Scene {
   }
 
   create() {
-    // Set Config Manager
     const data = this.cache.json.get("config");
     ConfigManager.getInstance().setConfig(data);
-
-    // Start First Scene
     this.scene.start("MainScene");
   }
 }

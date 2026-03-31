@@ -1,6 +1,5 @@
 import Phaser from "phaser";
 import { store, Store } from "@/game/store";
-import { ConfigManager } from "@/game/managers/ConfigManagers";
 
 const DEFAULT_HP = 88;
 const FONT_FAMILY = "Tiny5";
@@ -13,13 +12,13 @@ export class IconHp extends Phaser.GameObjects.Container {
   private value: number;
   private targetValue: number | undefined;
   private step: "100" | "75" | "50" | "25" | "10" = "100";
-  private ipId: string;
+  
 
   constructor(scene: Phaser.Scene, option: { x: number; y: number }) {
     super(scene);
     
-    this.ipId = ConfigManager.getInstance().getIpId();
-    this.hpState = store<number>(`${this.ipId}.hp`);
+    
+    this.hpState = store<number>(`pet.hp`);
 
     this.value =
       typeof this.hpState?.get() === "number"

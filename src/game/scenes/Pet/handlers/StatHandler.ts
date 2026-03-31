@@ -5,11 +5,11 @@ import { ConfigManager } from "@/game/managers/ConfigManagers";
 export class StatsHandler {
   private group: StatHandler[] = [];
   constructor(scene: Phaser.Scene) {
-    const ipId = ConfigManager.getInstance().getIpId();
-    const stats = ConfigManager.getInstance().get(`${ipId}.stats`);
+    
+    const stats = ConfigManager.getInstance().get(`pet.stats`);
 
     stats.forEach(({ key, min, max }: any) => {
-      const handler = new StatHandler(scene, `${ipId}.${key}`, min, max);
+      const handler = new StatHandler(scene, `pet.${key}`, min, max);
       handler.init();
       this.group.push(handler);
     });
@@ -37,7 +37,7 @@ export class StatHandler {
   private storeKey: string;
   private min: number;
   private max: number;
-  private ipId: string;
+  
 
   constructor(
     scene: Phaser.Scene,
@@ -50,8 +50,8 @@ export class StatHandler {
     this.statState = store<number>(storeKey);
     this.min = min;
     this.max = max;
-    this.ipId = ConfigManager.getInstance().getIpId();
-    this.conditionState = store<string>(`${this.ipId}.condition`);
+    
+    this.conditionState = store<string>(`pet.condition`);
   }
 
   init() {
@@ -64,7 +64,7 @@ export class StatHandler {
       this.timer.remove();
       this.timer = undefined;
     }
-    const conditions = ConfigManager.getInstance().get(`${this.ipId}.conditions`) as Record<
+    const conditions = ConfigManager.getInstance().get(`pet.conditions`) as Record<
       string,
       any
     >;

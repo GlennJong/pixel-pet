@@ -31,14 +31,14 @@ export class PetCharacter extends Character {
   public activities: Record<string, ActionDef>;
 
   constructor(scene: Phaser.Scene) {
-    const ipId = ConfigManager.getInstance().getIpId();
+    
     const config = ConfigManager.getInstance().get<CharacterConfig>(
-      `${ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
+      `pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
     );
 
     let initialAnimations = (config as any).animations || [];
     if (config.watch && config.stages && config.stages.length > 0) {
-      const level = store<number>(`${ipId}.${config.watch}`)?.get() || 0;
+      const level = store<number>(`pet.${config.watch}`)?.get() || 0;
       const initialConfig = config.stages.find((l) => l.value === level) || config.stages[0];
       if (initialConfig.animations) initialAnimations = initialConfig.animations;
     }
@@ -59,7 +59,7 @@ export class PetCharacter extends Character {
 
     // setup watcher for level or other state based on config (like room.json)
     if (config.watch && config.stages) {
-      this.watchState = store<number>(`${ipId}.${config.watch}`);
+      this.watchState = store<number>(`pet.${config.watch}`);
       this.watchState?.watch((value: number) => {
         this.handleCharacterUpgrade(value, config.stages);
       });

@@ -1,6 +1,5 @@
 import Phaser from "phaser";
 import { store, Store } from "@/game/store";
-import { ConfigManager } from "@/game/managers/ConfigManagers";
 
 const DEFAULT_COIN = 888;
 
@@ -10,13 +9,13 @@ export class IconCoin extends Phaser.GameObjects.Container {
   private text: Phaser.GameObjects.Text;
   private value: number;
   private targetValue: number | undefined;
-  private ipId: string;
+  
 
   constructor(scene: Phaser.Scene, option: { x: number; y: number }) {
     super(scene);
 
-    this.ipId = ConfigManager.getInstance().getIpId();
-    this.coinState = store<number>(`${this.ipId}.coin`);
+    
+    this.coinState = store<number>(`pet.coin`);
 
     // Watch coin change
     this.value =

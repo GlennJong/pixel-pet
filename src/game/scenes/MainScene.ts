@@ -26,18 +26,18 @@ export class MainScene extends Scene {
     initStore("global.transmit", GAME_CONFIG.GLOBAL.DEFAULT_TRANSMIT);
     initStore("global.messageQueue", []);
 
-    const ipId = ConfigManager.getInstance().getIpId();
+    
     const stats =
-      ConfigManager.getInstance().get<StatItem[]>(`${ipId}.stats`) || [];
+      ConfigManager.getInstance().get<StatItem[]>(`pet.stats`) || [];
     stats.forEach(({ key, value }: any) => {
-      initStore(`${ipId}.${key}`, value || 0);
+      initStore(`pet.${key}`, value || 0);
     });
-    initStore(`${ipId}.hp`, GAME_CONFIG.PET.DEFAULT_HP);
-    initStore(`${ipId}.coin`, GAME_CONFIG.PET.DEFAULT_COIN);
-    initStore(`${ipId}.level`, GAME_CONFIG.PET.DEFAULT_LEVEL);
+    initStore(`pet.hp`, GAME_CONFIG.PET.DEFAULT_HP);
+    initStore(`pet.coin`, GAME_CONFIG.PET.DEFAULT_COIN);
+    initStore(`pet.level`, GAME_CONFIG.PET.DEFAULT_LEVEL);
 
-    initStore(`${ipId}.condition`, "normal");
-    initStore(`${ipId}.taskQueue`, []);
+    initStore(`pet.condition`, "normal");
+    initStore(`pet.taskQueue`, []);
 
     this.scene.start("Pet");
   }

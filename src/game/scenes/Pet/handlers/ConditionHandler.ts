@@ -5,17 +5,17 @@ import { GAME_CONFIG } from "@/game/constants";
 export class ConditionHandler {
   private config: any;
   private conditionState?: Store<string>;
-  private ipId: string;
+  
 
   constructor() {
-    this.ipId = ConfigManager.getInstance().getIpId();
-    const configKey = `${this.ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}.conditions`;
+    
+    const configKey = `pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}.conditions`;
     this.config = ConfigManager.getInstance().get(configKey) || undefined;
-    this.conditionState = store<string>(`${this.ipId}.condition`);
+    this.conditionState = store<string>(`pet.condition`);
   }
 
   public getCondition(): string {
-    return getStoreState(`${this.ipId}.condition`);
+    return getStoreState(`pet.condition`);
   }
 
   public getConfig(): any {

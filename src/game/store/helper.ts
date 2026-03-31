@@ -1,5 +1,4 @@
 import { getStoreState } from "@/game/store";
-import { ConfigManager } from "../managers/ConfigManagers";
 
 // How to use:
 // {
@@ -14,12 +13,12 @@ export function getValueFromColonStoreState(
   if (data.default === undefined) return ErrorEvent;
 
   let result = data.default;
-  const ipId = ConfigManager.getInstance().getIpId();
+  
 
   for (const [key, value] of Object.entries(data)) {
     if (key !== "default") {
       const [stateKey, stateValue] = key.split(":");
-      if (getStoreState(`${ipId}.${stateKey}`) === stateValue) {
+      if (getStoreState(`pet.${stateKey}`) === stateValue) {
         result = value;
       }
     }

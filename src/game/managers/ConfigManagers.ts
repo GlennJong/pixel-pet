@@ -4,7 +4,6 @@ import { PetConfig } from "../scenes/Pet/types";
 export class ConfigManager {
   private static instance: ConfigManager;
   private config: any = {};
-  private ipId: string = "pet";
 
   private constructor() {}
   
@@ -15,14 +14,6 @@ export class ConfigManager {
     }
 
     return ConfigManager.instance;
-  }
-
-  setIpId(ip: string) {
-    this.ipId = ip;
-  }
-
-  getIpId(): string {
-    return this.ipId;
   }
 
   setConfig(config: any) {
@@ -41,6 +32,6 @@ export class ConfigManager {
   }
 
   getPetConfig(): PetConfig["pet"] {
-    return this.get(this.ipId);
+    return this.get("pet");
   }
 }

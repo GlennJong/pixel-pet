@@ -9,7 +9,7 @@ export interface AutoActionConfig {
 }
 
 export class AutoActionHandler {
-  private autoWatchers: { key: string; handler: (v: any) => void; ipId?: string }[] = [];
+  private autoWatchers: { key: string; handler: (v: any) => void }[] = [];
   private cache: Record<string, any> = {};
   private autoActions: AutoActionConfig[] = [];
   private onTrigger?: (action: any) => void;
@@ -21,12 +21,12 @@ export class AutoActionHandler {
   constructor() {
     this.setupActions();
 
-    const ipId = ConfigManager.getInstance().getIpId();
+    
     const config = ConfigManager.getInstance().get(
-      `${ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
+      `pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
     );
     if (config.watch && config.stages) {
-      this.levelWatcher = store<number>(`${ipId}.${config.watch}`);
+      this.levelWatcher = store<number>(`pet.${config.watch}`);
       this.levelWatcher?.watch(() => {
         this.reinit();
       });
@@ -34,13 +34,13 @@ export class AutoActionHandler {
   }
 
   private setupActions() {
-    const ipId = ConfigManager.getInstance().getIpId();
+    
     const config = ConfigManager.getInstance().get(
-      `${ipId}.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
+      `pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
     );
     let actions: Record<string, any> = {};
     if (config.watch && config.stages) {
-       const level = getStoreState(`${ipId}.${config.watch}`) || 0;
+       const level = getStoreState(`pet.${config.watch}`) || 0;
        const current = config.stages.find((l: any) => l.value === level) || config.stages[0];
        actions = current.actions || {};
     } else {
@@ -69,13 +69,13 @@ export class AutoActionHandler {
       this.autoActions.flatMap((a) => Object.keys(a.condition)),
     );
 
-    const ipId = ConfigManager.getInstance().getIpId();
+    
     watchedKeys.forEach((key) => {
       // Use generic store to get any type of value
-      this.cache[key] = store<any>(`${ipId}.${key}`)?.get();
+      this.cache[key] = store<any>(`pet.${key}`)?.get();
       const handler = this.makeHandler(key);
-      store<any>(`${ipId}.${key}`)?.watch(handler);
-      this.autoWatchers.push({ key, handler, ipId });
+      store<any>(`pet.${key}`)?.watch(handler);
+      this.autoWatchers.push({ key, handler });
     });
   }
 
@@ -142,9 +142,9 @@ export class AutoActionHandler {
   }
 
   clearWatchers() {
-    for (const { key, handler, ipId } of this.autoWatchers) {
-      const currentIpId = ipId || "pet";
-      store<any>(`${currentIpId}.${key}`)?.unwatch(handler);
+    for (const { key, handler } of this.autoWatchers) {
+      
+      store<any>(`pet.${key}`)?.unwatch(handler);
     }
     this.autoWatchers = [];
   }

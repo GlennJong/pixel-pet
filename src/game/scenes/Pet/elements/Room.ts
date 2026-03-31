@@ -21,20 +21,20 @@ export class Room {
   private front?: Phaser.GameObjects.Sprite;
   private extras: Phaser.GameObjects.Sprite[] = [];
   private watchState?: Store<number>;
-  private ipId: string;
+  
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    this.ipId = ConfigManager.getInstance().getIpId();
-    this.watchState = store<number>(`${this.ipId}.condition`);
-    this.config = ConfigManager.getInstance().get(`${this.ipId}.room`);
+    
+    this.watchState = store<number>(`pet.condition`);
+    this.config = ConfigManager.getInstance().get(`pet.room`);
   }
 
   init() {
     const { watch } = this.config;
 
     // set watch state
-    this.watchState = store<number>(`${this.ipId}.${watch}`);
+    this.watchState = store<number>(`pet.${watch}`);
     this.watchState?.watch(this.handleRenderRoomByWatchedState);
 
     // init animations

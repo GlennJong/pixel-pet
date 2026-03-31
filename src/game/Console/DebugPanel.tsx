@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useControls, folder } from "leva";
 import { getStoreState, setStoreState, store } from "@/game/store";
-import { ConfigManager } from "@/game/managers/ConfigManagers";
 
 export default function DebugPanel() {
   if (!import.meta.env.DEV) return null;
@@ -10,59 +9,58 @@ export default function DebugPanel() {
 }
 
 function DebugPanelInner() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const ipId = urlParams.get("id") || ConfigManager.getInstance().getIpId() || "pet";
+  
 
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     const checkStore = setInterval(() => {
-      if (store(`${ipId}.hp`)) {
+      if (store(`pet.hp`)) {
         setIsReady(true);
         clearInterval(checkStore);
       }
     }, 100);
     return () => clearInterval(checkStore);
-  }, [ipId]);
+  }, []);
 
   if (!isReady) return null;
 
-  return <DebugControls ipId={ipId} />;
+  return <DebugControls />;
 }
 
-function DebugControls({ ipId }: { ipId: string }) {
+function DebugControls() {
   const [, set] = useControls(() => ({
     "屬性 (Properties)": folder({
       hp: {
-        value: getStoreState(`${ipId}.hp`) || 100,
+        value: getStoreState(`pet.hp`) || 100,
         min: 0,
         max: 100,
         step: 1,
         onChange: (v) => {
-          if (store(`${ipId}.hp`) && getStoreState(`${ipId}.hp`) !== v) {
-            setStoreState(`${ipId}.hp`, v);
+          if (store(`pet.hp`) && getStoreState(`pet.hp`) !== v) {
+            setStoreState(`pet.hp`, v);
           }
         },
       },
       level: {
-        value: getStoreState(`${ipId}.level`) || 0,
+        value: getStoreState(`pet.level`) || 0,
         min: 0,
         max: 5,
         step: 1,
         onChange: (v) => {
-          if (store(`${ipId}.level`) && getStoreState(`${ipId}.level`) !== v) {
-            setStoreState(`${ipId}.level`, v);
+          if (store(`pet.level`) && getStoreState(`pet.level`) !== v) {
+            setStoreState(`pet.level`, v);
           }
         },
       },
       coin: {
-        value: getStoreState(`${ipId}.coin`) || 0,
+        value: getStoreState(`pet.coin`) || 0,
         min: 0,
         max: 9999,
         step: 10,
         onChange: (v) => {
-          if (store(`${ipId}.coin`) && getStoreState(`${ipId}.coin`) !== v) {
-            setStoreState(`${ipId}.coin`, v);
+          if (store(`pet.coin`) && getStoreState(`pet.coin`) !== v) {
+            setStoreState(`pet.coin`, v);
           }
         },
       },
@@ -70,10 +68,10 @@ function DebugControls({ ipId }: { ipId: string }) {
     "狀態與系統": folder({
       condition: {
         options: ["normal", "sleep", "death"],
-        value: getStoreState(`${ipId}.condition`) || "normal",
+        value: getStoreState(`pet.condition`) || "normal",
         onChange: (v) => {
-          if (store(`${ipId}.condition`) && getStoreState(`${ipId}.condition`) !== v) {
-            setStoreState(`${ipId}.condition`, v);
+          if (store(`pet.condition`) && getStoreState(`pet.condition`) !== v) {
+            setStoreState(`pet.condition`, v);
           }
         },
       },
@@ -98,10 +96,10 @@ function DebugControls({ ipId }: { ipId: string }) {
     const handleCondition = (val: string) => set({ condition: val } as Record<string, string>);
     const handlePause = (val: boolean) => set({ is_paused: val } as Record<string, boolean>);
 
-    const sHp = store<number>(`${ipId}.hp`);
-    const sLevel = store<number>(`${ipId}.level`);
-    const sCoin = store<number>(`${ipId}.coin`);
-    const sCondition = store<string>(`${ipId}.condition`);
+    const sHp = store<number>(`pet.hp`);
+    const sLevel = store<number>(`pet.level`);
+    const sCoin = store<number>(`pet.coin`);
+    const sCondition = store<string>(`pet.condition`);
     const sPause = store<boolean>("global.is_paused");
 
     if (sHp) sHp.watch(handleHp);
@@ -117,7 +115,7 @@ function DebugControls({ ipId }: { ipId: string }) {
       if (sCondition) sCondition.unwatch(handleCondition);
       if (sPause) sPause.unwatch(handlePause);
     };
-  }, [ipId, set]);
+  }, [set]);
 
   return null;
 }

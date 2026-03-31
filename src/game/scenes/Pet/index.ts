@@ -114,12 +114,12 @@ export default class PetScene extends Scene {
     } else if (key === "space") {
       const action = this.header!.select();
 
-      const ipId = ConfigManager.getInstance().getIpId();
-      const characterConfig = ConfigManager.getInstance().get(`${ipId}.mycharacter`);
+      
+      const characterConfig = ConfigManager.getInstance().get(`pet.mycharacter`);
       
       let actionsConfig: Record<string, any> = {};
       if (characterConfig.watch && characterConfig.stages) {
-        const level = getStoreState(`${ipId}.${characterConfig.watch}`) || 0;
+        const level = getStoreState(`pet.${characterConfig.watch}`) || 0;
         const current = characterConfig.stages.find((l: any) => l.value === level) || characterConfig.stages[0];
         actionsConfig = current.actions || {};
       } else {

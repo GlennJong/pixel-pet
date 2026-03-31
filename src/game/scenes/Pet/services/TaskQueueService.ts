@@ -19,15 +19,15 @@ export class TaskQueueService {
 
   private onTask?: (task: Task) => boolean | Promise<boolean>;
   private scene: Phaser.Scene;
-  private ipId: string;
+  
   private taskQueueStoreKey: string;
 
   private retryCounts: Map<string, number> = new Map();
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    this.ipId = ConfigManager.getInstance().getIpId();
-    this.taskQueueStoreKey = `${this.ipId}.taskQueue`;
+    
+    this.taskQueueStoreKey = `pet.taskQueue`;
     this.taskQueueState = store<Task[]>(this.taskQueueStoreKey);
   }
 
@@ -57,10 +57,10 @@ export class TaskQueueService {
     let updated = false;
     messages.forEach((msg) => {
       const result = filterFromMatchList(msg, this.commandMapList);
-      const characterConfig = ConfigManager.getInstance().get(`${this.ipId}.mycharacter`);
+      const characterConfig = ConfigManager.getInstance().get(`pet.mycharacter`);
       let actionsConfig: Record<string, any> = {};
       if (characterConfig.watch && characterConfig.stages) {
-        const level = getStoreState(`${this.ipId}.${characterConfig.watch}`) || 0;
+        const level = getStoreState(`pet.${characterConfig.watch}`) || 0;
         const current = characterConfig.stages.find((l: any) => l.value === level) || characterConfig.stages[0];
         actionsConfig = current.actions || {};
       } else {
