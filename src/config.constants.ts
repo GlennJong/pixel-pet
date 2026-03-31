@@ -8,7 +8,7 @@ export const petConditionWording = {
   hp: "生命值",
 };
 
-export const mappingWording = {
+export const triggersWording = {
   drink: "讓角色喝水",
   write: "讓角色寫字",
   sleep: "讓角色睡覺/起床",
@@ -46,7 +46,7 @@ export const actionsWording = {
   hp: "生命值",
 };
 
-export const mappingHideKey = ["action", "params", "sleep"];
+export const triggersHideKey = ["action", "params", "sleep"];
 
 export const petSceneHideKey = [
   "key",

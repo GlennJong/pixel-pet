@@ -1,4 +1,4 @@
-type mapping = {
+type triggers = {
   [key: string]: {
     action: string,
     matches: {
@@ -11,5 +11,5 @@ type mapping = {
 }
 
 export type config = {
-  mapping: mapping
+  triggers: triggers
 }

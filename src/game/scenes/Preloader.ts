@@ -9,7 +9,7 @@ export class Preloader extends Scene {
   private getConfigsFiles(ipId: string) {
     return [
       { key: "ui", filename: "configs/global/ui.json" },
-      { key: "mapping", filename: "configs/global/mapping.json" },
+      { key: "triggers", filename: "configs/global/triggers.json" },
       { key: `config_${ipId}_assets`, filename: `configs/${ipId}/assets.json` },
       {
         key: `config_${ipId}_stats`,
