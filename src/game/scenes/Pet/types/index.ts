@@ -28,3 +28,7 @@ export interface PetConfig {
   };
 }
 export * from "./runtime";
+
+declare module "@/game/managers/configTypes" {
+  interface AppConfig extends PetConfig {}
+}

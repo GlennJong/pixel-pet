@@ -1,12 +1,10 @@
-// src/game/managers/ConfigManagers.ts
-import { PetConfig } from "../scenes/Pet/types";
+import { AppConfig } from "./configTypes";
 
 export class ConfigManager {
   private static instance: ConfigManager;
-  private config: any = {};
+  private config: AppConfig = {} as AppConfig;
 
   private constructor() {}
-  
 
   static getInstance(): ConfigManager {
     if (!ConfigManager.instance) {
@@ -16,22 +14,20 @@ export class ConfigManager {
     return ConfigManager.instance;
   }
 
-  setConfig(config: any) {
+  setConfig(config: AppConfig) {
     this.config = config;
   }
 
   async loadConfig(url: string) {
     const res = await fetch(url);
-    this.config = await res.json();
+    this.config = (await res.json()) as AppConfig;
   }
 
   get<T = any>(path: string): T {
-    console.log(this.config)
-
-    return path.split(".").reduce((obj, key) => obj?.[key], this.config) as T;
+    return path.split(".").reduce((obj: any, key) => obj?.[key], this.config) as T;
   }
 
-  getPetConfig(): PetConfig["pet"] {
-    return this.get("pet");
+  getPetConfig(): NonNullable<AppConfig["pet"]> {
+    return this.config.pet;
   }
 }
