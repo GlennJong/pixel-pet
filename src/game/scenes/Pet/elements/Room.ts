@@ -13,7 +13,7 @@ type TAnimation = {
 
 const DEFAULT_SPRITE = { key: "", frame: "" };
 
-export class Property {
+export class Room {
   private config;
   private scene: Phaser.Scene;
   private background?: Phaser.GameObjects.Sprite;
@@ -35,7 +35,7 @@ export class Property {
 
     // set watch state
     this.watchState = store<number>(`${this.ipId}.${watch}`);
-    this.watchState?.watch(this.handleRenderPropertyByWatchedState);
+    this.watchState?.watch(this.handleRenderRoomByWatchedState);
 
     // init animations
     this.initAnimations();
@@ -45,7 +45,7 @@ export class Property {
 
     // render first
     const value = this.watchState?.get() || 0;
-    this.handleRenderPropertyByWatchedState(value);
+    this.handleRenderRoomByWatchedState(value);
   }
 
   private initAnimations = () => {
@@ -90,7 +90,7 @@ export class Property {
     this.front.setDepth(100);
   };
 
-  private handleRenderPropertyByWatchedState = (value: number) => {
+  private handleRenderRoomByWatchedState = (value: number) => {
     if (!this.config || !this.config.list) return;
 
     const { list } = this.config;

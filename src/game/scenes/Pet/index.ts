@@ -23,11 +23,11 @@ import { ConfigManager } from "@/game/managers/ConfigManagers";
 import { ConditionHandler } from "./handlers/ConditionHandler";
 import { AutoActionHandler } from "./handlers/AutoActionHandler";
 import { StatsHandler } from "./handlers/StatHandler";
-import { Property } from "./elements/Property";
+import { Room } from "./elements/Room";
 
 export default class PetScene extends Scene {
   private header?: Header;
-  private property?: Property;
+  private room?: Room;
   private character?: PetCharacter;
   private stats?: StatsHandler;
   private dialogue?: PetDialogue;
@@ -51,9 +51,9 @@ export default class PetScene extends Scene {
     // charactor
     this.character = new PetCharacter(this);
 
-    // property
-    this.property = new Property(this);
-    this.property.init();
+    // room
+    this.room = new Room(this);
+    this.room.init();
 
     // header
     this.header = new Header(this);
@@ -195,7 +195,7 @@ export default class PetScene extends Scene {
 
     this.character?.destroy();
     this.header?.destroy();
-    this.property?.destroy();
+    this.room?.destroy();
     this.dialogue?.destroy();
     this.autoActionHandler?.destroy();
     this.taskQueueService?.destroy();
