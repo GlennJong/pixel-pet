@@ -8,6 +8,7 @@ import AutoSaveTrigger from "./AutoSaveTrigger";
 import DebugPanel from "@/game/Console/DebugPanel";
 import PipButton from "./PipButton";
 import "./App.css";
+import CommandBoard from "./CommandBoard";
 
 type TRecord = {
   user?: string;
@@ -94,6 +95,7 @@ function App() {
             />
           </div>
         )} */}
+        
 
         {/* Main Game Area */}
         <div className="game-container">
@@ -121,10 +123,12 @@ function App() {
         </div>
       </div>
 
+
       {/* Bottom Tools */}
       <div className="bottom-tools">
         <div className="tools-content">
           <AutoSaveTrigger />
+          { isCmdOpen && <CommandBoard /> }
         </div>
 
         {isLogOpen && (

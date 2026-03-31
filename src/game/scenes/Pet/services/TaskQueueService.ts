@@ -5,7 +5,7 @@ import { filterFromMatchList } from "@/game/utils/filterFromMatchList";
 
 import { Message, CommandMap, Task } from "./types";
 import {
-  CONFIG_COMMAND_MAP_KEY,
+  // CONFIG_COMMAND_MAP_KEY,
   MESSAGE_QUEUE_STORE_KEY,
 } from "./constants";
 import { ConfigManager } from "@/game/managers/ConfigManagers";
@@ -43,7 +43,7 @@ export class TaskQueueService {
 
     console.log(this.scene.cache.json.get("config"))
     this.commandMapList = Object.values(
-      this.scene.cache.json.get("config")[CONFIG_COMMAND_MAP_KEY],
+      this.scene.cache.json.get("config")["commands"],
     );
 
     this.messageQueueState?.watch(this.handleMessageQueueChange);

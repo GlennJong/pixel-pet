@@ -1,6 +1,5 @@
 import { Scene } from "phaser";
 import { ConfigManager } from "../managers/ConfigManagers";
-import { CONFIG_COMMAND_MAP_KEY } from "./Pet/services/constants";
 
 export class Preloader extends Scene {
   constructor() {
@@ -10,7 +9,7 @@ export class Preloader extends Scene {
   private getConfigsFiles() {
     return [
       { key: "ui", filename: "configs/global/ui.json" },
-      { key: CONFIG_COMMAND_MAP_KEY, filename: "configs/global/commands.json" },
+      { key: 'commands', filename: "configs/global/commands.json" },
       { key: `config_pet_assets`, filename: `configs/pet/assets.json` },
       {
         key: `config_pet_stats`,
