@@ -1,9 +1,9 @@
 import Phaser from "phaser";
-import { canvas } from "../constants";
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from "../constants";
 import { runTween } from "../utils/runTween";
 
-const defaultWidth = canvas.width;
-const defaultHeight = canvas.height;
+const defaultWidth = CANVAS_WIDTH;
+const defaultHeight = CANVAS_HEIGHT;
 
 export async function sceneConverter(
   scene: Phaser.Scene,

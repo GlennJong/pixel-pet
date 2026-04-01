@@ -1,7 +1,7 @@
 import { getStaticData } from "@/game/staticData";
 import { runtimeData, getRuntimeDataGroup, ObservableValue } from "@/game/runtimeData";
 import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
-import { GAME_CONFIG } from "@/game/constants";
+import { PET_DEFAULT_CHARACTER_KEY } from "@/game/constants";
 import { getPetRuntimeDataKey, getPetStaticDataKey } from "../constants";
 import { ActionDef, ActionConditionRule, CharacterStageItem } from "../types";
 
@@ -17,7 +17,7 @@ export class AutoActionHandler {
   constructor() {
     this.setupActions();
 
-    const staticKey = getPetStaticDataKey(GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY);
+    const staticKey = getPetStaticDataKey(PET_DEFAULT_CHARACTER_KEY);
     const config = getStaticData(staticKey);
     if (config.watch && config.stages) {
       const watchKey = getPetRuntimeDataKey(config.watch);
@@ -29,7 +29,7 @@ export class AutoActionHandler {
   }
 
   private setupActions() {
-    const staticKey = getPetStaticDataKey(GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY);
+    const staticKey = getPetStaticDataKey(PET_DEFAULT_CHARACTER_KEY);
     const config = getStaticData(staticKey);
     let actions: Record<string, ActionDef> = {};
     if (config.watch && config.stages) {

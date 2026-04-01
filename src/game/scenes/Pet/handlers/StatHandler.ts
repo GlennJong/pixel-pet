@@ -4,13 +4,14 @@ import { getStaticData } from "@/game/staticData";
 import { ActionEffect } from "../elements/PetCharacter/types";
 import { KnownRuntimeDataKey, RuntimeDataValue } from "@/game/runtimeData/types";
 import { getPetRuntimeDataKey, PET_CORE_RUNTIME_KEYS, PET_STATIC_KEYS } from "../constants";
+import { StatItem } from "../types";
 
 export class StatsHandler {
   private group: StatHandler<KnownRuntimeDataKey>[] = [];
   constructor(scene: Phaser.Scene) {
     const stats = getStaticData(PET_STATIC_KEYS.STATS);
 
-    stats.forEach(({ key, min, max }: import("../types/common").StatItem) => {
+    stats.forEach(({ key, min, max }: StatItem) => {
       const handler = new StatHandler(scene, getPetRuntimeDataKey(key) as KnownRuntimeDataKey, min, max);
       handler.init();
       this.group.push(handler);
@@ -52,7 +53,7 @@ export class StatHandler<K extends KnownRuntimeDataKey> {
     this.min = min ?? -Infinity;
     this.max = max ?? Infinity;
     
-    this.conditionState = runtimeData(PET_CORE_RUNTIME_KEYS.CONDITION as KnownRuntimeDataKey);
+    this.conditionState = runtimeData(PET_CORE_RUNTIME_KEYS.CONDITION);
   }
 
   init() {

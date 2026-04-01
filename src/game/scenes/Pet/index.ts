@@ -3,8 +3,7 @@ import { Scene } from "phaser";
 // common components
 import {
   sceneConverter,
-  sceneStarter,
-} from "@/game/components/CircleSceneTransition";
+  sceneStarter } from "@/game/components/CircleSceneTransition";
 import { setRuntimeData, getRuntimeDataGroup } from "@/game/runtimeData";
 import { EventBus } from "@/game/EventBus";
 
@@ -16,7 +15,7 @@ import { Room } from "./elements/Room";
 
 // services
 import { TaskQueueService } from "./services/TaskQueueService";
-import { Task } from "./types";
+import { ActionEffect, ActionMap, CharacterStageItem, Task } from "./types";
 
 // handlers
 import { KeyboardHandler } from "./handlers/KeyboardHander";
@@ -26,11 +25,12 @@ import { StatsHandler } from "./handlers/StatHandler";
 
 // config
 import { getStaticData } from "@/game/staticData";
-import { GAME_CONFIG } from "@/game/constants";
+import { PET_DEFAULT_HP, PET_DEFAULT_COIN, PET_DEFAULT_LEVEL } from "@/game/constants";
 import { getPetRuntimeDataKey, PET_STATIC_KEYS } from "./constants";
 import { StatItem } from "./types/common";
 import { PetStats } from "./types/runtime";
 import { initRuntimeData } from "@/game/runtimeData";
+import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
 
 export default class PetScene extends Scene {
   private header?: Header;
@@ -68,12 +68,11 @@ export default class PetScene extends Scene {
     const stats = getStaticData<StatItem[]>(PET_STATIC_KEYS.STATS) || [];
 
     const defaultStats: PetStats = {
-      hp: GAME_CONFIG.PET.DEFAULT_HP,
-      coin: GAME_CONFIG.PET.DEFAULT_COIN,
-      level: GAME_CONFIG.PET.DEFAULT_LEVEL,
+      hp: PET_DEFAULT_HP,
+      coin: PET_DEFAULT_COIN,
+      level: PET_DEFAULT_LEVEL,
       condition: "normal",
-      taskQueue: [] as Task[],
-    };
+      taskQueue: [] as Task[] };
 
     stats.forEach(({ key, value }) => {
       if (key === "taskQueue") {
@@ -85,7 +84,7 @@ export default class PetScene extends Scene {
 
     // Init runtime data
     for (const [key, value] of Object.entries(defaultStats)) {
-      initRuntimeData<typeof value>(getPetRuntimeDataKey(key) as import("@/game/runtimeData/types").KnownRuntimeDataKey, value);
+      initRuntimeData<typeof value>(getPetRuntimeDataKey(key), value);
     }
   }
 
@@ -104,22 +103,19 @@ export default class PetScene extends Scene {
     this.taskQueueService = new TaskQueueService(this);
     this.taskQueueService.init({
       onTask: (task) => this.handleActionQueueTask(task),
-      interval: 300,
-    });
+      interval: 300 });
 
     this.autoActionHandler = new AutoActionHandler();
     this.autoActionHandler.init({
       onTrigger: (action) =>
-        this.handleAddEmergencyTask({ ...action, user: action.user || "system" }),
-    });
+        this.handleAddEmergencyTask({ ...action, user: action.user || "system" }) });
   }
 
   private initControls() {
     this.keyboardHandler = new KeyboardHandler(this, {
       onLeft: () => this.handleControlButton("left"),
       onRight: () => this.handleControlButton("right"),
-      onSpace: () => this.handleControlButton("space"),
-    });
+      onSpace: () => this.handleControlButton("space") });
 
     EventBus.on("game-left-keydown", () => this.handleControlButton("left"));
     EventBus.on("game-right-keydown", () => this.handleControlButton("right"));
@@ -149,12 +145,12 @@ export default class PetScene extends Scene {
 
   private resolveActionTask(actionName: string): Task | null {
     const characterConfig = getStaticData(PET_STATIC_KEYS.MYCHARACTER);
-    let actionsConfig: import("./types").ActionMap = {};
+    let actionsConfig: ActionMap = {};
     
     if (characterConfig.watch && characterConfig.stages) {
       const watchKey = getPetRuntimeDataKey(characterConfig.watch);
       const level = getRuntimeDataGroup(watchKey) || 0;
-      const current = characterConfig.stages?.find((l: import("./types").CharacterStageItem) => l.value === level) || characterConfig.stages?.[0];
+      const current = characterConfig.stages?.find((l: CharacterStageItem) => l.value === level) || characterConfig.stages?.[0];
       actionsConfig = current.actions || {};
     } else {
       actionsConfig = characterConfig.actions || {};
@@ -178,7 +174,7 @@ export default class PetScene extends Scene {
           effectReplacement = Object.fromEntries(
             Object.entries(effect).map(([key, obj]) => [
               key,
-              (obj as import("./types").ActionEffect).value,
+              (obj as ActionEffect).value,
             ]),
           );
         }
@@ -205,7 +201,7 @@ export default class PetScene extends Scene {
     this.taskQueueService?.addEmergentTask(task);
   }
 
-  async handleUpgrade(taskQueueService: import("./services/TaskQueueService").TaskQueueService, params: Record<string, string | number>) {
+  async handleUpgrade(taskQueueService: TaskQueueService, params: Record<string, string | number>) {
     if (!this.isPetReady) return false;
     taskQueueService?.addTask({ action: "buy", user: "system", params });
     return true;

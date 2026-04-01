@@ -3,9 +3,8 @@ import {
   getIsAutoSaveEnabled,
   hasSaveData,
   initRuntimeData,
-  loadAllRuntimeDataFromLocalStorage,
-} from "@/game/runtimeData";
-import { GAME_CONFIG } from "@/game/constants";
+  loadAllRuntimeDataFromLocalStorage } from "@/game/runtimeData";
+import { GLOBAL_DEFAULT_TRANSMIT } from "@/game/constants";
 
 export class MainScene extends Scene {
   constructor() {
@@ -24,7 +23,7 @@ export class MainScene extends Scene {
     // Global Domain Initialization
     // ============================================
     initRuntimeData("global.is_paused", false);
-    initRuntimeData("global.transmit", GAME_CONFIG.GLOBAL.DEFAULT_TRANSMIT);
+    initRuntimeData("global.transmit", GLOBAL_DEFAULT_TRANSMIT);
     initRuntimeData("global.messageQueue", []);
 
     this.scene.start("Pet");

@@ -6,6 +6,7 @@ import { StatIcon } from "../StatIcon";
 import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
 import { HeaderConfig } from "./types";
 import { PET_STATIC_KEYS } from "../../constants";
+import { AnimationItem } from "../../types";
 
 const DEFAULT_WIDTH = 160;
 const DEFAULT_HEIGHT = 25;
@@ -41,7 +42,7 @@ export class Header extends Phaser.GameObjects.Container {
   private initAnimations = () => {
     const { key, animations } = this.config;
     if (animations) {
-      animations.forEach((_ani: import("../../types").AnimationItem) => {
+      animations.forEach((_ani: AnimationItem) => {
         const animationName = `${key}_${_ani.prefix}`;
         if (this.scene.anims.exists(animationName)) return; // prevent recreate after change scene.
 

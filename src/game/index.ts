@@ -3,7 +3,7 @@ import { AUTO, Game } from "phaser";
 import { Preloader } from "@/game/scenes/Preloader";
 
 // General
-import { canvas } from "@/game/constants";
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from "@/game/constants";
 
 // Scenes
 import Pet from "@/game/scenes/Pet";
@@ -12,8 +12,8 @@ import { MainScene } from "@/game/scenes/MainScene";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: AUTO,
-  width: canvas.width,
-  height: canvas.height,
+  width: CANVAS_WIDTH,
+  height: CANVAS_HEIGHT,
   parent: "game-container",
   pixelArt: true,
   backgroundColor: "#000",
