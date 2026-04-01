@@ -7,8 +7,6 @@ import { RoomConfig } from "../elements/Room/types";
 export * from "../elements/PetCharacter/types";
 export * from "./common";
 export * from "./conditions";
-export * from "../elements/Header/types";
-export * from "../elements/Room/types";
 export * from "./runtime";
 export * from "./task";
 

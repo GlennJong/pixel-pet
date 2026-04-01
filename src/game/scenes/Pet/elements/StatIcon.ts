@@ -1,10 +1,11 @@
 import Phaser from "phaser";
 import { runtimeData } from "@/game/runtimeData";
+import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
 
 const DEFAULT_VALUE = 0;
 
 export class StatIcon extends Phaser.GameObjects.Container {
-  private storeState: ReturnType<typeof runtimeData>;
+  private statState: ReturnType<typeof runtimeData>;
   private text: Phaser.GameObjects.Text;
   private value: number;
   private targetValue: number | undefined;
@@ -16,12 +17,12 @@ export class StatIcon extends Phaser.GameObjects.Container {
     super(scene);
 
     const { x, y, key, animation } = option;
-    this.storeState = runtimeData(key as import("@/game/runtimeData/types").KnownRuntimeDataKey);
+    this.statState = runtimeData(key as KnownRuntimeDataKey);
     this.value =
-      typeof this.storeState?.get() === "number"
-        ? this.storeState.get()
+      typeof this.statState?.get() === "number"
+        ? this.statState.get()
         : DEFAULT_VALUE;
-    this.storeState?.watch(this.handleSetValue);
+    this.statState?.watch(this.handleSetValue);
 
     // Icon
     const icon = scene.make

@@ -4,6 +4,7 @@ import Phaser from "phaser";
 import { getStaticData } from "@/game/staticData";
 import { StatIcon } from "../StatIcon";
 import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
+import { HeaderConfig } from "./types";
 
 const DEFAULT_WIDTH = 160;
 const DEFAULT_HEIGHT = 25;
@@ -14,7 +15,7 @@ export class Header extends Phaser.GameObjects.Container {
   private statGroup: StatIcon[] = [];
   private current = 0;
 
-  private config: import("../../types").HeaderConfig;
+  private config: HeaderConfig;
 
   private background?: Phaser.GameObjects.NineSlice;
   private timer: number | undefined;
