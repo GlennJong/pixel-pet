@@ -1,4 +1,4 @@
-import { ConfigManager } from "@/game/managers/ConfigManagers";
+import { getStaticData } from "@/game/staticData";
 import { runtimeData, ObservableValue } from "@/game/runtimeData";
 
 type TAnimation = {
@@ -27,7 +27,7 @@ export class Room {
     this.scene = scene;
     
     // this.watchState = runtimeData(`pet.condition`);
-    this.config = ConfigManager.getInstance().get(`pet.room`);
+    this.config = getStaticData(`pet.room`);
   }
 
   init() {

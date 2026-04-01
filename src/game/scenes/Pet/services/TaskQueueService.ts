@@ -8,7 +8,7 @@ import {
   // CONFIG_COMMAND_MAP_KEY,
   MESSAGE_QUEUE_STORE_KEY,
 } from "./constants";
-import { ConfigManager } from "@/game/managers/ConfigManagers";
+import { getStaticData } from "@/game/staticData";
 
 export class TaskQueueService {
   private taskQueueState?: ObservableValue<Task[]>;
@@ -57,7 +57,7 @@ export class TaskQueueService {
     let updated = false;
     messages.forEach((msg) => {
       const result = filterFromMatchList(msg, this.commandMapList);
-      const characterConfig = ConfigManager.getInstance().get(`pet.mycharacter`);
+      const characterConfig = getStaticData(`pet.mycharacter`);
       let actionsConfig: Record<string, any> = {};
       if (characterConfig.watch && characterConfig.stages) {
         const level = getRuntimeDataGroup(`pet.${characterConfig.watch}`) || 0;

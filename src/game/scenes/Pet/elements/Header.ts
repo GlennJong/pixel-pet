@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 
 // elements
-import { ConfigManager } from "@/game/managers/ConfigManagers";
+import { getStaticData } from "@/game/staticData";
 import { StatIcon } from "./StatIcon";
 import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
 
@@ -22,7 +22,7 @@ export class Header extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene) {
     super(scene);
 
-    this.config = ConfigManager.getInstance().get(`pet.header`);
+    this.config = getStaticData(`pet.header`);
 
     this.initAnimations();
 

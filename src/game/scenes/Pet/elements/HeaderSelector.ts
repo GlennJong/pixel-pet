@@ -1,4 +1,4 @@
-import { ConfigManager } from "@/game/managers/ConfigManagers";
+import { getStaticData } from "@/game/staticData";
 import Phaser from "phaser";
 
 type TOption = {
@@ -21,7 +21,7 @@ export class HeaderSelector extends Phaser.GameObjects.Container {
     // Inherite from scene
     super(scene);
 
-    this.config = ConfigManager.getInstance().get(`pet.header`);
+    this.config = getStaticData(`pet.header`);
 
     this.initAnimations();
 

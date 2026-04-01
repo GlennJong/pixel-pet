@@ -1,4 +1,4 @@
-import { ConfigManager } from "@/game/managers/ConfigManagers";
+import { getStaticData } from "@/game/staticData";
 import { runtimeData, getRuntimeDataGroup, ObservableValue } from "@/game/runtimeData";
 import { GAME_CONFIG } from "@/game/constants";
 
@@ -22,7 +22,7 @@ export class AutoActionHandler {
     this.setupActions();
 
     
-    const config = ConfigManager.getInstance().get(
+    const config = getStaticData(
       `pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
     );
     if (config.watch && config.stages) {
@@ -35,7 +35,7 @@ export class AutoActionHandler {
 
   private setupActions() {
     
-    const config = ConfigManager.getInstance().get(
+    const config = getStaticData(
       `pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
     );
     let actions: Record<string, any> = {};

@@ -29,6 +29,6 @@ export interface PetConfig {
 }
 export * from "./runtime";
 
-declare module "@/game/managers/configTypes" {
-  interface AppConfig extends PetConfig {}
+declare module "@/game/staticData/types" {
+  interface StaticDataSchema extends PetConfig {}
 }

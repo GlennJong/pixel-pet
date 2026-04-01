@@ -1,12 +1,12 @@
 import Phaser from "phaser";
 import { runtimeData, getRuntimeDataGroup, setRuntimeData } from "@/game/runtimeData";
-import { ConfigManager } from "@/game/managers/ConfigManagers";
+import { getStaticData } from "@/game/staticData";
 
 export class StatsHandler {
   private group: StatHandler[] = [];
   constructor(scene: Phaser.Scene) {
     
-    const stats = ConfigManager.getInstance().get(`pet.stats`);
+    const stats = getStaticData(`pet.stats`);
 
     stats.forEach(({ key, min, max }: any) => {
       const handler = new StatHandler(scene, `pet.${key}`, min, max);
@@ -64,7 +64,7 @@ export class StatHandler {
       this.timer.remove();
       this.timer = undefined;
     }
-    const conditions = ConfigManager.getInstance().get(`pet.conditions`) as Record<
+    const conditions = getStaticData(`pet.conditions`) as Record<
       string,
       any
     >;

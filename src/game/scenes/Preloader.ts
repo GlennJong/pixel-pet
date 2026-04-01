@@ -1,6 +1,6 @@
 import { Scene } from "phaser";
-import { ConfigManager } from "../managers/ConfigManagers";
-import { AppConfig } from "../managers/configTypes";
+import { setStaticData } from "../staticData";
+import { StaticDataSchema } from "../staticData/types";
 
 export class Preloader extends Scene {
   constructor() {
@@ -53,7 +53,7 @@ export class Preloader extends Scene {
       const configsFiles = this.getConfigsFiles();
 
       let num = 0;
-      let result: Partial<AppConfig> = {};
+      let result: Partial<StaticDataSchema> & { ui?: any } = {};
 
       for (const { key, filename } of configsFiles) {
         this.load.json(key, filename);
@@ -109,8 +109,8 @@ export class Preloader extends Scene {
   }
 
   create() {
-    const data = this.cache.json.get("config") as AppConfig;
-    ConfigManager.getInstance().setConfig(data);
+    const data = this.cache.json.get("config") as StaticDataSchema;
+    setStaticData(data);
     this.scene.start("MainScene");
   }
 }

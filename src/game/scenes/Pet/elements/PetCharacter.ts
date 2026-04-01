@@ -5,7 +5,7 @@ import { Character } from "@/game/components/Character";
 
 // utils
 import { selectFromPriority } from "@/game/utils/selectFromPriority";
-import { ConfigManager } from "@/game/managers/ConfigManagers";
+import { getStaticData } from "@/game/staticData";
 import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
 import { runtimeData, ObservableValue } from "@/game/runtimeData";
 import { GAME_CONFIG } from "@/game/constants";
@@ -32,7 +32,7 @@ export class PetCharacter extends Character {
 
   constructor(scene: Phaser.Scene) {
     
-    const config = ConfigManager.getInstance().get<CharacterConfig>(
+    const config = getStaticData<CharacterConfig>(
       `pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
     );
 

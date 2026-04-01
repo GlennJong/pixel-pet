@@ -25,7 +25,7 @@ import { AutoActionHandler } from "./handlers/AutoActionHandler";
 import { StatsHandler } from "./handlers/StatHandler";
 
 // config
-import { ConfigManager } from "@/game/managers/ConfigManagers";
+import { getStaticData } from "@/game/staticData";
 import { GAME_CONFIG } from "@/game/constants";
 import { StatItem } from "./types/common";
 import { initRuntimeData } from "@/game/runtimeData";
@@ -63,7 +63,7 @@ export default class PetScene extends Scene {
   }
 
   private initDomainData() {
-    const stats = ConfigManager.getInstance().get<StatItem[]>(`pet.stats`) || [];
+    const stats = getStaticData<StatItem[]>(`pet.stats`) || [];
 
     const defaultStats: Record<string, number | string | any[]> = {
       hp: GAME_CONFIG.PET.DEFAULT_HP,
@@ -140,7 +140,7 @@ export default class PetScene extends Scene {
   };
 
   private resolveActionTask(actionName: string): Task | null {
-    const characterConfig = ConfigManager.getInstance().get(`pet.mycharacter`);
+    const characterConfig = getStaticData(`pet.mycharacter`);
     let actionsConfig: Record<string, any> = {};
     
     if (characterConfig.watch && characterConfig.stages) {
