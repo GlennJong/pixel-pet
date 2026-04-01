@@ -27,6 +27,7 @@ import { StatsHandler } from "./handlers/StatHandler";
 // config
 import { getStaticData } from "@/game/staticData";
 import { GAME_CONFIG } from "@/game/constants";
+import { getPetRuntimeKey, PET_STATIC_KEYS } from "./constants";
 import { StatItem } from "./types/common";
 import { PetStats } from "./types/runtime";
 import { initRuntimeData } from "@/game/runtimeData";
@@ -64,7 +65,7 @@ export default class PetScene extends Scene {
   }
 
   private initDomainData() {
-    const stats = getStaticData<StatItem[]>(`pet.stats`) || [];
+    const stats = getStaticData<StatItem[]>(PET_STATIC_KEYS.STATS) || [];
 
     const defaultStats: PetStats = {
       hp: GAME_CONFIG.PET.DEFAULT_HP,
@@ -84,7 +85,7 @@ export default class PetScene extends Scene {
 
     // Init runtime data
     for (const [key, value] of Object.entries(defaultStats)) {
-      initRuntimeData<typeof value>(`pet.${key}`, value);
+      initRuntimeData<typeof value>(getPetRuntimeKey(key) as import("@/game/runtimeData/types").KnownRuntimeDataKey, value);
     }
   }
 
@@ -147,11 +148,12 @@ export default class PetScene extends Scene {
   };
 
   private resolveActionTask(actionName: string): Task | null {
-    const characterConfig = getStaticData(`pet.mycharacter`);
+    const characterConfig = getStaticData(PET_STATIC_KEYS.MYCHARACTER);
     let actionsConfig: import("./types").ActionMap = {};
     
     if (characterConfig.watch && characterConfig.stages) {
-      const level = getRuntimeDataGroup(`pet.${characterConfig.watch}`) || 0;
+      const watchKey = getPetRuntimeKey(characterConfig.watch);
+      const level = getRuntimeDataGroup(watchKey) || 0;
       const current = characterConfig.stages?.find((l: import("./types").CharacterStageItem) => l.value === level) || characterConfig.stages?.[0];
       actionsConfig = current.actions || {};
     } else {

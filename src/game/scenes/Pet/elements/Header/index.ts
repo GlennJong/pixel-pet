@@ -5,6 +5,7 @@ import { getStaticData } from "@/game/staticData";
 import { StatIcon } from "../StatIcon";
 import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
 import { HeaderConfig } from "./types";
+import { PET_STATIC_KEYS } from "../../constants";
 
 const DEFAULT_WIDTH = 160;
 const DEFAULT_HEIGHT = 25;
@@ -23,7 +24,7 @@ export class Header extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene) {
     super(scene);
 
-    this.config = getStaticData(`pet.header`);
+    this.config = getStaticData(PET_STATIC_KEYS.HEADER);
 
     this.initAnimations();
 

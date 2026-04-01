@@ -2,6 +2,7 @@ import { getStaticData } from "@/game/staticData";
 import { runtimeData, getRuntimeDataGroup, ObservableValue } from "@/game/runtimeData";
 import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
 import { GAME_CONFIG } from "@/game/constants";
+import { getPetRuntimeKey, getPetStaticKey } from "../constants";
 import { ActionDef, ActionConditionRule, CharacterStageItem } from "../types";
 
 export class AutoActionHandler {
@@ -16,9 +17,11 @@ export class AutoActionHandler {
   constructor() {
     this.setupActions();
 
-    const config = getStaticData(`pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`);
+    const staticKey = getPetStaticKey(GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY);
+    const config = getStaticData(staticKey);
     if (config.watch && config.stages) {
-      this.levelWatcher = runtimeData(`pet.${config.watch}` as KnownRuntimeDataKey);
+      const watchKey = getPetRuntimeKey(config.watch);
+      this.levelWatcher = runtimeData(watchKey as KnownRuntimeDataKey);
       this.levelWatcher?.watch(() => {
         this.reinit();
       });
@@ -26,10 +29,12 @@ export class AutoActionHandler {
   }
 
   private setupActions() {
-    const config = getStaticData(`pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`);
+    const staticKey = getPetStaticKey(GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY);
+    const config = getStaticData(staticKey);
     let actions: Record<string, ActionDef> = {};
     if (config.watch && config.stages) {
-       const level = getRuntimeDataGroup(`pet.${config.watch}`) || 0;
+       const watchKey = getPetRuntimeKey(config.watch);
+       const level = getRuntimeDataGroup(watchKey) || 0;
        const current = config.stages.find((l: CharacterStageItem) => l.value === level) || config.stages[0];
        actions = current.actions || {};
     } else {
@@ -64,9 +69,10 @@ export class AutoActionHandler {
 
     watchedKeys.forEach((key) => {
       // Use generic runtimeData to get any type of value
-      this.cache[key] = runtimeData(`pet.${key}` as KnownRuntimeDataKey)?.get();
+      const runtimeKey = getPetRuntimeKey(key);
+      this.cache[key] = runtimeData(runtimeKey as KnownRuntimeDataKey)?.get();
       const handler = this.makeHandler(key);
-      runtimeData(`pet.${key}` as KnownRuntimeDataKey)?.watch(handler);
+      runtimeData(runtimeKey as KnownRuntimeDataKey)?.watch(handler);
       this.autoWatchers.push({ key, handler });
     });
   }
@@ -133,7 +139,8 @@ export class AutoActionHandler {
 
   clearWatchers() {
     for (const { key, handler } of this.autoWatchers) {
-      runtimeData(`pet.${key}` as KnownRuntimeDataKey)?.unwatch(handler);
+      const runtimeKey = getPetRuntimeKey(key);
+      runtimeData(runtimeKey as KnownRuntimeDataKey)?.unwatch(handler);
     }
     this.autoWatchers = [];
   }

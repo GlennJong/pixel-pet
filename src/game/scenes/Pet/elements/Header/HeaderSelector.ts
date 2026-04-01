@@ -1,6 +1,7 @@
 import { getStaticData } from "@/game/staticData";
 import Phaser from "phaser";
 import { HeaderConfig, HeaderSelectorOption } from "./types";
+import { PET_STATIC_KEYS } from "../../constants";
 
 export class HeaderSelector extends Phaser.GameObjects.Container {
   private config: HeaderConfig;
@@ -12,7 +13,7 @@ export class HeaderSelector extends Phaser.GameObjects.Container {
     // Inherite from scene
     super(scene);
 
-    this.config = getStaticData(`pet.header`);
+    this.config = getStaticData(PET_STATIC_KEYS.HEADER);
 
     this.initAnimations();
 

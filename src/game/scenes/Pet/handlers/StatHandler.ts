@@ -3,14 +3,15 @@ import { runtimeData, getRuntimeDataGroup, setRuntimeData, ObservableValue } fro
 import { getStaticData } from "@/game/staticData";
 import { ActionEffect } from "../elements/PetCharacter/types";
 import { KnownRuntimeDataKey, RuntimeDataValue } from "@/game/runtimeData/types";
+import { getPetRuntimeKey, PET_CORE_RUNTIME_KEYS, PET_STATIC_KEYS } from "../constants";
 
 export class StatsHandler {
   private group: StatHandler<KnownRuntimeDataKey>[] = [];
   constructor(scene: Phaser.Scene) {
-    const stats = getStaticData(`pet.stats`);
+    const stats = getStaticData(PET_STATIC_KEYS.STATS);
 
     stats.forEach(({ key, min, max }: import("../types/common").StatItem) => {
-      const handler = new StatHandler(scene, `pet.${key}` as KnownRuntimeDataKey, min, max);
+      const handler = new StatHandler(scene, getPetRuntimeKey(key) as KnownRuntimeDataKey, min, max);
       handler.init();
       this.group.push(handler);
     });
@@ -51,7 +52,7 @@ export class StatHandler<K extends KnownRuntimeDataKey> {
     this.min = min ?? -Infinity;
     this.max = max ?? Infinity;
     
-    this.conditionState = runtimeData(`pet.condition`);
+    this.conditionState = runtimeData(PET_CORE_RUNTIME_KEYS.CONDITION as KnownRuntimeDataKey);
   }
 
   init() {
@@ -64,7 +65,7 @@ export class StatHandler<K extends KnownRuntimeDataKey> {
       this.timer.remove();
       this.timer = undefined;
     }
-    const conditions = getStaticData(`pet.conditions`);
+    const conditions = getStaticData(PET_STATIC_KEYS.CONDITIONS);
     const condition = this.conditionState?.get();
 
     if (!condition || !conditions || typeof conditions !== "object") return;

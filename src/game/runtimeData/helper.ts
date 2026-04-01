@@ -1,4 +1,5 @@
 import { getRuntimeDataGroup } from "@/game/runtimeData";
+import { getPetRuntimeKey } from "@/game/scenes/Pet/constants";
 
 // How to use:
 // {
@@ -18,7 +19,8 @@ export function getValueFromColonRuntimeData(
   for (const [key, value] of Object.entries(data)) {
     if (key !== "default") {
       const [stateKey, stateValue] = key.split(":");
-      if (getRuntimeDataGroup(`pet.${stateKey}`) === stateValue) {
+      const runtimeKey = getPetRuntimeKey(stateKey);
+      if (getRuntimeDataGroup(runtimeKey) === stateValue) {
         result = value;
       }
     }

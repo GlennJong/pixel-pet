@@ -1,6 +1,7 @@
 import { getStaticData } from "@/game/staticData";
 import { runtimeData, ObservableValue } from "@/game/runtimeData";
 import { AnimationItem } from "../../types/common";
+import { getPetRuntimeKey, PET_STATIC_KEYS } from "../../constants";
 
 const DEFAULT_SPRITE = { key: "", frame: "" };
 
@@ -18,14 +19,15 @@ export class Room {
     this.scene = scene;
     
     // this.watchState = runtimeData(`pet.condition`);
-    this.config = getStaticData(`pet.room`);
+    this.config = getStaticData(PET_STATIC_KEYS.ROOM);
   }
 
   init() {
     const { watch } = this.config;
 
     // set watch state
-    this.watchState = runtimeData(`pet.${watch}` as import("@/game/runtimeData/types").KnownRuntimeDataKey);
+    const watchKey = getPetRuntimeKey(watch);
+    this.watchState = runtimeData(watchKey as import("@/game/runtimeData/types").KnownRuntimeDataKey);
     this.watchState?.watch(this.handleRenderRoomByWatchedState);
 
     // init animations
