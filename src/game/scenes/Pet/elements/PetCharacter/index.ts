@@ -1,3 +1,4 @@
+import { AnimationItem } from "../../types/common";
 import Phaser from "phaser";
 
 // components
@@ -16,8 +17,8 @@ import {
   PetCharacterDirection,
   CharacterConfig,
   CharacterStageItem,
-  AnimationItem,
-} from "../types";
+  
+} from "./types";
 
 export class PetCharacter extends Character {
   private _state: PetState = PetState.IDLE;

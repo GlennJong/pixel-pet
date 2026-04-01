@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { runtimeData, getRuntimeDataGroup, setRuntimeData, ObservableValue } from "@/game/runtimeData";
 import { getStaticData } from "@/game/staticData";
-import { ActionEffect } from "../types/character";
+import { ActionEffect } from "../elements/PetCharacter/types";
 import { KnownRuntimeDataKey, RuntimeDataValue } from "@/game/runtimeData/types";
 
 export class StatsHandler {

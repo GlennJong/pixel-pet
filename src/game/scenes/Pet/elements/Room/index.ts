@@ -1,6 +1,6 @@
 import { getStaticData } from "@/game/staticData";
 import { runtimeData, ObservableValue } from "@/game/runtimeData";
-import { AnimationItem } from "../types";
+import { AnimationItem } from "../../types/common";
 
 const DEFAULT_SPRITE = { key: "", frame: "" };
 
@@ -96,7 +96,7 @@ export class Room {
     this.handleRenderExtras(extras);
   };
 
-  private handleRenderExtras = (newextras?: import("../types").RoomExtraItem[]) => {
+  private handleRenderExtras = (newextras?: import("./types").RoomExtraItem[]) => {
     if (!newextras) return;
 
     if (this.extras.length !== 0) {

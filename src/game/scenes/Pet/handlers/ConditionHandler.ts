@@ -1,7 +1,7 @@
 import { getStaticData } from "@/game/staticData";
 import { getRuntimeDataGroup, runtimeData, ObservableValue } from "@/game/runtimeData";
 import { GAME_CONFIG } from "@/game/constants";
-import { ActionEffect } from "../types/character";
+import { ActionEffect } from "../elements/PetCharacter/types";
 import { ConditionDef, ConditionMap } from "../types/conditions";
 import { RuntimeDataValue } from "@/game/runtimeData/types";
 

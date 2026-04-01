@@ -11,12 +11,12 @@ import { EventBus } from "@/game/EventBus";
 // partial elements
 import { Header } from "./elements/Header";
 import { PetCharacter } from "./elements/PetCharacter";
-import { PetDialogue } from "./elements/PetDialogue";
+import { PetDialogue } from "./elements/PetCharacter/PetDialogue";
 import { Room } from "./elements/Room";
 
 // services
 import { TaskQueueService } from "./services/TaskQueueService";
-import { Task } from "./services/types";
+import { Task } from "./types";
 
 // handlers
 import { KeyboardHandler } from "./handlers/KeyboardHander";

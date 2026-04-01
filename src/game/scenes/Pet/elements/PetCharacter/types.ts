@@ -1,4 +1,4 @@
-import { AnimationItem } from "./common";
+import { AnimationItem } from "../../types/common";
 
 export interface SentenceItem {
   portrait: string;
@@ -56,4 +56,14 @@ export interface CharacterConfig {
   animations?: AnimationItem[];
   idleActions?: IdleActionMap;
   actions?: ActionMap;
+}
+
+import { CharacterDirection } from "@/game/components/Character";
+
+export type PetCharacterDirection = "none" | "left" | "right" | "top" | "down" | CharacterDirection;
+
+export enum PetState {
+  IDLE = "IDLE",
+  MOVING = "MOVING",
+  ACTING = "ACTING",
 }

@@ -1,4 +1,4 @@
-import { AssetItem, AnimationItem } from "./common";
+import { AssetItem, AnimationItem } from "../../types/common";
 
 export interface RoomExtraItem {
   animation: string;

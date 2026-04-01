@@ -5,6 +5,6 @@ declare module "@/game/runtimeData/types" {
   interface RuntimeDataSchema {
     "global.is_paused": boolean;
     "global.transmit": any;
-    "global.messageQueue": import("../scenes/Pet/services/types").Message[];
+    "global.messageQueue": import("./Pet/types/task").Message[];
   }
 }

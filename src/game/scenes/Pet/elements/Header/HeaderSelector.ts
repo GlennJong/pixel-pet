@@ -1,6 +1,6 @@
 import { getStaticData } from "@/game/staticData";
 import Phaser from "phaser";
-import { HeaderConfig, HeaderSelectorOption } from "../types";
+import { HeaderConfig, HeaderSelectorOption } from "./types";
 
 export class HeaderSelector extends Phaser.GameObjects.Container {
   private config: HeaderConfig;
@@ -24,7 +24,7 @@ export class HeaderSelector extends Phaser.GameObjects.Container {
   private initAnimations = () => {
     const { key, animations } = this.config;
     if (animations) {
-      animations.forEach((_ani: import("../types").AnimationItem) => {
+      animations.forEach((_ani: import("../../types/common").AnimationItem) => {
         const animationName = `${key}_${_ani.prefix}`;
         if (this.scene.anims.exists(animationName)) return; // prevent recreate after change scene.
 

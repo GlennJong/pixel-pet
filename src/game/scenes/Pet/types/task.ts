@@ -1,4 +1,4 @@
-import { ActionEffect, DialogItem } from "../types/character";
+import { ActionEffect, DialogItem } from "../elements/PetCharacter/types";
 
 type UserParams = { user?: string };
 type AwardParams = { coin?: number };

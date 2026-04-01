@@ -2,7 +2,7 @@ import Phaser from "phaser";
 
 // elements
 import { getStaticData } from "@/game/staticData";
-import { StatIcon } from "./StatIcon";
+import { StatIcon } from "../StatIcon";
 import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
 
 const DEFAULT_WIDTH = 160;
@@ -14,7 +14,7 @@ export class Header extends Phaser.GameObjects.Container {
   private statGroup: StatIcon[] = [];
   private current = 0;
 
-  private config: import("../types").HeaderConfig;
+  private config: import("../../types").HeaderConfig;
 
   private background?: Phaser.GameObjects.NineSlice;
   private timer: number | undefined;
@@ -39,7 +39,7 @@ export class Header extends Phaser.GameObjects.Container {
   private initAnimations = () => {
     const { key, animations } = this.config;
     if (animations) {
-      animations.forEach((_ani: import("../types").AnimationItem) => {
+      animations.forEach((_ani: import("../../types").AnimationItem) => {
         const animationName = `${key}_${_ani.prefix}`;
         if (this.scene.anims.exists(animationName)) return; // prevent recreate after change scene.
 

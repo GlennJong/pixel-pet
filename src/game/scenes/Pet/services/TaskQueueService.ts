@@ -2,11 +2,10 @@ import Phaser from "phaser";
 
 import { runtimeData, setRuntimeData, getRuntimeDataGroup, ObservableValue } from "@/game/runtimeData";
 import { filterFromMatchList } from "@/game/utils/filterFromMatchList";
-import { ActionMap, CharacterStageItem } from "../types/character";
+import { ActionMap, CharacterStageItem } from "../elements/PetCharacter/types";
 
-import { Message, CommandMap, Task } from "./types";
+import { Message, CommandMap, Task } from "../types";
 import {
-  // CONFIG_COMMAND_MAP_KEY,
   MESSAGE_QUEUE_STORE_KEY,
 } from "./constants";
 import { getStaticData } from "@/game/staticData";
