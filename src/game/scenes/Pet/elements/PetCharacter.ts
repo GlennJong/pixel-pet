@@ -16,6 +16,7 @@ import {
   TDirection,
   CharacterConfig,
   CharacterStageItem,
+  AnimationItem,
 } from "../types";
 
 export class PetCharacter extends Character {
@@ -45,7 +46,7 @@ export class PetCharacter extends Character {
 
     super(scene, GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY, {
       ...GAME_CONFIG.PET.DEFAULT_POSITION,
-      animations: initialAnimations as import("@/game/components/Character").TAnimation[],
+      animations: initialAnimations as AnimationItem[],
     });
 
     this.character.setDepth(2);

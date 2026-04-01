@@ -1,15 +1,6 @@
 import { getStaticData } from "@/game/staticData";
 import { runtimeData, ObservableValue } from "@/game/runtimeData";
-
-type TAnimation = {
-  prefix: string;
-  qty: number;
-  freq: number;
-  repeat: number;
-  duration: number;
-  repeatDelay?: number;
-  repeat_delay?: number;
-};
+import { AnimationItem } from "../types";
 
 const DEFAULT_SPRITE = { key: "", frame: "" };
 
@@ -51,7 +42,7 @@ export class Room {
   private initAnimations = () => {
     const { key, animations } = this.config || {};
     if (animations) {
-      animations.forEach((_ani: TAnimation) => {
+      animations.forEach((_ani: AnimationItem) => {
         if (!_ani) return;
         const animationName = `${key}_${_ani.prefix}`;
         if (this.scene.anims.exists(animationName)) return; // prevent recreate after change scene.
