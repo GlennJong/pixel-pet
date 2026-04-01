@@ -41,10 +41,8 @@ export class TaskQueueService {
     this.onTask = onTask;
     this.interval = interval || this.interval;
 
-    console.log(this.scene.cache.json.get("config"))
-    this.commandMapList = Object.values(
-      this.scene.cache.json.get("config")["commands"],
-    );
+    const commandsConfig = getStaticData("commands");
+    this.commandMapList = Object.values(commandsConfig || {});
 
     this.messageQueueState?.watch(this.handleMessageQueueChange);
 

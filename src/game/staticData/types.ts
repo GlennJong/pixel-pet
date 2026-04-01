@@ -1,3 +1,3 @@
 export interface StaticDataSchema {
-  commands?: any;
+  // Configs are augmented by their respective modules
 }

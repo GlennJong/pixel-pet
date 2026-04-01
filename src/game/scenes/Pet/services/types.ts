@@ -23,3 +23,9 @@ export type CommandMap = {
   matches: { [key: string]: string[] };
   params: { [key: string]: string | number };
 };
+
+declare module "@/game/staticData/types" {
+  interface StaticDataSchema {
+    commands: Record<string, CommandMap>;
+  }
+}
