@@ -1,0 +1,131 @@
+[
+  {
+    "action": "reward",
+    "when": {
+      "win": {
+        "op": "==",
+        "value": 1
+      }
+    }
+  },
+  {
+    "action": "lose",
+    "when": {
+      "win": {
+        "op": "==",
+        "value": -1
+      }
+    }
+  },
+  {
+    "action": "die",
+    "when": {
+      "hp": {
+        "op": "<=",
+        "value": 0
+      },
+      "condition": {
+        "op": "==",
+        "value": "normal"
+      }
+    }
+  },
+  {
+    "action": "revive",
+    "when": {
+      "hp": {
+        "op": ">=",
+        "value": 100
+      },
+      "condition": {
+        "op": "==",
+        "value": "death"
+      }
+    }
+  },
+  {
+    "action": "buyLv1",
+    "when": {
+      "coin": {
+        "op": ">=",
+        "value": 100
+      },
+      "level": {
+        "op": "==",
+        "value": 0
+      },
+      "condition": {
+        "op": "==",
+        "value": "normal"
+      }
+    }
+  },
+  {
+    "action": "buyLv2",
+    "when": {
+      "coin": {
+        "op": ">=",
+        "value": 150
+      },
+      "level": {
+        "op": "==",
+        "value": 1
+      },
+      "condition": {
+        "op": "==",
+        "value": "normal"
+      }
+    }
+  },
+  {
+    "action": "buyLv3",
+    "when": {
+      "coin": {
+        "op": ">=",
+        "value": 200
+      },
+      "level": {
+        "op": "==",
+        "value": 2
+      },
+      "condition": {
+        "op": "==",
+        "value": "normal"
+      }
+    }
+  },
+  {
+    "action": "buyLv4",
+    "when": {
+      "coin": {
+        "op": ">=",
+        "value": 250
+      },
+      "level": {
+        "op": "==",
+        "value": 3
+      },
+      "condition": {
+        "op": "==",
+        "value": "normal"
+      }
+    }
+  },
+  {
+    "action": "buyLv5",
+    "when": {
+      "coin": {
+        "op": ">=",
+        "value": 300
+      },
+      "level": {
+        "op": "==",
+        "value": 4
+      },
+      "condition": {
+        "op": "==",
+        "value": "normal"
+      }
+    }
+  }
+]

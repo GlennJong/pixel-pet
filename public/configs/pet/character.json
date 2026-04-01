@@ -429,13 +429,6 @@
               "idle-right"
             ]
           },
-          "auto": true,
-          "condition": {
-            "win": {
-              "op": "==",
-              "value": 1
-            }
-          },
           "effect": {
             "coin": {
               "method": "add",
@@ -466,13 +459,6 @@
               "idle-right"
             ]
           },
-          "auto": true,
-          "condition": {
-            "win": {
-              "op": "==",
-              "value": -1
-            }
-          },
           "effect": {
             "coin": {
               "method": "sub",
@@ -502,17 +488,6 @@
               "lay-down"
             ]
           },
-          "auto": true,
-          "condition": {
-            "hp": {
-              "op": "<=",
-              "value": 0
-            },
-            "condition": {
-              "op": "==",
-              "value": "normal"
-            }
-          },
           "effect": {
             "coin": {
               "method": "sub",
@@ -541,17 +516,6 @@
             "default": [
               "revive"
             ]
-          },
-          "auto": true,
-          "condition": {
-            "hp": {
-              "op": ">=",
-              "value": 100
-            },
-            "condition": {
-              "op": "==",
-              "value": "death"
-            }
           },
           "effect": {
             "condition": {
@@ -598,21 +562,6 @@
               "idle-right"
             ]
           },
-          "auto": true,
-          "condition": {
-            "coin": {
-              "op": ">=",
-              "value": 100
-            },
-            "level": {
-              "op": "==",
-              "value": 0
-            },
-            "condition": {
-              "op": "==",
-              "value": "normal"
-            }
-          },
           "effect": {
             "level": {
               "method": "set",
@@ -642,21 +591,6 @@
               "idle-left",
               "idle-right"
             ]
-          },
-          "auto": true,
-          "condition": {
-            "coin": {
-              "op": ">=",
-              "value": 150
-            },
-            "level": {
-              "op": "==",
-              "value": 1
-            },
-            "condition": {
-              "op": "==",
-              "value": "normal"
-            }
           },
           "effect": {
             "level": {
@@ -688,21 +622,6 @@
               "idle-right"
             ]
           },
-          "auto": true,
-          "condition": {
-            "coin": {
-              "op": ">=",
-              "value": 200
-            },
-            "level": {
-              "op": "==",
-              "value": 2
-            },
-            "condition": {
-              "op": "==",
-              "value": "normal"
-            }
-          },
           "effect": {
             "level": {
               "method": "set",
@@ -733,21 +652,6 @@
               "idle-right"
             ]
           },
-          "auto": true,
-          "condition": {
-            "coin": {
-              "op": ">=",
-              "value": 250
-            },
-            "level": {
-              "op": "==",
-              "value": 3
-            },
-            "condition": {
-              "op": "==",
-              "value": "normal"
-            }
-          },
           "effect": {
             "level": {
               "method": "set",
@@ -777,21 +681,6 @@
               "idle-left",
               "idle-right"
             ]
-          },
-          "auto": true,
-          "condition": {
-            "coin": {
-              "op": ">=",
-              "value": 300
-            },
-            "level": {
-              "op": "==",
-              "value": 4
-            },
-            "condition": {
-              "op": "==",
-              "value": "normal"
-            }
           },
           "effect": {
             "level": {
@@ -1245,13 +1134,6 @@
               "idle-right"
             ]
           },
-          "auto": true,
-          "condition": {
-            "win": {
-              "op": "==",
-              "value": 1
-            }
-          },
           "effect": {
             "coin": {
               "method": "add",
@@ -1282,13 +1164,6 @@
               "idle-right"
             ]
           },
-          "auto": true,
-          "condition": {
-            "win": {
-              "op": "==",
-              "value": -1
-            }
-          },
           "effect": {
             "coin": {
               "method": "sub",
@@ -1318,17 +1193,6 @@
               "lay-down"
             ]
           },
-          "auto": true,
-          "condition": {
-            "hp": {
-              "op": "<=",
-              "value": 0
-            },
-            "condition": {
-              "op": "==",
-              "value": "normal"
-            }
-          },
           "effect": {
             "coin": {
               "method": "sub",
@@ -1357,17 +1221,6 @@
             "default": [
               "revive"
             ]
-          },
-          "auto": true,
-          "condition": {
-            "hp": {
-              "op": ">=",
-              "value": 100
-            },
-            "condition": {
-              "op": "==",
-              "value": "death"
-            }
           },
           "effect": {
             "condition": {
@@ -1414,21 +1267,6 @@
               "idle-right"
             ]
           },
-          "auto": true,
-          "condition": {
-            "coin": {
-              "op": ">=",
-              "value": 100
-            },
-            "level": {
-              "op": "==",
-              "value": 0
-            },
-            "condition": {
-              "op": "==",
-              "value": "normal"
-            }
-          },
           "effect": {
             "level": {
               "method": "set",
@@ -1458,21 +1296,6 @@
               "idle-left",
               "idle-right"
             ]
-          },
-          "auto": true,
-          "condition": {
-            "coin": {
-              "op": ">=",
-              "value": 150
-            },
-            "level": {
-              "op": "==",
-              "value": 1
-            },
-            "condition": {
-              "op": "==",
-              "value": "normal"
-            }
           },
           "effect": {
             "level": {
@@ -1504,21 +1327,6 @@
               "idle-right"
             ]
           },
-          "auto": true,
-          "condition": {
-            "coin": {
-              "op": ">=",
-              "value": 200
-            },
-            "level": {
-              "op": "==",
-              "value": 2
-            },
-            "condition": {
-              "op": "==",
-              "value": "normal"
-            }
-          },
           "effect": {
             "level": {
               "method": "set",
@@ -1549,21 +1357,6 @@
               "idle-right"
             ]
           },
-          "auto": true,
-          "condition": {
-            "coin": {
-              "op": ">=",
-              "value": 250
-            },
-            "level": {
-              "op": "==",
-              "value": 3
-            },
-            "condition": {
-              "op": "==",
-              "value": "normal"
-            }
-          },
           "effect": {
             "level": {
               "method": "set",
@@ -1593,21 +1386,6 @@
               "idle-left",
               "idle-right"
             ]
-          },
-          "auto": true,
-          "condition": {
-            "coin": {
-              "op": ">=",
-              "value": 300
-            },
-            "level": {
-              "op": "==",
-              "value": 4
-            },
-            "condition": {
-              "op": "==",
-              "value": "normal"
-            }
           },
           "effect": {
             "level": {
