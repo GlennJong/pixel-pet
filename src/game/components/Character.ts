@@ -1,21 +1,12 @@
 import Phaser from "phaser";
+import { AnimationItem } from "../scenes/Pet/types";
 
 export type Direction = "none" | "left" | "right" | "top" | "down";
-
-export type TAnimation = {
-  prefix: string;
-  qty: number;
-  freq: number;
-  repeat: number;
-  duration: number;
-  repeatDelay?: number;
-  repeat_delay?: number;
-};
 
 export type CharacterProps = {
   x: number;
   y: number;
-  animations: TAnimation[];
+  animations: AnimationItem[];
 };
 
 export class Character extends Phaser.GameObjects.Container {

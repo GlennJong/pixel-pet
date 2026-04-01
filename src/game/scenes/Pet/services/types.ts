@@ -1,3 +1,5 @@
+import { ActionEffect, DialogItem } from "../types/character";
+
 type UserParams = { user?: string };
 type AwardParams = { coin?: number };
 
@@ -12,9 +14,9 @@ export type Task = {
   action: string;
   params?: UserParams &
     AwardParams & { [key: string]: string | number };
-  effect?: any;
-  dialogues?: any;
-  move?: any;
+  effect?: Partial<Record<string, ActionEffect>>;
+  dialogues?: DialogItem[];
+  move?: string;
   callback?: () => void;
 };
 

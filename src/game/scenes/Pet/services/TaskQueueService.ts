@@ -2,6 +2,7 @@ import Phaser from "phaser";
 
 import { runtimeData, setRuntimeData, getRuntimeDataGroup, ObservableValue } from "@/game/runtimeData";
 import { filterFromMatchList } from "@/game/utils/filterFromMatchList";
+import { ActionMap, CharacterStageItem } from "../types/character";
 
 import { Message, CommandMap, Task } from "./types";
 import {
@@ -19,16 +20,13 @@ export class TaskQueueService {
 
   private onTask?: (task: Task) => boolean | Promise<boolean>;
   private scene: Phaser.Scene;
-  
-  private taskQueueStoreKey: string;
 
   private retryCounts: Map<string, number> = new Map();
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     
-    this.taskQueueStoreKey = `pet.taskQueue`;
-    this.taskQueueState = runtimeData(this.taskQueueStoreKey as any) as any;
+    this.taskQueueState = runtimeData("pet.taskQueue");
   }
 
   init({
@@ -56,10 +54,10 @@ export class TaskQueueService {
     messages.forEach((msg) => {
       const result = filterFromMatchList(msg, this.commandMapList);
       const characterConfig = getStaticData(`pet.mycharacter`);
-      let actionsConfig: Record<string, any> = {};
+      let actionsConfig: ActionMap = {};
       if (characterConfig.watch && characterConfig.stages) {
         const level = getRuntimeDataGroup(`pet.${characterConfig.watch}`) || 0;
-        const current = characterConfig.stages.find((l: any) => l.value === level) || characterConfig.stages[0];
+        const current = characterConfig.stages.find((l: CharacterStageItem) => l.value === level) || characterConfig.stages[0];
         actionsConfig = current.actions || {};
       } else {
         actionsConfig = characterConfig.actions || {};
@@ -74,7 +72,7 @@ export class TaskQueueService {
     });
     if (updated) {
       const currentTasks = this.taskQueueState?.get() || [];
-      setRuntimeData(this.taskQueueStoreKey as any, [...currentTasks, ...tasks]);
+      setRuntimeData("pet.taskQueue", [...currentTasks, ...tasks]);
       setRuntimeData(MESSAGE_QUEUE_STORE_KEY, []);
     }
   };
@@ -87,23 +85,23 @@ export class TaskQueueService {
 
   addTask(task: Task) {
     const queue = this.taskQueueState?.get() || [];
-    setRuntimeData(this.taskQueueStoreKey as any, [...queue, task]);
+    setRuntimeData("pet.taskQueue", [...queue, task]);
   }
 
   addEmergentTask(task: Task) {
     const queue = this.taskQueueState?.get() || [];
-    setRuntimeData(this.taskQueueStoreKey as any, [task, ...queue]);
+    setRuntimeData("pet.taskQueue", [task, ...queue]);
   }
 
   removeTask(index: number) {
     const queue = this.taskQueueState?.get() || [];
     if (index < 0 || index >= queue.length) return;
     queue.splice(index, 1);
-    setRuntimeData(this.taskQueueStoreKey as any, [...queue]);
+    setRuntimeData("pet.taskQueue", [...queue]);
   }
 
   clearQueue() {
-    setRuntimeData(this.taskQueueStoreKey as any, []);
+    setRuntimeData("pet.taskQueue", []);
   }
 
   private async startNextTask() {

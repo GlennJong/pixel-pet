@@ -166,8 +166,8 @@ export default class PetScene extends Scene {
     const { action, user, params, effect, dialogues, move } = task;
     try {
       await this.character?.runFunctionalActionAsync(action);
-      this.conditionHandler?.runEffect(effect);
-      this.stats?.runEffect(effect);
+      this.conditionHandler?.runEffect(effect || {});
+      this.stats?.runEffect(effect || {});
 
       if (this.dialogue && dialogues) {
         let effectReplacement: Record<string, number | string> = {};
