@@ -3,7 +3,7 @@ import Phaser from "phaser";
 import { runtimeData, setRuntimeData, getRuntimeDataGroup, ObservableValue } from "@/game/runtimeData";
 import { filterFromMatchList } from "@/game/utils/filterFromMatchList";
 import { ActionMap, CharacterStageItem } from "../elements/PetCharacter/types";
-import { getPetRuntimeKey, PET_STATIC_KEYS } from "../constants";
+import { getPetRuntimeDataKey, PET_STATIC_KEYS } from "../constants";
 
 import { Message, CommandMap, Task } from "../types";
 import {
@@ -56,7 +56,7 @@ export class TaskQueueService {
       const characterConfig = getStaticData(PET_STATIC_KEYS.MYCHARACTER);
       let actionsConfig: ActionMap = {};
       if (characterConfig.watch && characterConfig.stages) {
-        const watchKey = getPetRuntimeKey(characterConfig.watch);
+        const watchKey = getPetRuntimeDataKey(characterConfig.watch);
         const level = getRuntimeDataGroup(watchKey) || 0;
         const current = characterConfig.stages.find((l: CharacterStageItem) => l.value === level) || characterConfig.stages[0];
         actionsConfig = current.actions || {};

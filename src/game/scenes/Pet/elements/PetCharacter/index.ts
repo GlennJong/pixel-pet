@@ -10,7 +10,7 @@ import { getStaticData } from "@/game/staticData";
 import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
 import { runtimeData, ObservableValue } from "@/game/runtimeData";
 import { GAME_CONFIG } from "@/game/constants";
-import { getPetRuntimeKey, getPetStaticKey } from "../../constants";
+import { getPetRuntimeDataKey, getPetStaticDataKey } from "../../constants";
 import {
   ActionDef,
   IdleActionDef,
@@ -36,12 +36,12 @@ export class PetCharacter extends Character {
   constructor(scene: Phaser.Scene) {
     
     const config = getStaticData<CharacterConfig>(
-      getPetStaticKey(GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY),
+      getPetStaticDataKey(GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY),
     );
 
     let initialAnimations = config.animations || [];
     if (config.watch && config.stages && config.stages.length > 0) {
-      const watchKey = getPetRuntimeKey(config.watch);
+      const watchKey = getPetRuntimeDataKey(config.watch);
       const level = runtimeData(watchKey as import("@/game/runtimeData/types").KnownRuntimeDataKey)?.get() || 0;
       const initialConfig = config.stages.find((l) => l.value === level) || config.stages[0];
       if (initialConfig.animations) initialAnimations = initialConfig.animations;
@@ -63,7 +63,7 @@ export class PetCharacter extends Character {
 
     // setup watcher for level or other state based on config (like room.json)
     if (config.watch && config.stages) {
-      const watchKey = getPetRuntimeKey(config.watch);
+      const watchKey = getPetRuntimeDataKey(config.watch);
       this.watchState = runtimeData(watchKey as import("@/game/runtimeData/types").KnownRuntimeDataKey);
       this.watchState?.watch((value: number) => {
         this.handleCharacterUpgrade(value, config.stages || []);

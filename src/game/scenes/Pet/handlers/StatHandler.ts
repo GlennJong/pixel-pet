@@ -3,7 +3,7 @@ import { runtimeData, getRuntimeDataGroup, setRuntimeData, ObservableValue } fro
 import { getStaticData } from "@/game/staticData";
 import { ActionEffect } from "../elements/PetCharacter/types";
 import { KnownRuntimeDataKey, RuntimeDataValue } from "@/game/runtimeData/types";
-import { getPetRuntimeKey, PET_CORE_RUNTIME_KEYS, PET_STATIC_KEYS } from "../constants";
+import { getPetRuntimeDataKey, PET_CORE_RUNTIME_KEYS, PET_STATIC_KEYS } from "../constants";
 
 export class StatsHandler {
   private group: StatHandler<KnownRuntimeDataKey>[] = [];
@@ -11,7 +11,7 @@ export class StatsHandler {
     const stats = getStaticData(PET_STATIC_KEYS.STATS);
 
     stats.forEach(({ key, min, max }: import("../types/common").StatItem) => {
-      const handler = new StatHandler(scene, getPetRuntimeKey(key) as KnownRuntimeDataKey, min, max);
+      const handler = new StatHandler(scene, getPetRuntimeDataKey(key) as KnownRuntimeDataKey, min, max);
       handler.init();
       this.group.push(handler);
     });
