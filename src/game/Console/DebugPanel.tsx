@@ -32,34 +32,34 @@ function DebugControls() {
   const [, set] = useControls(() => ({
     "屬性 (Properties)": folder({
       hp: {
-        value: getRuntimeDataGroup(`pet.hp`) || 100,
+        value: getRuntimeDataGroup<number>(`pet.hp`) || 100,
         min: 0,
         max: 100,
         step: 1,
         onChange: (v) => {
-          if (runtimeData(`pet.hp`) && getRuntimeDataGroup(`pet.hp`) !== v) {
+          if (runtimeData(`pet.hp`) && getRuntimeDataGroup<number>(`pet.hp`) !== v) {
             setRuntimeData(`pet.hp`, v);
           }
         },
       },
       level: {
-        value: getRuntimeDataGroup(`pet.level`) || 0,
+        value: getRuntimeDataGroup<number>(`pet.level`) || 0,
         min: 0,
         max: 5,
         step: 1,
         onChange: (v) => {
-          if (runtimeData(`pet.level`) && getRuntimeDataGroup(`pet.level`) !== v) {
+          if (runtimeData(`pet.level`) && getRuntimeDataGroup<number>(`pet.level`) !== v) {
             setRuntimeData(`pet.level`, v);
           }
         },
       },
       coin: {
-        value: getRuntimeDataGroup(`pet.coin`) || 0,
+        value: getRuntimeDataGroup<number>(`pet.coin`) || 0,
         min: 0,
         max: 9999,
         step: 10,
         onChange: (v) => {
-          if (runtimeData(`pet.coin`) && getRuntimeDataGroup(`pet.coin`) !== v) {
+          if (runtimeData(`pet.coin`) && getRuntimeDataGroup<number>(`pet.coin`) !== v) {
             setRuntimeData(`pet.coin`, v);
           }
         },
@@ -68,19 +68,19 @@ function DebugControls() {
     "狀態與系統": folder({
       condition: {
         options: ["normal", "sleep", "death"],
-        value: getRuntimeDataGroup(`pet.condition`) || "normal",
+        value: getRuntimeDataGroup<string>(`pet.condition`) || "normal",
         onChange: (v) => {
-          if (runtimeData(`pet.condition`) && getRuntimeDataGroup(`pet.condition`) !== v) {
+          if (runtimeData(`pet.condition`) && getRuntimeDataGroup<string>(`pet.condition`) !== v) {
             setRuntimeData(`pet.condition`, v);
           }
         },
       },
       is_paused: {
-        value: getRuntimeDataGroup("global.is_paused") || false,
+        value: getRuntimeDataGroup<boolean>("global.is_paused") || false,
         label: "暫停遊戲",
         onChange: (v) => {
-          if (runtimeData("global.is_paused") && getRuntimeDataGroup("global.is_paused") !== v) {
-            setRuntimeData("global.is_paused", v);
+          if (runtimeData("global.is_paused") && getRuntimeDataGroup<boolean>("global.is_paused") !== v) {
+            setRuntimeData("global.is_paused", v as boolean);
           }
         },
       },
