@@ -28,6 +28,7 @@ import { StatsHandler } from "./handlers/StatHandler";
 import { getStaticData } from "@/game/staticData";
 import { GAME_CONFIG } from "@/game/constants";
 import { StatItem } from "./types/common";
+import { PetStats } from "./types/runtime";
 import { initRuntimeData } from "@/game/runtimeData";
 
 export default class PetScene extends Scene {
@@ -65,7 +66,7 @@ export default class PetScene extends Scene {
   private initDomainData() {
     const stats = getStaticData<StatItem[]>(`pet.stats`) || [];
 
-    const defaultStats = {
+    const defaultStats: PetStats = {
       hp: GAME_CONFIG.PET.DEFAULT_HP,
       coin: GAME_CONFIG.PET.DEFAULT_COIN,
       level: GAME_CONFIG.PET.DEFAULT_LEVEL,
@@ -74,32 +75,18 @@ export default class PetScene extends Scene {
     };
 
     stats.forEach(({ key, value }) => {
-      switch (key) {
-        case "hp":
-        case "coin":
-        case "level":
-          if (typeof value === "number") {
-            defaultStats[key] = value;
-          }
-          break;
-        case "condition":
-          if (typeof value === "string") {
-            defaultStats.condition = value;
-          }
-          break;
-        case "taskQueue":
-          if (Array.isArray(value)) {
-            defaultStats.taskQueue = value;
-          }
-          break;
+      if (key === "taskQueue") {
+         defaultStats[key] = Array.isArray(value) ? value : [];
+      } else {
+         defaultStats[key] = value;
       }
     });
 
-    initRuntimeData("pet.hp", defaultStats.hp);
-    initRuntimeData("pet.coin", defaultStats.coin);
-    initRuntimeData("pet.level", defaultStats.level);
-    initRuntimeData("pet.condition", defaultStats.condition);
-    initRuntimeData("pet.taskQueue", defaultStats.taskQueue);
+    // Init runtime data
+    for (const [key, value] of Object.entries(defaultStats)) {
+      // any for custom stats from json
+      initRuntimeData(`pet.${key}` as any, value);
+    }
   }
 
   private initViews() {
