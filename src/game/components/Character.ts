@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { AnimationItem } from "../scenes/Pet/types";
 
-export type Direction = "none" | "left" | "right" | "top" | "down";
+export type CharacterDirection = "none" | "left" | "right" | "top" | "down";
 
 export type CharacterProps = {
   x: number;
@@ -114,7 +114,7 @@ export class Character extends Phaser.GameObjects.Container {
 
   // moving
   public moveDirection(
-    direction: Direction,
+    direction: CharacterDirection,
     distance: number,
     callbackFunc: () => void,
     duration: number = 1000,

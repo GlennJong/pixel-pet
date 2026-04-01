@@ -1,32 +1,24 @@
 import { getStaticData } from "@/game/staticData";
 import { runtimeData, getRuntimeDataGroup, ObservableValue } from "@/game/runtimeData";
+import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
 import { GAME_CONFIG } from "@/game/constants";
-
-export interface AutoActionConfig {
-  auto: boolean;
-  condition: Record<string, any>;
-  [key: string]: any;
-}
+import { ActionDef, ActionConditionRule, CharacterStageItem } from "../types";
 
 export class AutoActionHandler {
-  private autoWatchers: { key: string; handler: (v: any) => void }[] = [];
-  private cache: Record<string, any> = {};
-  private autoActions: AutoActionConfig[] = [];
-  private onTrigger?: (action: any) => void;
+  private autoWatchers: { key: KnownRuntimeDataKey; handler: (v: unknown) => void }[] = [];
+  private cache: Partial<Record<KnownRuntimeDataKey, unknown>> = {};
+  private autoActions: ActionDef[] = [];
+  private onTrigger?: (action: ActionDef) => void;
   private lastTriggeredAction: string | null = null; // Prevent repeated triggers
 
-
-  private levelWatcher?: ObservableValue<number>;
+  private levelWatcher?: ObservableValue<unknown>;
 
   constructor() {
     this.setupActions();
 
-    
-    const config = getStaticData(
-      `pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
-    );
+    const config = getStaticData(`pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`);
     if (config.watch && config.stages) {
-      this.levelWatcher = runtimeData(`pet.${config.watch}` as any);
+      this.levelWatcher = runtimeData(`pet.${config.watch}` as KnownRuntimeDataKey);
       this.levelWatcher?.watch(() => {
         this.reinit();
       });
@@ -34,21 +26,19 @@ export class AutoActionHandler {
   }
 
   private setupActions() {
-    
-    const config = getStaticData(
-      `pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
-    );
-    let actions: Record<string, any> = {};
+    const config = getStaticData(`pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`);
+    let actions: Record<string, ActionDef> = {};
     if (config.watch && config.stages) {
        const level = getRuntimeDataGroup(`pet.${config.watch}`) || 0;
-       const current = config.stages.find((l: any) => l.value === level) || config.stages[0];
+       const current = config.stages.find((l: CharacterStageItem) => l.value === level) || config.stages[0];
        actions = current.actions || {};
     } else {
        actions = config.actions || {};
     }
     // Filter out actions that are not set to auto or have no conditions
-    this.autoActions = (Object.values(actions) as AutoActionConfig[]).filter(
-      (a: any) => a.auto && a.condition,
+    this.autoActions = Object.values(actions).filter(
+      (a): a is ActionDef & { condition: NonNullable<ActionDef["condition"]> } =>
+        Boolean(a.auto && a.condition),
     );
   }
 
@@ -57,7 +47,7 @@ export class AutoActionHandler {
     this.init({ onTrigger: this.onTrigger });
   }
 
-  public init({ onTrigger }: { onTrigger?: (action: any) => void }) {
+  public init({ onTrigger }: { onTrigger?: (action: ActionDef) => void }) {
     if (onTrigger) {
       this.onTrigger = onTrigger;
     }
@@ -65,22 +55,24 @@ export class AutoActionHandler {
     this.clearWatchers();
 
     // Cache initial values and setup listeners
-    const watchedKeys = new Set(
-      this.autoActions.flatMap((a) => Object.keys(a.condition)),
-    );
+    const watchedKeys = new Set<KnownRuntimeDataKey>();
+    this.autoActions.forEach((a) => {
+      if (a.condition) {
+        Object.keys(a.condition).forEach((k) => watchedKeys.add(k as KnownRuntimeDataKey));
+      }
+    });
 
-    
     watchedKeys.forEach((key) => {
       // Use generic runtimeData to get any type of value
-      this.cache[key] = runtimeData(`pet.${key}` as any)?.get();
+      this.cache[key] = runtimeData(`pet.${key}` as KnownRuntimeDataKey)?.get();
       const handler = this.makeHandler(key);
-      runtimeData(`pet.${key}` as any)?.watch(handler);
+      runtimeData(`pet.${key}` as KnownRuntimeDataKey)?.watch(handler);
       this.autoWatchers.push({ key, handler });
     });
   }
 
-  private makeHandler = (key: string) => {
-    return (v: any) => {
+  private makeHandler = (key: KnownRuntimeDataKey) => {
+    return (v: unknown) => {
       this.cache[key] = v;
       this.checkConditions();
     };
@@ -89,9 +81,9 @@ export class AutoActionHandler {
   private checkConditions() {
     // Find the first action where all conditions are met
     const matchAction = this.autoActions.find((a) => {
-      return Object.keys(a.condition).every((k) => {
-        const cond = a.condition[k];
-        const val = this.cache[k];
+      if (!a.condition) return false;
+      return Object.entries(a.condition).every(([k, cond]) => {
+        const val = this.cache[k as KnownRuntimeDataKey] as number | string | undefined;
 
         // Array inclusion check
         if (Array.isArray(cond)) {
@@ -105,17 +97,19 @@ export class AutoActionHandler {
           "op" in cond &&
           "value" in cond
         ) {
-          switch (cond.op) {
+          const rule = cond as ActionConditionRule;
+          if (typeof val === "undefined") return false;
+          switch (rule.op) {
             case "==":
-              return val === cond.value;
+              return val == rule.value;
             case ">=":
-              return val >= cond.value;
+              return Number(val) >= Number(rule.value);
             case "<=":
-              return val <= cond.value;
+              return Number(val) <= Number(rule.value);
             case ">":
-              return val > cond.value;
+              return Number(val) > Number(rule.value);
             case "<":
-              return val < cond.value;
+              return Number(val) < Number(rule.value);
             default:
               return false;
           }
@@ -133,18 +127,13 @@ export class AutoActionHandler {
         this.lastTriggeredAction = matchAction.action;
       }
     } else {
-      // Reset if no action matches, or maybe we want to keep the last one?
-      // Logic suggests if condition fails, we might want to reset the lock so it can trigger again later.
-      // But for things like "hp < 20", it will be true for a while.
-      // If we reset here, it might toggle if multiple actions compete.
       this.lastTriggeredAction = null;
     }
   }
 
   clearWatchers() {
     for (const { key, handler } of this.autoWatchers) {
-      
-      runtimeData(`pet.${key}` as any)?.unwatch(handler);
+      runtimeData(`pet.${key}` as KnownRuntimeDataKey)?.unwatch(handler);
     }
     this.autoWatchers = [];
   }

@@ -16,3 +16,13 @@ export interface HeaderConfig {
   menu: MenuItem[];
   stats: { stat: string; animation: string }[];
 }
+
+export interface HeaderSelectorOption {
+  x: number;
+  y: number;
+  start: number;
+  end: number;
+  freq: number;
+  key: string;
+  frame: string;
+};

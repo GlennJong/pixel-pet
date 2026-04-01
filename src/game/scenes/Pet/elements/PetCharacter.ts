@@ -13,7 +13,7 @@ import {
   ActionDef,
   IdleActionDef,
   PetState,
-  TDirection,
+  PetCharacterDirection,
   CharacterConfig,
   CharacterStageItem,
   AnimationItem,
@@ -25,7 +25,7 @@ export class PetCharacter extends Character {
 
   private idleActions: Record<string, IdleActionDef>;
   private spaceEdge: { from: number; to: number };
-  private direction: TDirection = "left";
+  private direction: PetCharacterDirection = "left";
   private isInterrupted: boolean = false;
   private watchState?: ObservableValue<number>;
 
@@ -136,7 +136,7 @@ export class PetCharacter extends Character {
       currentAction.animationSet,
     );
 
-    this.direction = currentAction.direction as TDirection;
+    this.direction = currentAction.direction as PetCharacterDirection;
 
     let isMoving = false;
     if (currentAction.isMoving) {
@@ -174,7 +174,7 @@ export class PetCharacter extends Character {
       this._state = PetState.MOVING;
       // Note: Character.ts defines TDirection locally, which is compatible with our TDirection
       this.moveDirection(
-        this.direction as import("@/game/components/Character").Direction,
+        this.direction,
         GAME_CONFIG.PET.MOVE_DISTANCE,
         () => {
           if (this.isInterrupted) return;

@@ -24,8 +24,9 @@ export interface ActionEffect {
 }
 
 export interface ActionConditionRule {
-  method: "eq" | "gt" | "lt" | "gte" | "lte" | "neq";
-  value: number | string;
+  op?: "==" | ">=" | "<=" | ">" | "<" | "!=";
+  method?: "eq" | "gt" | "lt" | "gte" | "lte" | "neq"; // Keep for backwards compatibility if needed
+  value: number | string | any[];
 }
 
 export interface ActionDef {
@@ -36,7 +37,7 @@ export interface ActionDef {
   dialogues?: DialogItem[];
   move?: string;
   auto?: boolean;
-  condition?: Partial<Record<string, ActionConditionRule>>;
+  condition?: Partial<Record<string, ActionConditionRule | number | string | any[]>>;
 }
 
 export type IdleActionMap = Record<string, IdleActionDef>;

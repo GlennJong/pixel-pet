@@ -108,7 +108,8 @@ export default class PetScene extends Scene {
 
     this.autoActionHandler = new AutoActionHandler();
     this.autoActionHandler.init({
-      onTrigger: (action) => this.handleAddEmergencyTask(action),
+      onTrigger: (action) =>
+        this.handleAddEmergencyTask({ ...action, user: action.user || "system" }),
     });
   }
 

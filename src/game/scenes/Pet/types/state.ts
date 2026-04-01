@@ -1,4 +1,6 @@
-export type TDirection = "none" | "left" | "right" | "top" | "down";
+import { CharacterDirection } from "@/game/components/Character";
+
+export type PetCharacterDirection = "none" | "left" | "right" | "top" | "down" | CharacterDirection;
 
 export enum PetState {
   IDLE = "IDLE",
