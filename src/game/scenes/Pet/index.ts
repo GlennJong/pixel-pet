@@ -147,17 +147,17 @@ export default class PetScene extends Scene {
 
   private resolveActionTask(actionName: string): Task | null {
     const characterConfig = getStaticData(`pet.mycharacter`);
-    let actionsConfig: Record<string, any> = {};
+    let actionsConfig: import("./types").ActionMap = {};
     
     if (characterConfig.watch && characterConfig.stages) {
       const level = getRuntimeDataGroup(`pet.${characterConfig.watch}`) || 0;
-      const current = characterConfig.stages.find((l: any) => l.value === level) || characterConfig.stages[0];
+      const current = characterConfig.stages?.find((l: import("./types").CharacterStageItem) => l.value === level) || characterConfig.stages?.[0];
       actionsConfig = current.actions || {};
     } else {
       actionsConfig = characterConfig.actions || {};
     }
 
-    return actionsConfig[actionName] || null;
+    const action = actionsConfig[actionName]; return action ? { ...action, user: action.user || "system" } : null;
   }
 
   async handleActionQueueTask(task: Task) {
@@ -170,12 +170,12 @@ export default class PetScene extends Scene {
       this.stats?.runEffect(effect);
 
       if (this.dialogue && dialogues) {
-        let effectReplacement: Record<string, any> = {};
+        let effectReplacement: Record<string, number | string> = {};
         if (effect) {
           effectReplacement = Object.fromEntries(
             Object.entries(effect).map(([key, obj]) => [
               key,
-              (obj as { value: any }).value,
+              (obj as import("./types").ActionEffect).value,
             ]),
           );
         }
@@ -202,7 +202,7 @@ export default class PetScene extends Scene {
     this.taskQueueService?.addEmergentTask(task);
   }
 
-  async handleUpgrade(taskQueueService: any, params: any) {
+  async handleUpgrade(taskQueueService: import("./services/TaskQueueService").TaskQueueService, params: Record<string, string | number>) {
     if (!this.isPetReady) return false;
     taskQueueService?.addTask({ action: "buy", user: "system", params });
     return true;

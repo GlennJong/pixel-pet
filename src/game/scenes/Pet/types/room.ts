@@ -2,6 +2,7 @@ import { AssetItem, AnimationItem } from "./common";
 
 export interface RoomExtraItem {
   animation: string;
+  depth?: number;
   x: number;
   y: number;
 }

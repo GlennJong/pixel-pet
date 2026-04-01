@@ -36,32 +36,32 @@ export class PetCharacter extends Character {
       `pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}`,
     );
 
-    let initialAnimations = (config as any).animations || [];
+    let initialAnimations = config.animations || [];
     if (config.watch && config.stages && config.stages.length > 0) {
-      const level = runtimeData(`pet.${config.watch}` as any)?.get() || 0;
+      const level = runtimeData(`pet.${config.watch}` as import("@/game/runtimeData/types").KnownRuntimeDataKey)?.get() || 0;
       const initialConfig = config.stages.find((l) => l.value === level) || config.stages[0];
       if (initialConfig.animations) initialAnimations = initialConfig.animations;
     }
 
     super(scene, GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY, {
       ...GAME_CONFIG.PET.DEFAULT_POSITION,
-      animations: initialAnimations,
+      animations: initialAnimations as import("@/game/components/Character").TAnimation[],
     });
 
     this.character.setDepth(2);
 
     // Initial setup (may be instantly overridden by handleCharacterUpgrade)
-    this.idleActions = (config as any).idleActions || {};
-    this.activities = (config as any).activities || {};
+    this.idleActions = config.idleActions || {};
+    this.activities = config.actions || {};
 
     // define moving limitation
     this.spaceEdge = GAME_CONFIG.PET.DEFAULT_POSITION.edge;
 
     // setup watcher for level or other state based on config (like room.json)
     if (config.watch && config.stages) {
-      this.watchState = runtimeData(`pet.${config.watch}` as any);
+      this.watchState = runtimeData(`pet.${config.watch}` as import("@/game/runtimeData/types").KnownRuntimeDataKey);
       this.watchState?.watch((value: number) => {
-        this.handleCharacterUpgrade(value, config.stages);
+        this.handleCharacterUpgrade(value, config.stages || []);
       });
       this.handleCharacterUpgrade(this.watchState?.get() || 0, config.stages);
     } else {
@@ -99,8 +99,8 @@ export class PetCharacter extends Character {
       });
     }
 
-    this.idleActions = current.idleActions;
-    this.activities = current.actions;
+    this.idleActions = current.idleActions || {};
+    this.activities = current.actions || {};
 
     // Restart actions to apply new config
     this.interrupt();
@@ -173,7 +173,7 @@ export class PetCharacter extends Character {
       this._state = PetState.MOVING;
       // Note: Character.ts defines TDirection locally, which is compatible with our TDirection
       this.moveDirection(
-        this.direction as any,
+        this.direction as import("@/game/components/Character").Direction,
         GAME_CONFIG.PET.MOVE_DISTANCE,
         () => {
           if (this.isInterrupted) return;

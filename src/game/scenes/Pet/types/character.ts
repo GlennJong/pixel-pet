@@ -44,12 +44,15 @@ export type ActionMap = Record<string, ActionDef>;
 
 export interface CharacterStageItem {
   value: number;
-  animations: AnimationItem[];
-  idleActions: IdleActionMap;
-  actions: ActionMap;
+  animations?: AnimationItem[];
+  idleActions?: IdleActionMap;
+  actions?: ActionMap;
 }
 
 export interface CharacterConfig {
-  watch: string;
-  stages: CharacterStageItem[]; // Changed from 'list' since this represents evolution/stages
+  watch?: string;
+  stages?: CharacterStageItem[];
+  animations?: AnimationItem[];
+  idleActions?: IdleActionMap;
+  actions?: ActionMap;
 }

@@ -2,7 +2,7 @@ import Phaser from "phaser";
 
 export type Direction = "none" | "left" | "right" | "top" | "down";
 
-type TAnimation = {
+export type TAnimation = {
   prefix: string;
   qty: number;
   freq: number;

@@ -12,7 +12,7 @@ type TOption = {
 };
 
 export class HeaderSelector extends Phaser.GameObjects.Container {
-  private config: any;
+  private config: import("../types").HeaderConfig;
   private arrow!: Phaser.GameObjects.Sprite;
   private icon!: Phaser.GameObjects.Sprite;
   private frameName: string;

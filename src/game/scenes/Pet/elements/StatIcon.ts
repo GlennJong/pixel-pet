@@ -16,7 +16,7 @@ export class StatIcon extends Phaser.GameObjects.Container {
     super(scene);
 
     const { x, y, key, animation } = option;
-    this.storeState = runtimeData(key as any);
+    this.storeState = runtimeData(key as import("@/game/runtimeData/types").KnownRuntimeDataKey);
     this.value =
       typeof this.storeState?.get() === "number"
         ? this.storeState.get()

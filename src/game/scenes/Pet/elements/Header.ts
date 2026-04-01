@@ -10,8 +10,8 @@ const DEFAULT_HEIGHT = 25;
 
 // TODO Constant Naming
 export class Header extends Phaser.GameObjects.Container {
-  private selectorGroup: any[] = [];
-  private statGroup: any[] = [];
+  private selectorGroup: { arrow: Phaser.GameObjects.Sprite; icon: Phaser.GameObjects.Sprite; onBlur: () => void; onSelect: () => void }[] = [];
+  private statGroup: StatIcon[] = [];
   private current = 0;
 
   private config: import("../types").HeaderConfig;

@@ -34,7 +34,7 @@ export class Room {
     const { watch } = this.config;
 
     // set watch state
-    this.watchState = runtimeData(`pet.${watch}` as any);
+    this.watchState = runtimeData(`pet.${watch}` as import("@/game/runtimeData/types").KnownRuntimeDataKey);
     this.watchState?.watch(this.handleRenderRoomByWatchedState);
 
     // init animations
@@ -105,7 +105,7 @@ export class Room {
     this.handleRenderExtras(extras);
   };
 
-  private handleRenderExtras = (newextras?: any[]) => {
+  private handleRenderExtras = (newextras?: import("../types").RoomExtraItem[]) => {
     if (!newextras) return;
 
     if (this.extras.length !== 0) {
