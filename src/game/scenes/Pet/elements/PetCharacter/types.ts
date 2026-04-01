@@ -30,7 +30,7 @@ export interface ActionConditionRule {
 }
 
 export interface ActionDef {
-  action: string;
+  action?: string;
   animationSet: Record<string, string[]>;
   user?: string;
   effect?: Partial<Record<string, ActionEffect>>;

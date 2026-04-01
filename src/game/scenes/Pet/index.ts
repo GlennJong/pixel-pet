@@ -30,7 +30,6 @@ import { getPetRuntimeDataKey, PET_STATIC_KEYS } from "./constants";
 import { StatItem } from "./types/common";
 import { PetStats } from "./types/runtime";
 import { initRuntimeData } from "@/game/runtimeData";
-import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
 
 export default class PetScene extends Scene {
   private header?: Header;
@@ -108,7 +107,7 @@ export default class PetScene extends Scene {
     this.autoActionHandler = new AutoActionHandler();
     this.autoActionHandler.init({
       onTrigger: (action) =>
-        this.handleAddEmergencyTask({ ...action, user: action.user || "system" }) });
+        this.handleAddEmergencyTask({ ...action, action: action.action, user: action.user || "system" }) });
   }
 
   private initControls() {
@@ -156,13 +155,23 @@ export default class PetScene extends Scene {
       actionsConfig = characterConfig.actions || {};
     }
 
-    const action = actionsConfig[actionName]; return action ? { ...action, user: action.user || "system" } : null;
+    const action = actionsConfig[actionName]; return action ? { ...action, action: actionName, user: action.user || "system" } : null;
   }
 
   async handleActionQueueTask(task: Task) {
     if (!this.isPetReady) return false;
     let success = false;
-    const { action, user, params, effect, dialogues, move } = task;
+    const { action, user, params, dialogues, move } = task;
+    
+    let effect = task.effect;
+    if (!effect) {
+      const effectsConfig = getStaticData(PET_STATIC_KEYS.EFFECTS) || [];
+      const effectEntry = effectsConfig.find((e: any) => e.action === action);
+      if (effectEntry) {
+        effect = effectEntry.effect;
+      }
+    }
+
     try {
       await this.character?.runFunctionalActionAsync(action);
       this.conditionHandler?.runEffect(effect || {});

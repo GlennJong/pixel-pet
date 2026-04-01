@@ -275,7 +275,6 @@
       },
       "actions": {
         "drink": {
-          "action": "drink",
           "animationSet": {
             "default": [
               "drink"
@@ -293,16 +292,6 @@
             ]
           },
           "user": "system",
-          "effect": {
-            "hp": {
-              "method": "add",
-              "value": 10
-            },
-            "coin": {
-              "method": "add",
-              "value": 10
-            }
-          },
           "dialogues": [
             {
               "sentences": [
@@ -316,7 +305,6 @@
           ]
         },
         "write": {
-          "action": "write",
           "animationSet": {
             "default": [
               "write"
@@ -328,16 +316,6 @@
             ]
           },
           "user": "system",
-          "effect": {
-            "hp": {
-              "method": "add",
-              "value": 10
-            },
-            "coin": {
-              "method": "add",
-              "value": 1
-            }
-          },
           "dialogues": [
             {
               "sentences": [
@@ -351,7 +329,6 @@
           ]
         },
         "sleep": {
-          "action": "sleep",
           "animationSet": {
             "default": [
               "lay-down"
@@ -367,12 +344,6 @@
             ]
           },
           "user": "system",
-          "effect": {
-            "condition": {
-              "method": "set",
-              "value": "sleep"
-            }
-          },
           "dialogues": [
             {
               "sentences": [
@@ -386,7 +357,6 @@
           ]
         },
         "awake": {
-          "action": "awake",
           "animationSet": {
             "default": [
               "wake-up"
@@ -402,12 +372,6 @@
             ]
           },
           "user": "system",
-          "effect": {
-            "condition": {
-              "method": "set",
-              "value": "normal"
-            }
-          },
           "dialogues": [
             {
               "sentences": [
@@ -421,23 +385,12 @@
           ]
         },
         "reward": {
-          "action": "reward",
           "user": "system",
           "animationSet": {
             "default": [
               "idle-left",
               "idle-right"
             ]
-          },
-          "effect": {
-            "coin": {
-              "method": "add",
-              "value": 50
-            },
-            "win": {
-              "method": "set",
-              "value": 0
-            }
           },
           "dialogues": [
             {
@@ -452,22 +405,11 @@
           ]
         },
         "lose": {
-          "action": "lose",
           "animationSet": {
             "default": [
               "idle-left",
               "idle-right"
             ]
-          },
-          "effect": {
-            "coin": {
-              "method": "sub",
-              "value": 20
-            },
-            "win": {
-              "method": "set",
-              "value": 0
-            }
           },
           "dialogues": [
             {
@@ -482,21 +424,10 @@
           ]
         },
         "die": {
-          "action": "die",
           "animationSet": {
             "default": [
               "lay-down"
             ]
-          },
-          "effect": {
-            "coin": {
-              "method": "sub",
-              "value": 10
-            },
-            "condition": {
-              "method": "set",
-              "value": "death"
-            }
           },
           "dialogues": [
             {
@@ -511,17 +442,10 @@
           ]
         },
         "revive": {
-          "action": "revive",
           "animationSet": {
             "default": [
               "revive"
             ]
-          },
-          "effect": {
-            "condition": {
-              "method": "set",
-              "value": "normal"
-            }
           },
           "dialogues": [
             {
@@ -536,7 +460,6 @@
           ]
         },
         "lock": {
-          "action": "lock",
           "animationSet": {
             "default": [
               "egg"
@@ -555,22 +478,11 @@
           ]
         },
         "buyLv1": {
-          "action": "buyLv1",
           "animationSet": {
             "default": [
               "idle-left",
               "idle-right"
             ]
-          },
-          "effect": {
-            "level": {
-              "method": "set",
-              "value": 1
-            },
-            "coin": {
-              "method": "sub",
-              "value": 100
-            }
           },
           "dialogues": [
             {
@@ -585,22 +497,11 @@
           ]
         },
         "buyLv2": {
-          "action": "buyLv2",
           "animationSet": {
             "default": [
               "idle-left",
               "idle-right"
             ]
-          },
-          "effect": {
-            "level": {
-              "method": "set",
-              "value": 2
-            },
-            "coin": {
-              "method": "sub",
-              "value": 150
-            }
           },
           "dialogues": [
             {
@@ -615,22 +516,11 @@
           ]
         },
         "buyLv3": {
-          "action": "buyLv3",
           "animationSet": {
             "default": [
               "idle-left",
               "idle-right"
             ]
-          },
-          "effect": {
-            "level": {
-              "method": "set",
-              "value": 3
-            },
-            "coin": {
-              "method": "sub",
-              "value": 200
-            }
           },
           "dialogues": [
             {
@@ -645,22 +535,11 @@
           ]
         },
         "buyLv4": {
-          "action": "buyLv4",
           "animationSet": {
             "default": [
               "idle-left",
               "idle-right"
             ]
-          },
-          "effect": {
-            "level": {
-              "method": "set",
-              "value": 4
-            },
-            "coin": {
-              "method": "sub",
-              "value": 250
-            }
           },
           "dialogues": [
             {
@@ -675,22 +554,11 @@
           ]
         },
         "buyLv5": {
-          "action": "buyLv5",
           "animationSet": {
             "default": [
               "idle-left",
               "idle-right"
             ]
-          },
-          "effect": {
-            "level": {
-              "method": "set",
-              "value": 5
-            },
-            "coin": {
-              "method": "sub",
-              "value": 300
-            }
           },
           "dialogues": [
             {
@@ -980,7 +848,6 @@
       },
       "actions": {
         "drink": {
-          "action": "drink",
           "animationSet": {
             "default": [
               "drink"
@@ -998,16 +865,6 @@
             ]
           },
           "user": "system",
-          "effect": {
-            "hp": {
-              "method": "add",
-              "value": 10
-            },
-            "coin": {
-              "method": "add",
-              "value": 10
-            }
-          },
           "dialogues": [
             {
               "sentences": [
@@ -1021,7 +878,6 @@
           ]
         },
         "write": {
-          "action": "write",
           "animationSet": {
             "default": [
               "write"
@@ -1033,16 +889,6 @@
             ]
           },
           "user": "system",
-          "effect": {
-            "hp": {
-              "method": "add",
-              "value": 10
-            },
-            "coin": {
-              "method": "add",
-              "value": 1
-            }
-          },
           "dialogues": [
             {
               "sentences": [
@@ -1056,7 +902,6 @@
           ]
         },
         "sleep": {
-          "action": "sleep",
           "animationSet": {
             "default": [
               "lay-down"
@@ -1072,12 +917,6 @@
             ]
           },
           "user": "system",
-          "effect": {
-            "condition": {
-              "method": "set",
-              "value": "sleep"
-            }
-          },
           "dialogues": [
             {
               "sentences": [
@@ -1091,7 +930,6 @@
           ]
         },
         "awake": {
-          "action": "awake",
           "animationSet": {
             "default": [
               "wake-up"
@@ -1107,12 +945,6 @@
             ]
           },
           "user": "system",
-          "effect": {
-            "condition": {
-              "method": "set",
-              "value": "normal"
-            }
-          },
           "dialogues": [
             {
               "sentences": [
@@ -1126,23 +958,12 @@
           ]
         },
         "reward": {
-          "action": "reward",
           "user": "system",
           "animationSet": {
             "default": [
               "idle-left",
               "idle-right"
             ]
-          },
-          "effect": {
-            "coin": {
-              "method": "add",
-              "value": 50
-            },
-            "win": {
-              "method": "set",
-              "value": 0
-            }
           },
           "dialogues": [
             {
@@ -1157,22 +978,11 @@
           ]
         },
         "lose": {
-          "action": "lose",
           "animationSet": {
             "default": [
               "idle-left",
               "idle-right"
             ]
-          },
-          "effect": {
-            "coin": {
-              "method": "sub",
-              "value": 20
-            },
-            "win": {
-              "method": "set",
-              "value": 0
-            }
           },
           "dialogues": [
             {
@@ -1187,21 +997,10 @@
           ]
         },
         "die": {
-          "action": "die",
           "animationSet": {
             "default": [
               "lay-down"
             ]
-          },
-          "effect": {
-            "coin": {
-              "method": "sub",
-              "value": 10
-            },
-            "condition": {
-              "method": "set",
-              "value": "death"
-            }
           },
           "dialogues": [
             {
@@ -1216,17 +1015,10 @@
           ]
         },
         "revive": {
-          "action": "revive",
           "animationSet": {
             "default": [
               "revive"
             ]
-          },
-          "effect": {
-            "condition": {
-              "method": "set",
-              "value": "normal"
-            }
           },
           "dialogues": [
             {
@@ -1241,7 +1033,6 @@
           ]
         },
         "lock": {
-          "action": "lock",
           "animationSet": {
             "default": [
               "egg"
@@ -1260,22 +1051,11 @@
           ]
         },
         "buyLv1": {
-          "action": "buyLv1",
           "animationSet": {
             "default": [
               "idle-left",
               "idle-right"
             ]
-          },
-          "effect": {
-            "level": {
-              "method": "set",
-              "value": 1
-            },
-            "coin": {
-              "method": "sub",
-              "value": 100
-            }
           },
           "dialogues": [
             {
@@ -1290,22 +1070,11 @@
           ]
         },
         "buyLv2": {
-          "action": "buyLv2",
           "animationSet": {
             "default": [
               "idle-left",
               "idle-right"
             ]
-          },
-          "effect": {
-            "level": {
-              "method": "set",
-              "value": 2
-            },
-            "coin": {
-              "method": "sub",
-              "value": 150
-            }
           },
           "dialogues": [
             {
@@ -1320,22 +1089,11 @@
           ]
         },
         "buyLv3": {
-          "action": "buyLv3",
           "animationSet": {
             "default": [
               "idle-left",
               "idle-right"
             ]
-          },
-          "effect": {
-            "level": {
-              "method": "set",
-              "value": 3
-            },
-            "coin": {
-              "method": "sub",
-              "value": 200
-            }
           },
           "dialogues": [
             {
@@ -1350,22 +1108,11 @@
           ]
         },
         "buyLv4": {
-          "action": "buyLv4",
           "animationSet": {
             "default": [
               "idle-left",
               "idle-right"
             ]
-          },
-          "effect": {
-            "level": {
-              "method": "set",
-              "value": 4
-            },
-            "coin": {
-              "method": "sub",
-              "value": 250
-            }
           },
           "dialogues": [
             {
@@ -1380,22 +1127,11 @@
           ]
         },
         "buyLv5": {
-          "action": "buyLv5",
           "animationSet": {
             "default": [
               "idle-left",
               "idle-right"
             ]
-          },
-          "effect": {
-            "level": {
-              "method": "set",
-              "value": 5
-            },
-            "coin": {
-              "method": "sub",
-              "value": 300
-            }
           },
           "dialogues": [
             {

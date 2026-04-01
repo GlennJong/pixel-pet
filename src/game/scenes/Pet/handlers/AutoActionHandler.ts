@@ -15,7 +15,7 @@ export class AutoActionHandler {
   private cache: Partial<Record<KnownRuntimeDataKey, unknown>> = {};
   private autoActions: AutoActionRule[] = [];
   private rawActions: Record<string, ActionDef> = {};
-  private onTrigger?: (action: ActionDef) => void;
+  private onTrigger?: (action: ActionDef & { action: string }) => void;
   private lastTriggeredAction: string | null = null; // Prevent repeated triggers
 
   private levelWatcher?: ObservableValue<unknown>;
@@ -57,7 +57,7 @@ export class AutoActionHandler {
     this.init({ onTrigger: this.onTrigger });
   }
 
-  public init({ onTrigger }: { onTrigger?: (action: ActionDef) => void }) {
+  public init({ onTrigger }: { onTrigger?: (action: ActionDef & { action: string }) => void }) {
     if (onTrigger) {
       this.onTrigger = onTrigger;
     }
@@ -130,7 +130,7 @@ export class AutoActionHandler {
       if (this.lastTriggeredAction !== matchRule.action) {
         const fullAction = this.rawActions[matchRule.action];
         if (fullAction) {
-            this.onTrigger?.(fullAction);
+            this.onTrigger?.({ ...fullAction, action: matchRule.action });
         }
         this.lastTriggeredAction = matchRule.action;
       }

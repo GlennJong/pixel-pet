@@ -1,0 +1,159 @@
+[
+  {
+    "action": "drink",
+    "effect": {
+      "hp": {
+        "method": "add",
+        "value": 10
+      },
+      "coin": {
+        "method": "add",
+        "value": 10
+      }
+    }
+  },
+  {
+    "action": "write",
+    "effect": {
+      "hp": {
+        "method": "add",
+        "value": 10
+      },
+      "coin": {
+        "method": "add",
+        "value": 1
+      }
+    }
+  },
+  {
+    "action": "sleep",
+    "effect": {
+      "condition": {
+        "method": "set",
+        "value": "sleep"
+      }
+    }
+  },
+  {
+    "action": "awake",
+    "effect": {
+      "condition": {
+        "method": "set",
+        "value": "normal"
+      }
+    }
+  },
+  {
+    "action": "reward",
+    "effect": {
+      "coin": {
+        "method": "add",
+        "value": 50
+      },
+      "win": {
+        "method": "set",
+        "value": 0
+      }
+    }
+  },
+  {
+    "action": "lose",
+    "effect": {
+      "coin": {
+        "method": "sub",
+        "value": 20
+      },
+      "win": {
+        "method": "set",
+        "value": 0
+      }
+    }
+  },
+  {
+    "action": "die",
+    "effect": {
+      "coin": {
+        "method": "sub",
+        "value": 10
+      },
+      "condition": {
+        "method": "set",
+        "value": "death"
+      }
+    }
+  },
+  {
+    "action": "revive",
+    "effect": {
+      "condition": {
+        "method": "set",
+        "value": "normal"
+      }
+    }
+  },
+  {
+    "action": "buyLv1",
+    "effect": {
+      "level": {
+        "method": "set",
+        "value": 1
+      },
+      "coin": {
+        "method": "sub",
+        "value": 100
+      }
+    }
+  },
+  {
+    "action": "buyLv2",
+    "effect": {
+      "level": {
+        "method": "set",
+        "value": 2
+      },
+      "coin": {
+        "method": "sub",
+        "value": 150
+      }
+    }
+  },
+  {
+    "action": "buyLv3",
+    "effect": {
+      "level": {
+        "method": "set",
+        "value": 3
+      },
+      "coin": {
+        "method": "sub",
+        "value": 200
+      }
+    }
+  },
+  {
+    "action": "buyLv4",
+    "effect": {
+      "level": {
+        "method": "set",
+        "value": 4
+      },
+      "coin": {
+        "method": "sub",
+        "value": 250
+      }
+    }
+  },
+  {
+    "action": "buyLv5",
+    "effect": {
+      "level": {
+        "method": "set",
+        "value": 5
+      },
+      "coin": {
+        "method": "sub",
+        "value": 300
+      }
+    }
+  }
+]

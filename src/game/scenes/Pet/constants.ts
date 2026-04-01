@@ -16,6 +16,7 @@ export const PET_STATIC_KEYS = {
   CONDITIONS: `${PET_NAMESPACE}.conditions`,
   HEADER: `${PET_NAMESPACE}.header`,
   MYCHARACTER: `${PET_NAMESPACE}.mycharacter`,
+  EFFECTS: `${PET_NAMESPACE}.effects`,
 } as const;
 
 export function getPetRuntimeDataKey(stateKey: string): string {
