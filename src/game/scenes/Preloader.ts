@@ -2,6 +2,15 @@ import { Scene } from "phaser";
 import { setStaticData } from "../staticData";
 import { StaticDataSchema } from "../staticData/types";
 
+type UIConfig = Record<
+  string,
+  { key: string; preload: { png: string; json: string } }
+>;
+
+interface PreloadConfig extends Partial<StaticDataSchema> {
+  ui?: UIConfig;
+}
+
 export class Preloader extends Scene {
   constructor() {
     super("Preloader");
@@ -36,11 +45,11 @@ export class Preloader extends Scene {
   preload() {
     this.load.setPath("");
 
-    let customConfig: any = null;
+    let customConfig: PreloadConfig | null = null;
     if (typeof window !== "undefined") {
       try {
         const local = localStorage.getItem("custom_config");
-        if (local) customConfig = JSON.parse(local);
+        if (local) customConfig = JSON.parse(local) as PreloadConfig;
       } catch (e) {
         console.error(e);
       }
@@ -53,25 +62,22 @@ export class Preloader extends Scene {
       const configsFiles = this.getConfigsFiles();
 
       let num = 0;
-      let result: Partial<StaticDataSchema> & { ui?: any } = {};
+      let result: PreloadConfig = { pet: {} } as PreloadConfig;
 
       for (const { key, filename } of configsFiles) {
         this.load.json(key, filename);
         this.load.on(
           `filecomplete-json-${key}`,
-          (_key: unknown, _type: unknown, data: any) => {
+          (_key: unknown, _type: unknown, data: unknown) => {
             num += 1;
 
             if (key.startsWith(`config_pet_`)) {
               const subKey = key.replace(`config_pet_`, "");
-              const currentPet = (result as any)["pet"] || {};
-              result = {
-                ...result,
-                pet: {
-                  ...currentPet,
-                  [subKey]: data,
-                },
-              };
+              const currentPet = result.pet || {};
+              result.pet = {
+                ...currentPet,
+                [subKey]: data,
+              } as PreloadConfig["pet"];
             } else {
               result = {
                 ...result,
@@ -92,7 +98,7 @@ export class Preloader extends Scene {
     this.load.font("Tiny5", "assets/fonts/Tiny5-Regular.ttf", "truetype");
   }
 
-  _preloadAssetsFromConfig(data: any) {
+  _preloadAssetsFromConfig(data: PreloadConfig) {
     const { ui, pet: currentConfig } = data;
     if (ui) {
       Object.keys(ui).map((key) => {

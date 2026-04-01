@@ -65,21 +65,41 @@ export default class PetScene extends Scene {
   private initDomainData() {
     const stats = getStaticData<StatItem[]>(`pet.stats`) || [];
 
-    const defaultStats: Record<string, number | string | any[]> = {
+    const defaultStats = {
       hp: GAME_CONFIG.PET.DEFAULT_HP,
       coin: GAME_CONFIG.PET.DEFAULT_COIN,
       level: GAME_CONFIG.PET.DEFAULT_LEVEL,
       condition: "normal",
-      taskQueue: [],
+      taskQueue: [] as Task[],
     };
 
-    stats.forEach(({ key, value }: { key: string; value: any }) => {
-      defaultStats[key] = value || 0;
+    stats.forEach(({ key, value }) => {
+      switch (key) {
+        case "hp":
+        case "coin":
+        case "level":
+          if (typeof value === "number") {
+            defaultStats[key] = value;
+          }
+          break;
+        case "condition":
+          if (typeof value === "string") {
+            defaultStats.condition = value;
+          }
+          break;
+        case "taskQueue":
+          if (Array.isArray(value)) {
+            defaultStats.taskQueue = value;
+          }
+          break;
+      }
     });
 
-    for (const [key, value] of Object.entries(defaultStats)) {
-      initRuntimeData(`pet.${key}` as any, value);
-    }
+    initRuntimeData("pet.hp", defaultStats.hp);
+    initRuntimeData("pet.coin", defaultStats.coin);
+    initRuntimeData("pet.level", defaultStats.level);
+    initRuntimeData("pet.condition", defaultStats.condition);
+    initRuntimeData("pet.taskQueue", defaultStats.taskQueue);
   }
 
   private initViews() {
