@@ -10,8 +10,8 @@ export class ConditionHandler {
   private conditionState?: ObservableValue<RuntimeDataValue<"pet.condition">>;
 
   constructor() {
-    const configKey = `pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}.conditions` as const;
-    this.config = getStaticData(configKey as any) as ConditionMap | undefined;
+    const configKey = `pet.${GAME_CONFIG.PET.DEFAULT_CHARACTER_KEY}.conditions`;
+    this.config = getStaticData<ConditionMap>(configKey);
     this.conditionState = runtimeData(`pet.condition`);
   }
 

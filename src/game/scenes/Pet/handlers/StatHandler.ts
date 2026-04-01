@@ -5,7 +5,7 @@ import { ActionEffect } from "../types/character";
 import { KnownRuntimeDataKey, RuntimeDataValue } from "@/game/runtimeData/types";
 
 export class StatsHandler {
-  private group: StatHandler<any>[] = [];
+  private group: StatHandler<KnownRuntimeDataKey>[] = [];
   constructor(scene: Phaser.Scene) {
     const stats = getStaticData(`pet.stats`);
 
