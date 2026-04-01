@@ -18,15 +18,25 @@ export interface IdleActionDef {
   isMoving?: Record<string, boolean>;
 }
 
+export interface ActionEffect {
+  method: "add" | "sub" | "set";
+  value: number | string;
+}
+
+export interface ActionConditionRule {
+  method: "eq" | "gt" | "lt" | "gte" | "lte" | "neq";
+  value: number | string;
+}
+
 export interface ActionDef {
   action: string;
   animationSet: Record<string, string[]>;
   user?: string;
-  effect?: Record<string, any>;
+  effect?: Partial<Record<string, ActionEffect>>;
   dialogues?: DialogItem[];
   move?: string;
   auto?: boolean;
-  condition?: Record<string, any>;
+  condition?: Partial<Record<string, ActionConditionRule>>;
 }
 
 export type IdleActionMap = Record<string, IdleActionDef>;

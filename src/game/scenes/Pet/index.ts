@@ -84,8 +84,7 @@ export default class PetScene extends Scene {
 
     // Init runtime data
     for (const [key, value] of Object.entries(defaultStats)) {
-      // any for custom stats from json
-      initRuntimeData(`pet.${key}` as any, value);
+      initRuntimeData<typeof value>(`pet.${key}`, value);
     }
   }
 

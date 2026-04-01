@@ -1,21 +1,22 @@
 import Phaser from "phaser";
-import { runtimeData, getRuntimeDataGroup, setRuntimeData } from "@/game/runtimeData";
+import { runtimeData, getRuntimeDataGroup, setRuntimeData, ObservableValue } from "@/game/runtimeData";
 import { getStaticData } from "@/game/staticData";
+import { ActionEffect } from "../types/character";
+import { KnownRuntimeDataKey, RuntimeDataValue } from "@/game/runtimeData/types";
 
 export class StatsHandler {
-  private group: StatHandler[] = [];
+  private group: StatHandler<any>[] = [];
   constructor(scene: Phaser.Scene) {
-    
     const stats = getStaticData(`pet.stats`);
 
-    stats.forEach(({ key, min, max }: any) => {
-      const handler = new StatHandler(scene, `pet.${key}`, min, max);
+    stats.forEach(({ key, min, max }: import("../types/common").StatItem) => {
+      const handler = new StatHandler(scene, `pet.${key}` as KnownRuntimeDataKey, min, max);
       handler.init();
       this.group.push(handler);
     });
   }
 
-  runEffect(effect: any) {
+  runEffect(effect: Partial<Record<string, ActionEffect>>) {
     if (!effect) return;
     this.group.forEach((handler) => {
       handler.runEffect(effect);
@@ -29,27 +30,26 @@ export class StatsHandler {
   }
 }
 
-export class StatHandler {
+export class StatHandler<K extends KnownRuntimeDataKey> {
   private timer?: Phaser.Time.TimerEvent;
   private scene: Phaser.Scene;
   private conditionState;
-  private statState: ReturnType<typeof runtimeData>;
-  private storeKey: string;
+  private statState: ObservableValue<RuntimeDataValue<K>> | undefined;
+  private storeKey: K;
   private min: number;
   private max: number;
-  
 
   constructor(
     scene: Phaser.Scene,
-    storeKey: string,
+    storeKey: K,
     min = -Infinity,
     max = Infinity,
   ) {
     this.scene = scene;
     this.storeKey = storeKey;
-    this.statState = runtimeData(storeKey as any) as any;
-    this.min = min;
-    this.max = max;
+    this.statState = runtimeData(storeKey);
+    this.min = min ?? -Infinity;
+    this.max = max ?? Infinity;
     
     this.conditionState = runtimeData(`pet.condition`);
   }
@@ -64,18 +64,17 @@ export class StatHandler {
       this.timer.remove();
       this.timer = undefined;
     }
-    const conditions = getStaticData(`pet.conditions`) as Record<
-      string,
-      any
-    >;
+    const conditions = getStaticData(`pet.conditions`);
     const condition = this.conditionState?.get();
 
     if (!condition || !conditions || typeof conditions !== "object") return;
     const conditionObj = conditions[condition];
     if (!conditionObj || typeof conditionObj !== "object") return;
-    const rules = conditionObj as Record<string, any>;
-    if (!rules || !rules[this.getStatKey()]) return;
-    const rule = rules[this.getStatKey()];
+    const rules = conditionObj;
+    const statKey = this.getStatKey();
+    if (!rules || !rules[statKey]) return;
+    const rule = rules[statKey];
+    if (!rule) return;
 
     this.timer = this.scene.time.addEvent({
       delay: rule.interval,
@@ -83,7 +82,7 @@ export class StatHandler {
       callback: () => {
         const isStopped = getRuntimeDataGroup("global.is_paused");
         if (isStopped) return;
-        const currentValue = getRuntimeDataGroup(this.storeKey) as number;
+        const currentValue = getRuntimeDataGroup(this.storeKey as string) as number;
         const { method, value } = rule;
         let newValue = 0;
         if (method === "sub") {
@@ -95,38 +94,42 @@ export class StatHandler {
           this.min,
           Math.min(this.max, currentValue + newValue),
         );
-        setRuntimeData(this.storeKey as any, result);
+        setRuntimeData(this.storeKey, result as RuntimeDataValue<K>);
       },
     });
   };
 
   // 取得資源 key (如 'hp', 'mp')
   private getStatKey(): string {
-    const parts = this.storeKey.split(".");
+    const parts = (this.storeKey as string).split(".");
     return parts[parts.length - 1];
   }
 
-  public runEffect = (effect: Record<string, any>): void => {
+  public runEffect = (effect: Partial<Record<string, ActionEffect>>): void => {
     if (!effect) return;
 
     const key = this.getStatKey();
     const statEffect = effect[key];
     if (!statEffect) return;
-    const current = getRuntimeDataGroup(this.storeKey) as number;
+    const current = getRuntimeDataGroup(this.storeKey as string) as number;
+    let effectValue = statEffect.value;
+    if (typeof effectValue === "string") {
+      effectValue = Number(effectValue) || 0;
+    }
     if (statEffect.method === "add") {
       setRuntimeData(
-        this.storeKey as any,
-        Math.min(this.max, current + statEffect.value),
+        this.storeKey,
+        Math.min(this.max, current + effectValue) as RuntimeDataValue<K>,
       );
     } else if (statEffect.method === "sub") {
       setRuntimeData(
-        this.storeKey as any,
-        Math.max(this.min, current - statEffect.value),
+        this.storeKey,
+        Math.max(this.min, current - effectValue) as RuntimeDataValue<K>,
       );
     } else if (statEffect.method === "set") {
       setRuntimeData(
-        this.storeKey as any,
-        Math.max(this.min, Math.min(this.max, statEffect.value)),
+        this.storeKey,
+        Math.max(this.min, Math.min(this.max, effectValue)) as RuntimeDataValue<K>,
       );
     }
   };

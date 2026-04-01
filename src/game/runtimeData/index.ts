@@ -1,4 +1,4 @@
-import { RuntimeDataSchema, KnownRuntimeDataKey } from "./types";
+import { KnownRuntimeDataKey, RuntimeDataValue } from "./types";
 
 type ChangeHandler<T> = (newValue: T, oldValue: T) => void;
 
@@ -42,17 +42,17 @@ export class ObservableValue<T> {
 // 全域 runtimeData 管理
 const runtimeDataRegistry = new Map<string, ObservableValue<any>>();
 
-export function initRuntimeData<K extends KnownRuntimeDataKey>(key: K, initialValue: RuntimeDataSchema[K]): ObservableValue<RuntimeDataSchema[K]> {
+export function initRuntimeData<K extends KnownRuntimeDataKey>(key: K, initialValue: RuntimeDataValue<K>): ObservableValue<RuntimeDataValue<K>> {
   if (runtimeDataRegistry.has(key)) {
-    return runtimeDataRegistry.get(key) as ObservableValue<RuntimeDataSchema[K]>;
+    return runtimeDataRegistry.get(key) as ObservableValue<RuntimeDataValue<K>>;
   }
-  const runtimeData = new ObservableValue<RuntimeDataSchema[K]>(initialValue, key);
+  const runtimeData = new ObservableValue<RuntimeDataValue<K>>(initialValue, key);
   runtimeDataRegistry.set(key, runtimeData);
   return runtimeData;
 }
 
-export function runtimeData<K extends KnownRuntimeDataKey>(key: K): ObservableValue<RuntimeDataSchema[K]> | undefined {
-  return runtimeDataRegistry.get(key) as ObservableValue<RuntimeDataSchema[K]> | undefined;
+export function runtimeData<K extends KnownRuntimeDataKey>(key: K): ObservableValue<RuntimeDataValue<K>> | undefined {
+  return runtimeDataRegistry.get(key) as ObservableValue<RuntimeDataValue<K>> | undefined;
 }
 
 // Select a group of runtimeData values by key prefix, auto-combine nested objects
@@ -84,8 +84,8 @@ export function getRuntimeDataGroup(groupKey: string): any {
 }
 
 // Set runtimeData value by key, forbid parent group key
-export function setRuntimeData<K extends KnownRuntimeDataKey>(key: K, value: RuntimeDataSchema[K]): void {
-  const storeRef = runtimeDataRegistry.get(key) as ObservableValue<RuntimeDataSchema[K]> | undefined;
+export function setRuntimeData<K extends KnownRuntimeDataKey>(key: K, value: RuntimeDataValue<K>): void {
+  const storeRef = runtimeDataRegistry.get(key) as ObservableValue<RuntimeDataValue<K>> | undefined;
   if (!storeRef) throw new Error(`[ObservableValue] '${key}' 尚未初始化`);
   storeRef.set(value);
 }
@@ -108,11 +108,15 @@ export function loadAllRuntimeDataFromLocalStorage(
     if (!raw) return resolve();
     try {
       const data = JSON.parse(raw);
-      for (const key in data) {
-        initRuntimeData(key as KnownRuntimeDataKey, data[key]);
+      for (const [key, value] of Object.entries(data)) {
+        if (runtimeDataRegistry.has(key)) {
+          runtimeDataRegistry.get(key)?.set(value);
+        } else {
+          initRuntimeData(key as any, value);
+        }
       }
     } catch (e) {
-      console.warn("[ObservableValue] localStorage 還原失敗", e);
+      console.error("Failed to parse local storage data", e);
     }
     resolve();
   });
