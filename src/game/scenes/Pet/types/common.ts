@@ -1,4 +1,5 @@
 export interface AssetItem {
+  id: string;
   png: string;
   json: string;
 }

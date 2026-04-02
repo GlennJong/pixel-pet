@@ -12,13 +12,7 @@ export * from "./task";
 
 export interface PetConfig {
   pet: {
-    assets: {
-      petRoom?: AssetItem;
-      petHeader?: AssetItem;
-      room?: AssetItem;
-      header?: AssetItem;
-      character: AssetItem;
-    };
+    assets: AssetItem[];
     stats: StatItem[];
     header: HeaderConfig;
     conditions: ConditionMap;

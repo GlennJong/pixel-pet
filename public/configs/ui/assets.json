@@ -1,6 +1,7 @@
-{
-  "dialogue_frame": {
-      "png": "assets/sprites/dialogue/frame/spritesheet.png",
-      "json": "assets/sprites/dialogue/frame/spritesheet.json"
+[
+  {
+    "id": "dialogue_frame",
+    "png": "assets/sprites/dialogue/frame/spritesheet.png",
+    "json": "assets/sprites/dialogue/frame/spritesheet.json"
   }
-}
+]

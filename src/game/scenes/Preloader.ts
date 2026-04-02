@@ -3,7 +3,7 @@ import { setStaticData } from "../staticData";
 import { StaticDataSchema } from "../staticData/types";
 
 interface UIConfig {
-  assets?: Record<string, { png: string; json: string }>;
+  assets?: Array<{ id: string; png: string; json: string }>;
 }
 
 interface PreloadConfig extends Partial<StaticDataSchema> {
@@ -115,13 +115,13 @@ export class Preloader extends Scene {
   _preloadAssetsFromConfig(data: PreloadConfig) {
     const { ui, pet } = data;
 
-    const allAssets: Record<string, { png: string; json: string }> = {
-      ...(ui?.assets || {}),
-      ...(pet?.assets as Record<string, { png: string; json: string }> || {}),
-    };
+    const allAssets = [
+      ...(ui?.assets || []),
+      ...(pet?.assets as Array<{ id: string; png: string; json: string }> || []),
+    ];
 
-    for (const [key, { png, json }] of Object.entries(allAssets)) {
-      this.load.atlas(key, png, json);
+    for (const { id, png, json } of allAssets) {
+      this.load.atlas(id, png, json);
     }
   }
 
