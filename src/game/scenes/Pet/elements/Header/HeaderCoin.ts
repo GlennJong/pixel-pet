@@ -95,5 +95,6 @@ export class IconCoin extends Phaser.GameObjects.Container {
 
   public destroy() {
     this.text.destroy();
+    super.destroy(); 
   }
 }

@@ -92,6 +92,7 @@ export default class PetScene extends Scene {
     this.room = new Room(this);
     this.room.init();
     this.header = new Header(this);
+
     this.dialogue = new PetDialogue(this);
   }
 
@@ -130,11 +131,11 @@ export default class PetScene extends Scene {
 
   private handleControlButton = (key: string) => {
     if (key === "left") {
-      this.header!.movePrev();
+      this.header?.movePrev();
     } else if (key === "right") {
-      this.header!.moveNext();
+      this.header?.moveNext();
     } else if (key === "space") {
-      const action = this.header!.select();
+      const action = this.header?.select();
       const task = this.resolveActionTask(action);
       if (task) {
         this.taskQueueService?.addTask(task);
@@ -218,8 +219,8 @@ export default class PetScene extends Scene {
 
   update() {
     this.character?.update();
-    this.header!.update();
-    this.keyboardHandler!.update();
+    this.header?.update();
+    this.keyboardHandler?.update();
   }
 
   shutdown = () => {

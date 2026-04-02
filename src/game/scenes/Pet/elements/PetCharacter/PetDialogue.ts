@@ -55,5 +55,6 @@ export class PetDialogue extends Phaser.GameObjects.Container {
 
   public destroy() {
     this.dialogue.destroy();
+    super.destroy();
   }
 }

@@ -107,9 +107,11 @@ export class Preloader extends Scene {
   }
 
   _preloadAssetsFromConfig(data: PreloadConfig) {
+    console.log({data})
     const { ui, pet: currentConfig } = data;
     if (ui) {
       Object.keys(ui).map((key) => {
+        console.log({ui, key})
         this.load.atlas(ui[key].key, ui[key].preload.png, ui[key].preload.json);
       });
     }

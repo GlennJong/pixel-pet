@@ -64,5 +64,6 @@ export class HeaderSelector extends Phaser.GameObjects.Container {
   public destroy() {
     this.icon.destroy();
     this.arrow.destroy();
+    super.destroy();
   }
 }

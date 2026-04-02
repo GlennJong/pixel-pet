@@ -4,7 +4,7 @@ import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
 
 const DEFAULT_VALUE = 0;
 
-export class StatIcon extends Phaser.GameObjects.Container {
+export class HeaderStatIcon extends Phaser.GameObjects.Container {
   private statState: ReturnType<typeof runtimeData>;
   private text: Phaser.GameObjects.Text;
   private value: number;
@@ -76,6 +76,8 @@ export class StatIcon extends Phaser.GameObjects.Container {
   }
 
   public destroy() {
+    this.statState?.unwatch(this.handleSetValue);
     this.text.destroy();
+    super.destroy(); 
   }
 }

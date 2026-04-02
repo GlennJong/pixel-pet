@@ -2,7 +2,7 @@ import Phaser from "phaser";
 
 // elements
 import { getStaticData } from "@/game/staticData";
-import { StatIcon } from "../StatIcon";
+import { HeaderStatIcon } from "./HeaderStatIcon";
 import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
 import { HeaderConfig } from "./types";
 import { PET_STATIC_KEYS } from "../../constants";
@@ -14,7 +14,7 @@ const DEFAULT_HEIGHT = 25;
 // TODO Constant Naming
 export class Header extends Phaser.GameObjects.Container {
   private selectorGroup: { arrow: Phaser.GameObjects.Sprite; icon: Phaser.GameObjects.Sprite; onBlur: () => void; onSelect: () => void }[] = [];
-  private statGroup: StatIcon[] = [];
+  private statGroup: HeaderStatIcon[] = [];
   private current = 0;
 
   private config: HeaderConfig;
@@ -132,7 +132,7 @@ export class Header extends Phaser.GameObjects.Container {
     const gap = 30;
     const y = 7;
     this.config.stats.forEach(({ stat, animation }, i) => {
-      const icon = new StatIcon(this.scene, {
+      const icon = new HeaderStatIcon(this.scene, {
         x: startFrom + gap * i,
         y,
         key: `pet.${stat}`,
@@ -182,5 +182,6 @@ export class Header extends Phaser.GameObjects.Container {
       icon.destroy();
     });
     clearTimeout(this.timer);
+    super.destroy(); 
   }
 }

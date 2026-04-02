@@ -150,5 +150,7 @@ export class IconHp extends Phaser.GameObjects.Container {
   public destroy() {
     this.icon.destroy();
     this.text.destroy();
+    this.hpState?.unwatch(this.handleSetValue);
+    super.destroy();
   }
 }

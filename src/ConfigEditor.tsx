@@ -11,8 +11,8 @@ const LOCAL_KEY = "custom_config";
 
 const configsFiles = [
   // 可動態擴充，key 為 config 名稱，filename 為檔案名
-  { key: "ui", filename: "configs/global/ui.json" },
   { key: "commands", filename: "configs/global/commands.json" },
+  { key: "ui", filename: "configs/global/ui.json" },
   { key: "config_pet_assets", filename: "configs/pet/assets.json" },
   { key: "config_pet_stats", filename: "configs/pet/stats.json" },
   { key: "config_pet_conditions", filename: "configs/pet/conditions.json" },

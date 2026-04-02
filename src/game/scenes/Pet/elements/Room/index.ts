@@ -127,5 +127,8 @@ export class Room {
     this.background?.destroy();
     this.back?.destroy();
     this.front?.destroy();
+    this.extras.forEach((extra) => {
+      extra.destroy();
+    });
   }
 }
