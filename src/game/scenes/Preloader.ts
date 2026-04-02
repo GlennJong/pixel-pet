@@ -1,5 +1,6 @@
 import { Scene } from "phaser";
 import { setStaticData } from "../staticData";
+import { initI18n } from "../utils/i18n";
 import { StaticDataSchema } from "../staticData/types";
 
 interface UIConfig {
@@ -29,10 +30,8 @@ export class Preloader extends Scene {
         filename: `configs/pet/character/conditions.json`,
       },
       { key: `config_pet_header`, filename: `configs/pet/ui/header.json` },
-      {
-        key: `config_pet_character`,
-        filename: `configs/pet/character/main.json`,
-      },
+      { key: `config_pet_character`, filename: `configs/pet/character/main.json` },
+      { key: `config_pet_zh-tw`, filename: `configs/pet/character/zh-tw.json` },
       {
         key: `config_pet_auto_actions`,
         filename: `configs/pet/character/auto_actions.json`,
@@ -136,6 +135,9 @@ export class Preloader extends Scene {
   create() {
     const data = this.cache.json.get("config") as StaticDataSchema;
     setStaticData(data);
+    if (data.pet && (data.pet as any)["zh-tw"]) {
+      initI18n((data.pet as any)["zh-tw"]);
+    }
     this.scene.start("MainScene");
   }
 }

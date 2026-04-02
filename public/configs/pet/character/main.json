@@ -306,7 +306,7 @@
           "sentences": [
             {
               "portrait": "face-normal",
-              "text": "感謝 {{user}} 兌換\n補充喝水，為AFK增加了 10 點生命！"
+              "scriptId": "action.drink"
             }
           ],
           "priority": 2
@@ -330,7 +330,7 @@
           "sentences": [
             {
               "portrait": "face-sad",
-              "text": "感謝 {{user}} 兌換\n提醒存檔，為AFK增加了 10 點生命！"
+              "scriptId": "action.write"
             }
           ],
           "priority": 2
@@ -358,7 +358,7 @@
           "sentences": [
             {
               "portrait": "face-normal",
-              "text": "休息一下"
+              "scriptId": "action.sleep"
             }
           ],
           "priority": 2
@@ -386,7 +386,7 @@
           "sentences": [
             {
               "portrait": "face-normal",
-              "text": "起床了"
+              "scriptId": "action.awake"
             }
           ],
           "priority": 2
@@ -406,7 +406,7 @@
           "sentences": [
             {
               "portrait": "face-normal",
-              "text": "我贏了！\n賺到 {{coin}} 元零用錢！"
+              "scriptId": "action.reward"
             }
           ],
           "priority": 2
@@ -425,7 +425,7 @@
           "sentences": [
             {
               "portrait": "face-sad",
-              "text": "我輸了！\n損失 {{coin}} 元零用錢！"
+              "scriptId": "action.lose"
             }
           ],
           "priority": 2
@@ -443,7 +443,7 @@
           "sentences": [
             {
               "portrait": "face-sad",
-              "text": "死了...\n損失 {{coin}} 元零用錢！"
+              "scriptId": "action.die"
             }
           ],
           "priority": 2
@@ -461,7 +461,7 @@
           "sentences": [
             {
               "portrait": "face-normal",
-              "text": "復活"
+              "scriptId": "action.revive"
             }
           ],
           "priority": 2
@@ -479,7 +479,7 @@
           "sentences": [
             {
               "portrait": "face-normal",
-              "text": "我已經死了什麼都不能做！"
+              "scriptId": "action.lock"
             }
           ],
           "priority": 2
@@ -498,7 +498,7 @@
           "sentences": [
             {
               "portrait": "face-normal",
-              "text": "花了{{coin}}塊錢！\n買買買"
+              "scriptId": "action.buyLv1"
             }
           ],
           "priority": 2
@@ -517,7 +517,7 @@
           "sentences": [
             {
               "portrait": "face-normal",
-              "text": "花了{{coin}}塊錢！\n買買買！"
+              "scriptId": "action.buyLv2"
             }
           ],
           "priority": 2
@@ -536,7 +536,7 @@
           "sentences": [
             {
               "portrait": "face-normal",
-              "text": "花了{{coin}}塊錢！\n買買買！！"
+              "scriptId": "action.buyLv3"
             }
           ],
           "priority": 2
@@ -555,7 +555,7 @@
           "sentences": [
             {
               "portrait": "face-normal",
-              "text": "花了{{coin}}塊錢！\n買買買！！！！"
+              "scriptId": "action.buyLv4"
             }
           ],
           "priority": 2
@@ -574,7 +574,7 @@
           "sentences": [
             {
               "portrait": "face-normal",
-              "text": "花了{{coin}}塊錢！\n全部買光光！"
+              "scriptId": "action.buyLv5"
             }
           ],
           "priority": 2

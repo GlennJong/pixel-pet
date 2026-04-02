@@ -2,7 +2,8 @@ import { AnimationItem } from "../../types/common";
 
 export interface SentenceItem {
   portrait: string;
-  text: string;
+  scriptId?: string;
+  text?: string;
 }
 
 export interface DialogItem {
