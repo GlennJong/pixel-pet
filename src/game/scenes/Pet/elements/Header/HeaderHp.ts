@@ -31,7 +31,7 @@ export class IconHp extends Phaser.GameObjects.Container {
     // Icon
     this.icon = scene.make
       .sprite({
-        key: "header_icons",
+        key: "header",
         frame: "hp-empty",
         x: x,
         y: y,
@@ -41,7 +41,7 @@ export class IconHp extends Phaser.GameObjects.Container {
     if (!scene.anims.exists("hp-100")) {
       scene.anims.create({
         key: "hp-100",
-        frames: scene.anims.generateFrameNames("header_icons", {
+        frames: scene.anims.generateFrameNames("header", {
           prefix: `hp-100-`,
           start: 1,
           end: 5,
@@ -54,7 +54,7 @@ export class IconHp extends Phaser.GameObjects.Container {
     if (!scene.anims.exists("hp-75")) {
       scene.anims.create({
         key: "hp-75",
-        frames: scene.anims.generateFrameNames("header_icons", {
+        frames: scene.anims.generateFrameNames("header", {
           prefix: `hp-75-`,
           start: 1,
           end: 5,
@@ -67,7 +67,7 @@ export class IconHp extends Phaser.GameObjects.Container {
     if (!scene.anims.exists("hp-50")) {
       scene.anims.create({
         key: "hp-50",
-        frames: scene.anims.generateFrameNames("header_icons", {
+        frames: scene.anims.generateFrameNames("header", {
           prefix: `hp-50-`,
           start: 1,
           end: 5,
@@ -80,7 +80,7 @@ export class IconHp extends Phaser.GameObjects.Container {
     if (!scene.anims.exists("hp-25")) {
       scene.anims.create({
         key: "hp-25",
-        frames: scene.anims.generateFrameNames("header_icons", {
+        frames: scene.anims.generateFrameNames("header", {
           prefix: `hp-25-`,
           start: 1,
           end: 5,

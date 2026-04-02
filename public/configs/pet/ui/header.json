@@ -1,6 +1,5 @@
 {
   "key": "header",
-  "texture": "header_icons",
   "animations": [
     {
       "prefix": "arrow",
