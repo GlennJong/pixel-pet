@@ -1,21 +1,21 @@
 [
   {
-    "atlasId": "room",
-    "png": "assets/sprites/pet/environment/room/spritesheet.png",
-    "json": "assets/sprites/pet/environment/room/spritesheet.json"
+    "atlasId": "my_room",
+    "png": "assets/sprites/pet/environment/my_room/spritesheet.png",
+    "json": "assets/sprites/pet/environment/my_room/spritesheet.json"
   },
   {
-    "atlasId": "header",
-    "png": "assets/sprites/pet/ui/header/spritesheet.png",
-    "json": "assets/sprites/pet/ui/header/spritesheet.json"
+    "atlasId": "header_cute_01",
+    "png": "assets/sprites/pet/ui/header_cute_01/spritesheet.png",
+    "json": "assets/sprites/pet/ui/header_cute_01/spritesheet.json"
   },
   {
-    "atlasId": "header_frame",
-    "png": "assets/sprites/pet/ui/header_frame/spritesheet.png",
-    "json": "assets/sprites/pet/ui/header_frame/spritesheet.json"
+    "atlasId": "header_frame_classic_01",
+    "png": "assets/sprites/pet/ui/header_frame_classic_01/spritesheet.png",
+    "json": "assets/sprites/pet/ui/header_frame_classic_01/spritesheet.json"
   },
   {
-    "atlasId": "character",
+    "atlasId": "afk",
     "png": "assets/sprites/pet/character/afk/spritesheet.png",
     "json": "assets/sprites/pet/character/afk/spritesheet.json"
   }

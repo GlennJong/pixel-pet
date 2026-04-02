@@ -1,6 +1,6 @@
 {
   "id": "header",
-  "atlasId": "header",
+  "atlasId": "header_cute_01",
   "animations": [
     {
       "prefix": "arrow",
@@ -59,6 +59,14 @@
   ],
   "arrow": {
     "animation": "arrow"
+  },
+  "frame": {
+    "atlasId": "header_frame_classic_01",
+    "textureFrame": "frame",
+    "leftWidth": 8,
+    "rightWidth": 8,
+    "topHeight": 8,
+    "bottomHeight": 8
   },
   "menu": [
     {

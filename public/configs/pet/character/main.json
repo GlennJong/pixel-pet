@@ -1,6 +1,6 @@
 {
   "id": "character",
-  "atlasId": "character",
+  "atlasId": "afk",
   "watch": "level",
   "stages": [
     {

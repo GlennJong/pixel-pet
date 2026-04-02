@@ -14,6 +14,14 @@ export interface HeaderConfig {
   texture: string;
   preload: AssetItem;
   animations: AnimationItem[];
+  frame: {
+    atlasId: string;
+    textureFrame: string;
+    leftWidth?: number;
+    rightWidth?: number;
+    topHeight?: number;
+    bottomHeight?: number;
+  };
   arrow: { animation: string };
   menu: MenuItem[];
   stats: { stat: string; animation: string }[];

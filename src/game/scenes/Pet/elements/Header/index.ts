@@ -52,18 +52,24 @@ export class Header extends Phaser.GameObjects.Container {
   };
 
   private initBackground() {
+    const frameConfig = this.config.frame;
+    if (!frameConfig) {
+      console.warn("Header requires a 'frame' configuration");
+      return;
+    }
+
     this.background = this.scene.make
       .nineslice({
-        key: "header_frame",
-        frame: "frame",
+        key: frameConfig.atlasId,
+        frame: frameConfig.textureFrame,
         x: 0,
         y: 0,
         width: DEFAULT_WIDTH,
         height: DEFAULT_HEIGHT,
-        leftWidth: 8,
-        rightWidth: 8,
-        topHeight: 8,
-        bottomHeight: 8,
+        leftWidth: frameConfig.leftWidth || 8,
+        rightWidth: frameConfig.rightWidth || 8,
+        topHeight: frameConfig.topHeight || 8,
+        bottomHeight: frameConfig.bottomHeight || 8,
       })
       .setOrigin(0);
     this.add(this.background);
