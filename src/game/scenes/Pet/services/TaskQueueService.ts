@@ -65,7 +65,7 @@ export class TaskQueueService {
           characterConfig.stages.find(
             (l: CharacterStageItem) => l.value === level,
           ) || characterConfig.stages[0];
-        actionsConfig = current.actions || {};
+        actionsConfig = { ...(characterConfig.actions || {}), ...(current?.actions || {}) };
       } else {
         actionsConfig = characterConfig.actions || {};
       }

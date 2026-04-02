@@ -83,23 +83,26 @@ export class PetCharacter extends Character {
   }
 
   private handleCharacterUpgrade(value: number, list: CharacterStageItem[]) {
-    const current = list.find((item) => item.value === value) || list[0];
-    if (!current) return;
+    const config = getStaticData<CharacterConfig>(PET_STATIC_KEYS.CHARACTER);
+    const current = list.find((item) => item.value === value) || list[0] || {};
+    
+    // Merge atlasId (Stage overrides Root)
+    this.atlasId = current.atlasId || config.atlasId || PET_DEFAULT_CHARACTER_ID;
 
-    // Register new animations if provided
-    if (current.animations) {
-      const config = getStaticData<CharacterConfig>(PET_STATIC_KEYS.CHARACTER);
-      const atlasId = config.atlasId || PET_DEFAULT_CHARACTER_ID;
+    // Merge animations (Stage overrides Root)
+    const mergedAnimations = current.animations || config.animations || [];
+    if (mergedAnimations.length > 0) {
       createAnimationsFromConfig(
         this.scene,
-        atlasId,
-        current.animations,
-        config.texture,
+        this.atlasId,
+        mergedAnimations,
+        config.texture
       );
     }
 
-    this.idleActions = current.idleActions || {};
-    this.activities = current.actions || {};
+    // Deep merge idleActions and actions (Stage overrides Root)
+    this.idleActions = { ...(config.idleActions || {}), ...(current.idleActions || {}) };
+    this.activities = { ...(config.actions || {}), ...(current.actions || {}) };
 
     // Restart actions to apply new config
     this.interrupt();

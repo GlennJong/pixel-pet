@@ -16,7 +16,7 @@ export class Character extends Phaser.GameObjects.Container {
   public character: Phaser.GameObjects.Sprite;
 
   private followShadow?: Phaser.GameObjects.Arc;
-  private atlasId: string;
+  public atlasId: string;
 
   constructor(scene: Phaser.Scene, atlasId: string, props: CharacterProps) {
     super(scene);

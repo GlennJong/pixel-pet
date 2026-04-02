@@ -52,7 +52,7 @@ export class AutoActionHandler {
       const current =
         config.stages.find((l: CharacterStageItem) => l.value === level) ||
         config.stages[0];
-      this.rawActions = current.actions || {};
+      this.rawActions = { ...(config.actions || {}), ...(current?.actions || {}) };
     } else {
       this.rawActions = config.actions || {};
     }
