@@ -1,9 +1,9 @@
 import { getStaticData } from "@/game/staticData";
 import { runtimeData, ObservableValue } from "@/game/runtimeData";
-import { AnimationItem } from "../../types/common";
 import { getPetRuntimeDataKey, PET_STATIC_KEYS } from "../../constants";
 import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
 import { RoomExtraItem } from "./types";
+import { createAnimationsFromConfig } from "@/game/utils/animation";
 
 const DEFAULT_SPRITE = { key: "", frame: "" };
 
@@ -44,30 +44,9 @@ export class Room {
   }
 
   private initAnimations = () => {
-    const { key, animations } = this.config || {};
+    const { key, texture, animations } = this.config || {};
     if (animations) {
-      animations.forEach((_ani: AnimationItem) => {
-        if (!_ani) return;
-        const animationName = `${key}_${_ani.prefix}`;
-        if (this.scene.anims.exists(animationName)) return; // prevent recreate after change scene.
-
-        const data: Phaser.Types.Animations.Animation = {
-          key: animationName,
-          frames: this.scene.anims.generateFrameNames(key, {
-            prefix: `${_ani.prefix}_`,
-            start: 1,
-            end: _ani.qty,
-          }),
-          repeat: _ani.repeat,
-        };
-
-        if (typeof _ani.freq !== "undefined") data.frameRate = _ani.freq;
-        if (typeof _ani.duration !== "undefined") data.duration = _ani.duration;
-        const repeatDelay = _ani.repeatDelay ?? _ani.repeat_delay;
-        if (typeof repeatDelay !== "undefined") data.repeatDelay = repeatDelay;
-
-        this.scene.anims.create(data);
-      });
+      createAnimationsFromConfig(this.scene, key, animations, texture);
     }
   };
 

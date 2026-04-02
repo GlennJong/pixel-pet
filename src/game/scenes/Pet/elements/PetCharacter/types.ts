@@ -51,6 +51,8 @@ export interface CharacterStageItem {
 }
 
 export interface CharacterConfig {
+  key?: string;
+  texture?: string;
   watch?: string;
   stages?: CharacterStageItem[];
   animations?: AnimationItem[];

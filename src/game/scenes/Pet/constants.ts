@@ -15,7 +15,7 @@ export const PET_STATIC_KEYS = {
   ROOM: `${PET_NAMESPACE}.room`,
   CONDITIONS: `${PET_NAMESPACE}.conditions`,
   HEADER: `${PET_NAMESPACE}.header`,
-  MYCHARACTER: `${PET_NAMESPACE}.mycharacter`,
+  CHARACTER: `${PET_NAMESPACE}.character`,
   EFFECTS: `${PET_NAMESPACE}.effects`,
 } as const;
 

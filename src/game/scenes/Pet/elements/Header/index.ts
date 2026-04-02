@@ -6,7 +6,7 @@ import { HeaderStatIcon } from "./HeaderStatIcon";
 import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
 import { HeaderConfig } from "./types";
 import { PET_STATIC_KEYS } from "../../constants";
-import { AnimationItem } from "../../types";
+import { createAnimationsFromConfig } from "@/game/utils/animation";
 
 const DEFAULT_WIDTH = 160;
 const DEFAULT_HEIGHT = 25;
@@ -42,27 +42,7 @@ export class Header extends Phaser.GameObjects.Container {
   private initAnimations = () => {
     const { key, texture, animations } = this.config;
     if (animations) {
-      animations.forEach((_ani: AnimationItem) => {
-        const animationName = `${key}_${_ani.prefix}`;
-        if (this.scene.anims.exists(animationName)) return; // prevent recreate after change scene.
-
-        const data: Phaser.Types.Animations.Animation = {
-          key: animationName,
-          frames: this.scene.anims.generateFrameNames(texture, {
-            prefix: `${_ani.prefix}_`,
-            start: 1,
-            end: _ani.qty,
-          }),
-          repeat: _ani.repeat,
-        };
-
-        if (typeof _ani.freq !== "undefined") data.frameRate = _ani.freq;
-        if (typeof _ani.duration !== "undefined") data.duration = _ani.duration;
-        const repeatDelay = _ani.repeatDelay ?? _ani.repeat_delay;
-        if (typeof repeatDelay !== "undefined") data.repeatDelay = repeatDelay;
-
-        this.scene.anims.create(data);
-      });
+      createAnimationsFromConfig(this.scene, key, animations, texture);
     }
   };
 

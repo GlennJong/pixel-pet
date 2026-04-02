@@ -53,7 +53,7 @@ export class TaskQueueService {
     let updated = false;
     messages.forEach((msg) => {
       const result = filterFromMatchList(msg, this.commandMapList);
-      const characterConfig = getStaticData(PET_STATIC_KEYS.MYCHARACTER);
+      const characterConfig = getStaticData(PET_STATIC_KEYS.CHARACTER);
       let actionsConfig: ActionMap = {};
       if (characterConfig.watch && characterConfig.stages) {
         const watchKey = getPetRuntimeDataKey(characterConfig.watch);

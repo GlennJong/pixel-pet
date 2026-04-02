@@ -1,12 +1,15 @@
 import Phaser from "phaser";
 import { AnimationItem } from "../scenes/Pet/types";
 
+import { createAnimationsFromConfig } from "@/game/utils/animation";
+
 export type CharacterDirection = "none" | "left" | "right" | "top" | "down";
 
 export type CharacterProps = {
   x: number;
   y: number;
   animations: AnimationItem[];
+  texture?: string;
 };
 
 export class Character extends Phaser.GameObjects.Container {
@@ -18,40 +21,20 @@ export class Character extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene, key: string, props: CharacterProps) {
     super(scene);
 
-    const { x, y, animations } = props;
+    const { x, y, animations, texture } = props;
 
     // load animation by key
     this.characterKey = key;
 
     if (animations) {
-      animations.forEach((animConfig) => {
-        const animationName = `${key}_${animConfig.prefix}`;
-        if (scene.anims.exists(animationName)) return; // prevent recreate after change scene.
-
-        const data: Phaser.Types.Animations.Animation = {
-          key: animationName,
-          frames: scene.anims.generateFrameNames(key, {
-            prefix: `${animConfig.prefix}_`,
-            start: 1,
-            end: animConfig.qty,
-          }),
-          repeat: animConfig.repeat,
-        };
-
-        if (typeof animConfig.freq !== "undefined") data.frameRate = animConfig.freq;
-        if (typeof animConfig.duration !== "undefined") data.duration = animConfig.duration;
-        const repeatDelay = animConfig.repeatDelay ?? animConfig.repeat_delay;
-        if (typeof repeatDelay !== "undefined") data.repeatDelay = repeatDelay;
-
-        scene.anims.create(data);
-      });
+      createAnimationsFromConfig(scene, key, animations, texture);
     }
 
     // create character
     const posX = x || 0;
     const posY = y || 0;
     const character = scene.add
-      .sprite(posX, posY, key)
+      .sprite(posX, posY, texture || key)
       .setScale(1)
       .setOrigin(0);
 

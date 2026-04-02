@@ -5,12 +5,13 @@ import Phaser from "phaser";
 import { Character } from "@/game/components/Character";
 
 // utils
+import { createAnimationsFromConfig } from "@/game/utils/animation";
 import { selectFromPriority } from "@/game/utils/selectFromPriority";
 import { getStaticData } from "@/game/staticData";
 import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
 import { runtimeData, ObservableValue } from "@/game/runtimeData";
 import { PET_DEFAULT_POSITION, PET_AUTO_ACTION_DURATION, PET_MOVE_DISTANCE, PET_IDLE_PREFIX, PET_DEFAULT_CHARACTER_KEY } from "@/game/constants";
-import { getPetRuntimeDataKey, getPetStaticDataKey } from "../../constants";
+import { getPetRuntimeDataKey, PET_STATIC_KEYS } from "../../constants";
 import {
   ActionDef,
   IdleActionDef,
@@ -35,7 +36,7 @@ export class PetCharacter extends Character {
   constructor(scene: Phaser.Scene) {
     
     const config = getStaticData<CharacterConfig>(
-      getPetStaticDataKey(PET_DEFAULT_CHARACTER_KEY),
+      PET_STATIC_KEYS.CHARACTER,
     );
 
     let initialAnimations = config.animations || [];
@@ -46,8 +47,9 @@ export class PetCharacter extends Character {
       if (initialConfig.animations) initialAnimations = initialConfig.animations;
     }
 
-    super(scene, PET_DEFAULT_CHARACTER_KEY, {
+    super(scene, config.key || PET_DEFAULT_CHARACTER_KEY, {
       ...PET_DEFAULT_POSITION,
+      texture: config.texture,
       animations: initialAnimations as AnimationItem[] });
 
     this.character.setDepth(2);
@@ -79,25 +81,11 @@ export class PetCharacter extends Character {
     
     // Register new animations if provided
     if (current.animations) {
-      current.animations.forEach((animConfig) => {
-        const animationName = `${PET_DEFAULT_CHARACTER_KEY}_${animConfig.prefix}`;
-        if (this.scene.anims.exists(animationName)) return; // prevent recreate
-
-        const data: Phaser.Types.Animations.Animation = {
-          key: animationName,
-          frames: this.scene.anims.generateFrameNames(PET_DEFAULT_CHARACTER_KEY, {
-            prefix: `${animConfig.prefix}_`,
-            start: 1,
-            end: animConfig.qty }),
-          repeat: animConfig.repeat };
-
-        if (typeof animConfig.freq !== "undefined") data.frameRate = animConfig.freq;
-        if (typeof animConfig.duration !== "undefined") data.duration = animConfig.duration;
-        const repeatDelay = animConfig.repeatDelay ?? animConfig.repeat_delay;
-        if (typeof repeatDelay !== "undefined") data.repeatDelay = repeatDelay;
-
-        this.scene.anims.create(data);
-      });
+      const config = getStaticData<CharacterConfig>(
+        PET_STATIC_KEYS.CHARACTER,
+      );
+      const key = config.key || PET_DEFAULT_CHARACTER_KEY;
+      createAnimationsFromConfig(this.scene, key, current.animations, config.texture);
     }
 
     this.idleActions = current.idleActions || {};

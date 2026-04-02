@@ -144,7 +144,7 @@ export default class PetScene extends Scene {
   };
 
   private resolveActionTask(actionName: string): Task | null {
-    const characterConfig = getStaticData(PET_STATIC_KEYS.MYCHARACTER);
+    const characterConfig = getStaticData(PET_STATIC_KEYS.CHARACTER);
     let actionsConfig: ActionMap = {};
     
     if (characterConfig.watch && characterConfig.stages) {

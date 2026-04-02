@@ -17,12 +17,12 @@ export interface PetConfig {
       petHeader?: AssetItem;
       pet_room?: AssetItem;
       pet_header?: AssetItem;
-      mycharacter: AssetItem;
+      character: AssetItem;
     };
     stats: StatItem[];
     header: HeaderConfig;
     conditions: ConditionMap;
-    mycharacter: CharacterConfig;
+    character: CharacterConfig;
     room: RoomConfig;
   };
 }

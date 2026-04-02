@@ -30,7 +30,7 @@ export class Preloader extends Scene {
       },
       { key: `config_pet_header`, filename: `configs/pet/header.json` },
       {
-        key: `config_pet_mycharacter`,
+        key: `config_pet_character`,
         filename: `configs/pet/character.json`,
       },
       {

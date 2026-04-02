@@ -1,9 +1,8 @@
 import { getStaticData } from "@/game/staticData";
 import { getRuntimeDataGroup, runtimeData, ObservableValue } from "@/game/runtimeData";
-import { PET_DEFAULT_CHARACTER_KEY } from "@/game/constants";
 import { ActionEffect } from "../elements/PetCharacter/types";
 import { ConditionDef, ConditionMap } from "../types/conditions";
-import { PET_CORE_RUNTIME_KEYS, getPetStaticDataKey } from "../constants";
+import { PET_CORE_RUNTIME_KEYS, PET_STATIC_KEYS } from "../constants";
 import { KnownRuntimeDataKey, RuntimeDataValue } from "@/game/runtimeData/types";
 
 export class ConditionHandler {
@@ -11,8 +10,7 @@ export class ConditionHandler {
   private conditionState?: ObservableValue<RuntimeDataValue<"pet.condition">>;
 
   constructor() {
-    const configKey = getPetStaticDataKey(`${PET_DEFAULT_CHARACTER_KEY}.conditions`);
-    this.config = getStaticData<ConditionMap>(configKey);
+    this.config = getStaticData<ConditionMap>(PET_STATIC_KEYS.CONDITIONS);
     this.conditionState = runtimeData(PET_CORE_RUNTIME_KEYS.CONDITION as KnownRuntimeDataKey) as ObservableValue<RuntimeDataValue<"pet.condition">>;
   }
 
