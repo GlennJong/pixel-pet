@@ -40,7 +40,7 @@ export class Header extends Phaser.GameObjects.Container {
   }
 
   private initAnimations = () => {
-    const { key, animations } = this.config;
+    const { key, texture, animations } = this.config;
     if (animations) {
       animations.forEach((_ani: AnimationItem) => {
         const animationName = `${key}_${_ani.prefix}`;
@@ -48,7 +48,7 @@ export class Header extends Phaser.GameObjects.Container {
 
         const data: Phaser.Types.Animations.Animation = {
           key: animationName,
-          frames: this.scene.anims.generateFrameNames(key, {
+          frames: this.scene.anims.generateFrameNames(texture, {
             prefix: `${_ani.prefix}_`,
             start: 1,
             end: _ani.qty,

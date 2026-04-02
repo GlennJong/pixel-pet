@@ -2,10 +2,9 @@ import { Scene } from "phaser";
 import { setStaticData } from "../staticData";
 import { StaticDataSchema } from "../staticData/types";
 
-type UIConfig = Record<
-  string,
-  { key: string; preload: { png: string; json: string } }
->;
+interface UIConfig {
+  assets?: Record<string, { png: string; json: string }>;
+}
 
 interface PreloadConfig extends Partial<StaticDataSchema> {
   ui?: UIConfig;
@@ -18,7 +17,7 @@ export class Preloader extends Scene {
 
   private getConfigsFiles() {
     return [
-      { key: "ui", filename: "configs/global/ui.json" },
+      { key: "config_ui_assets", filename: "configs/ui/assets.json" },
       { key: 'commands', filename: "configs/global/commands.json" },
       { key: `config_pet_assets`, filename: `configs/pet/assets.json` },
       {
@@ -86,6 +85,13 @@ export class Preloader extends Scene {
                 ...currentPet,
                 [subKey]: data,
               } as PreloadConfig["pet"];
+            } else if (key.startsWith(`config_ui_`)) {
+              const subKey = key.replace(`config_ui_`, "");
+              const currentUi = result.ui || {};
+              result.ui = {
+                ...currentUi,
+                [subKey]: data,
+              } as unknown as PreloadConfig["ui"];
             } else {
               result = {
                 ...result,
@@ -107,20 +113,15 @@ export class Preloader extends Scene {
   }
 
   _preloadAssetsFromConfig(data: PreloadConfig) {
-    console.log({data})
-    const { ui, pet: currentConfig } = data;
-    if (ui) {
-      Object.keys(ui).map((key) => {
-        console.log({ui, key})
-        this.load.atlas(ui[key].key, ui[key].preload.png, ui[key].preload.json);
-      });
-    }
-    if (currentConfig?.assets) {
-      for (const [key, { png, json }] of Object.entries(
-        currentConfig.assets as Record<string, { png: string; json: string }>,
-      )) {
-        this.load.atlas(key, png, json);
-      }
+    const { ui, pet } = data;
+
+    const allAssets: Record<string, { png: string; json: string }> = {
+      ...(ui?.assets || {}),
+      ...(pet?.assets as Record<string, { png: string; json: string }> || {}),
+    };
+
+    for (const [key, { png, json }] of Object.entries(allAssets)) {
+      this.load.atlas(key, png, json);
     }
   }
 

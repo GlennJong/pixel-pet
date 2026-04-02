@@ -1,9 +1,6 @@
 {
   "dialogue_frame": {
-    "key": "dialogue_frame",
-    "preload": {
       "png": "assets/sprites/dialogue/frame/spritesheet.png",
       "json": "assets/sprites/dialogue/frame/spritesheet.json"
-    }
   }
 }

@@ -10,6 +10,7 @@ export interface MenuItem {
 
 export interface HeaderConfig {
   key: string;
+  texture: string;
   preload: AssetItem;
   animations: AnimationItem[];
   arrow: { animation: string };
