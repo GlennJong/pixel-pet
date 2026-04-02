@@ -1,6 +1,6 @@
 {
   "watch": "level",
-  "key": "pet_room",
+  "key": "room",
   "animations": [
     {
       "prefix": "background",

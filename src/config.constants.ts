@@ -54,7 +54,7 @@ export const petSceneHideKey = [
   "animations",
   "animation",
   "has_direction",
-  "pet_room",
+  "room",
   "is_move",
 ];
 

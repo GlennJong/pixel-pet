@@ -1,6 +1,6 @@
 {
-  "key": "pet_header",
-  "texture": "pet_header_icons",
+  "key": "header",
+  "texture": "header_icons",
   "animations": [
     {
       "prefix": "arrow",

@@ -1,17 +1,17 @@
 {
-  "pet_room": {
+  "room": {
     "png": "assets/sprites/pet/room/spritesheet.png",
     "json": "assets/sprites/pet/room/spritesheet.json"
   },
-  "pet_header_icons": {
+  "header_icons": {
     "png": "assets/sprites/pet/header/icons/spritesheet.png",
     "json": "assets/sprites/pet/header/icons/spritesheet.json"
   },
-  "pet_header_frame": {
+  "header_frame": {
     "png": "assets/sprites/pet/header/frame/spritesheet.png",
     "json": "assets/sprites/pet/header/frame/spritesheet.json"
   },
-  "pet_character": {
+  "character": {
     "png": "assets/sprites/pet/afk/spritesheet.png",
     "json": "assets/sprites/pet/afk/spritesheet.json"
   }

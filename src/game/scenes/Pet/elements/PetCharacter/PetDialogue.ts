@@ -10,7 +10,7 @@ type TDialogItem = {
   priority: number;
 };
 
-const DEFAULT_CHARACTER_KEY = "pet_character";
+const DEFAULT_CHARACTER_KEY = "character";
 
 export class PetDialogue extends Phaser.GameObjects.Container {
   private dialogue: PrimaryDialogue;

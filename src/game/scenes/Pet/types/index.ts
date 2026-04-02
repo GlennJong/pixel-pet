@@ -15,8 +15,8 @@ export interface PetConfig {
     assets: {
       petRoom?: AssetItem;
       petHeader?: AssetItem;
-      pet_room?: AssetItem;
-      pet_header?: AssetItem;
+      room?: AssetItem;
+      header?: AssetItem;
       character: AssetItem;
     };
     stats: StatItem[];

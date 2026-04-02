@@ -15,6 +15,6 @@ export const PET_DEFAULT_POSITION = {
 export const PET_AUTO_ACTION_DURATION = 3000;
 export const PET_MOVE_DISTANCE = 24;
 export const PET_IDLE_PREFIX = "idle";
-export const PET_DEFAULT_CHARACTER_KEY = "pet_character";
+export const PET_DEFAULT_CHARACTER_KEY = "character";
 
 export const GLOBAL_DEFAULT_TRANSMIT = {};

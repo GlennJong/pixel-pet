@@ -17,7 +17,7 @@ const configsFiles = [
   { key: "config_pet_stats", filename: "configs/pet/stats.json" },
   { key: "config_pet_conditions", filename: "configs/pet/conditions.json" },
   { key: "config_pet_header", filename: "configs/pet/header.json" },
-  { key: "config_pet_mycharacter", filename: "configs/pet/character.json" },
+  { key: "config_pet_character", filename: "configs/pet/character.json" },
   { key: "config_pet_auto_actions", filename: "configs/pet/auto_actions.json" },
   { key: "config_pet_effects", filename: "configs/pet/effects.json" },
   { key: "config_pet_room", filename: "configs/pet/room.json" },
