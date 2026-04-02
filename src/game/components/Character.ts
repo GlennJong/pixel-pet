@@ -16,25 +16,25 @@ export class Character extends Phaser.GameObjects.Container {
   public character: Phaser.GameObjects.Sprite;
 
   private followShadow?: Phaser.GameObjects.Arc;
-  private characterKey: string;
+  private atlasId: string;
 
-  constructor(scene: Phaser.Scene, key: string, props: CharacterProps) {
+  constructor(scene: Phaser.Scene, atlasId: string, props: CharacterProps) {
     super(scene);
 
     const { x, y, animations, texture } = props;
 
     // load animation by key
-    this.characterKey = key;
+    this.atlasId = atlasId;
 
     if (animations) {
-      createAnimationsFromConfig(scene, key, animations, texture);
+      createAnimationsFromConfig(scene, atlasId, animations, texture);
     }
 
     // create character
     const posX = x || 0;
     const posY = y || 0;
     const character = scene.add
-      .sprite(posX, posY, texture || key)
+      .sprite(posX, posY, texture || atlasId)
       .setScale(1)
       .setOrigin(0);
 
@@ -43,7 +43,7 @@ export class Character extends Phaser.GameObjects.Container {
   }
 
   public playStatic(frame: string) {
-    this.character.setTexture(this.characterKey, frame);
+    this.character.setTexture(this.atlasId, frame);
   }
 
   public setFollowShadow(shadow: Phaser.GameObjects.Arc) {
@@ -52,9 +52,9 @@ export class Character extends Phaser.GameObjects.Container {
 
   private pendingResolves: Array<() => void> = [];
 
-  public async playAnimation(key: string, time?: number): Promise<void> {
+  public async playAnimation(prefix: string, time?: number): Promise<void> {
     return new Promise((resolve) => {
-      const animationName = `${this.characterKey}_${key}`;
+      const animationName = `${this.atlasId}_${prefix}`;
       const scene = this.scene as Phaser.Scene;
       if (!scene.anims.exists(animationName)) {
         console.warn(`Animation ${animationName} not found`);
@@ -77,11 +77,15 @@ export class Character extends Phaser.GameObjects.Container {
         if (anim.key === animationName) {
           if (typeof time !== "undefined") {
             setTimeout(() => {
-              this.pendingResolves = this.pendingResolves.filter((r) => r !== resolve);
+              this.pendingResolves = this.pendingResolves.filter(
+                (r) => r !== resolve,
+              );
               resolve();
             }, time);
           } else {
-            this.pendingResolves = this.pendingResolves.filter((r) => r !== resolve);
+            this.pendingResolves = this.pendingResolves.filter(
+              (r) => r !== resolve,
+            );
             resolve();
           }
           this.character.off("animationcomplete", onComplete);
@@ -135,7 +139,7 @@ export class Character extends Phaser.GameObjects.Container {
     // Resolve all pending animations so they don't block async flows
     this.pendingResolves.forEach((resolve) => resolve());
     this.pendingResolves = [];
-    
+
     if (this.currentMoveTween?.isPlaying()) {
       this.currentMoveTween.stop();
       this.currentMoveTween = undefined;

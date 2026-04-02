@@ -14,7 +14,6 @@ export function getValueFromColonRuntimeData(
   if (data.default === undefined) return ErrorEvent;
 
   let result = data.default;
-  
 
   for (const [key, value] of Object.entries(data)) {
     if (key !== "default") {

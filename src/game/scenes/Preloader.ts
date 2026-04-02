@@ -3,7 +3,7 @@ import { setStaticData } from "../staticData";
 import { StaticDataSchema } from "../staticData/types";
 
 interface UIConfig {
-  assets?: Array<{ id: string; png: string; json: string }>;
+  assets?: Array<{ atlasId: string; png: string; json: string }>;
 }
 
 interface PreloadConfig extends Partial<StaticDataSchema> {
@@ -18,7 +18,7 @@ export class Preloader extends Scene {
   private getConfigsFiles() {
     return [
       { key: "config_ui_assets", filename: "configs/ui/assets.json" },
-      { key: 'commands', filename: "configs/global/commands.json" },
+      { key: "commands", filename: "configs/global/commands.json" },
       { key: `config_pet_assets`, filename: `configs/pet/assets.json` },
       {
         key: `config_pet_stats`,
@@ -108,7 +108,11 @@ export class Preloader extends Scene {
       }
     }
 
-    this.load.font("BoutiqueBitmap", "assets/fonts/BoutiqueBitmap9x9.ttf", "truetype");
+    this.load.font(
+      "BoutiqueBitmap",
+      "assets/fonts/BoutiqueBitmap9x9.ttf",
+      "truetype",
+    );
     this.load.font("Tiny5", "assets/fonts/Tiny5-Regular.ttf", "truetype");
   }
 
@@ -117,11 +121,15 @@ export class Preloader extends Scene {
 
     const allAssets = [
       ...(ui?.assets || []),
-      ...(pet?.assets as Array<{ id: string; png: string; json: string }> || []),
+      ...((pet?.assets as Array<{
+        atlasId: string;
+        png: string;
+        json: string;
+      }>) || []),
     ];
 
-    for (const { id, png, json } of allAssets) {
-      this.load.atlas(id, png, json);
+    for (const { atlasId, png, json } of allAssets) {
+      this.load.atlas(atlasId, png, json);
     }
   }
 

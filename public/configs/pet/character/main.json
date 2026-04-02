@@ -1,5 +1,6 @@
 {
-  "key": "character",
+  "id": "character",
+  "atlasId": "character",
   "watch": "level",
   "stages": [
     {
@@ -119,90 +120,50 @@
       "idleActions": {
         "idle-left": {
           "animationSet": {
-            "default": [
-              "idle-left"
-            ],
-            "condition:normal": [
-              "idle-left"
-            ],
-            "condition:sleep": [
-              "sleep"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["idle-left"],
+            "condition:normal": ["idle-left"],
+            "condition:sleep": ["sleep"],
+            "condition:death": ["egg"]
           },
           "priority": 5,
           "direction": "left"
         },
         "idle-right": {
           "animationSet": {
-            "default": [
-              "idle-right"
-            ],
-            "condition:normal": [
-              "idle-right"
-            ],
-            "condition:sleep": [
-              "sleep"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["idle-right"],
+            "condition:normal": ["idle-right"],
+            "condition:sleep": ["sleep"],
+            "condition:death": ["egg"]
           },
           "priority": 5,
           "direction": "right"
         },
         "stare-left": {
           "animationSet": {
-            "default": [
-              "stare-left"
-            ],
-            "condition:normal": [
-              "stare-left"
-            ],
-            "condition:sleep": [
-              "sleep"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["stare-left"],
+            "condition:normal": ["stare-left"],
+            "condition:sleep": ["sleep"],
+            "condition:death": ["egg"]
           },
           "priority": 2,
           "direction": "left"
         },
         "stare-right": {
           "animationSet": {
-            "default": [
-              "stare-right"
-            ],
-            "condition:normal": [
-              "stare-right"
-            ],
-            "condition:sleep": [
-              "sleep"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["stare-right"],
+            "condition:normal": ["stare-right"],
+            "condition:sleep": ["sleep"],
+            "condition:death": ["egg"]
           },
           "priority": 2,
           "direction": "left"
         },
         "walk-left": {
           "animationSet": {
-            "default": [
-              "walk-left"
-            ],
-            "condition:normal": [
-              "walk-left"
-            ],
-            "condition:sleep": [
-              "sleep"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["walk-left"],
+            "condition:normal": ["walk-left"],
+            "condition:sleep": ["sleep"],
+            "condition:death": ["egg"]
           },
           "priority": 5,
           "isMoving": {
@@ -215,18 +176,10 @@
         },
         "walk-right": {
           "animationSet": {
-            "default": [
-              "walk-right"
-            ],
-            "condition:normal": [
-              "walk-right"
-            ],
-            "condition:sleep": [
-              "sleep"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["walk-right"],
+            "condition:normal": ["walk-right"],
+            "condition:sleep": ["sleep"],
+            "condition:death": ["egg"]
           },
           "priority": 5,
           "isMoving": {
@@ -239,36 +192,20 @@
         },
         "wink-left": {
           "animationSet": {
-            "default": [
-              "wink-left"
-            ],
-            "condition:normal": [
-              "wink-left"
-            ],
-            "condition:sleep": [
-              "sleep"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["wink-left"],
+            "condition:normal": ["wink-left"],
+            "condition:sleep": ["sleep"],
+            "condition:death": ["egg"]
           },
           "priority": 4,
           "direction": "left"
         },
         "wink-right": {
           "animationSet": {
-            "default": [
-              "wink-right"
-            ],
-            "condition:normal": [
-              "wink-right"
-            ],
-            "condition:sleep": [
-              "sleep"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["wink-right"],
+            "condition:normal": ["wink-right"],
+            "condition:sleep": ["sleep"],
+            "condition:death": ["egg"]
           },
           "priority": 4,
           "direction": "right"
@@ -277,20 +214,10 @@
       "actions": {
         "drink": {
           "animationSet": {
-            "default": [
-              "drink"
-            ],
-            "condition:normal": [
-              "drink"
-            ],
-            "condition:sleep": [
-              "wake-up",
-              "drink",
-              "lay-down"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["drink"],
+            "condition:normal": ["drink"],
+            "condition:sleep": ["wake-up", "drink", "lay-down"],
+            "condition:death": ["egg"]
           },
           "user": "system",
           "dialogues": [
@@ -307,14 +234,8 @@
         },
         "write": {
           "animationSet": {
-            "default": [
-              "write"
-            ],
-            "condition:sleep": [
-              "wake-up",
-              "write",
-              "lay-down"
-            ]
+            "default": ["write"],
+            "condition:sleep": ["wake-up", "write", "lay-down"]
           },
           "user": "system",
           "dialogues": [
@@ -331,18 +252,10 @@
         },
         "sleep": {
           "animationSet": {
-            "default": [
-              "lay-down"
-            ],
-            "condition:normal": [
-              "lay-down"
-            ],
-            "condition:sleep": [
-              "wake-up"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["lay-down"],
+            "condition:normal": ["lay-down"],
+            "condition:sleep": ["wake-up"],
+            "condition:death": ["egg"]
           },
           "user": "system",
           "dialogues": [
@@ -359,18 +272,10 @@
         },
         "awake": {
           "animationSet": {
-            "default": [
-              "wake-up"
-            ],
-            "condition:normal": [
-              "wake-up"
-            ],
-            "condition:sleep": [
-              "wake-up"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["wake-up"],
+            "condition:normal": ["wake-up"],
+            "condition:sleep": ["wake-up"],
+            "condition:death": ["egg"]
           },
           "user": "system",
           "dialogues": [
@@ -388,10 +293,7 @@
         "reward": {
           "user": "system",
           "animationSet": {
-            "default": [
-              "idle-left",
-              "idle-right"
-            ]
+            "default": ["idle-left", "idle-right"]
           },
           "dialogues": [
             {
@@ -407,10 +309,7 @@
         },
         "lose": {
           "animationSet": {
-            "default": [
-              "idle-left",
-              "idle-right"
-            ]
+            "default": ["idle-left", "idle-right"]
           },
           "dialogues": [
             {
@@ -426,9 +325,7 @@
         },
         "die": {
           "animationSet": {
-            "default": [
-              "lay-down"
-            ]
+            "default": ["lay-down"]
           },
           "dialogues": [
             {
@@ -444,9 +341,7 @@
         },
         "revive": {
           "animationSet": {
-            "default": [
-              "revive"
-            ]
+            "default": ["revive"]
           },
           "dialogues": [
             {
@@ -462,9 +357,7 @@
         },
         "lock": {
           "animationSet": {
-            "default": [
-              "egg"
-            ]
+            "default": ["egg"]
           },
           "dialogues": [
             {
@@ -480,10 +373,7 @@
         },
         "buyLv1": {
           "animationSet": {
-            "default": [
-              "idle-left",
-              "idle-right"
-            ]
+            "default": ["idle-left", "idle-right"]
           },
           "dialogues": [
             {
@@ -499,10 +389,7 @@
         },
         "buyLv2": {
           "animationSet": {
-            "default": [
-              "idle-left",
-              "idle-right"
-            ]
+            "default": ["idle-left", "idle-right"]
           },
           "dialogues": [
             {
@@ -518,10 +405,7 @@
         },
         "buyLv3": {
           "animationSet": {
-            "default": [
-              "idle-left",
-              "idle-right"
-            ]
+            "default": ["idle-left", "idle-right"]
           },
           "dialogues": [
             {
@@ -537,10 +421,7 @@
         },
         "buyLv4": {
           "animationSet": {
-            "default": [
-              "idle-left",
-              "idle-right"
-            ]
+            "default": ["idle-left", "idle-right"]
           },
           "dialogues": [
             {
@@ -556,10 +437,7 @@
         },
         "buyLv5": {
           "animationSet": {
-            "default": [
-              "idle-left",
-              "idle-right"
-            ]
+            "default": ["idle-left", "idle-right"]
           },
           "dialogues": [
             {
@@ -692,90 +570,50 @@
       "idleActions": {
         "idle-left": {
           "animationSet": {
-            "default": [
-              "idle-left"
-            ],
-            "condition:normal": [
-              "idle-left"
-            ],
-            "condition:sleep": [
-              "sleep"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["idle-left"],
+            "condition:normal": ["idle-left"],
+            "condition:sleep": ["sleep"],
+            "condition:death": ["egg"]
           },
           "priority": 5,
           "direction": "left"
         },
         "idle-right": {
           "animationSet": {
-            "default": [
-              "idle-right"
-            ],
-            "condition:normal": [
-              "idle-right"
-            ],
-            "condition:sleep": [
-              "sleep"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["idle-right"],
+            "condition:normal": ["idle-right"],
+            "condition:sleep": ["sleep"],
+            "condition:death": ["egg"]
           },
           "priority": 5,
           "direction": "right"
         },
         "stare-left": {
           "animationSet": {
-            "default": [
-              "stare-left"
-            ],
-            "condition:normal": [
-              "stare-left"
-            ],
-            "condition:sleep": [
-              "sleep"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["stare-left"],
+            "condition:normal": ["stare-left"],
+            "condition:sleep": ["sleep"],
+            "condition:death": ["egg"]
           },
           "priority": 2,
           "direction": "left"
         },
         "stare-right": {
           "animationSet": {
-            "default": [
-              "stare-right"
-            ],
-            "condition:normal": [
-              "stare-right"
-            ],
-            "condition:sleep": [
-              "sleep"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["stare-right"],
+            "condition:normal": ["stare-right"],
+            "condition:sleep": ["sleep"],
+            "condition:death": ["egg"]
           },
           "priority": 2,
           "direction": "left"
         },
         "walk-left": {
           "animationSet": {
-            "default": [
-              "walk-left"
-            ],
-            "condition:normal": [
-              "walk-left"
-            ],
-            "condition:sleep": [
-              "sleep"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["walk-left"],
+            "condition:normal": ["walk-left"],
+            "condition:sleep": ["sleep"],
+            "condition:death": ["egg"]
           },
           "priority": 5,
           "isMoving": {
@@ -788,18 +626,10 @@
         },
         "walk-right": {
           "animationSet": {
-            "default": [
-              "walk-right"
-            ],
-            "condition:normal": [
-              "walk-right"
-            ],
-            "condition:sleep": [
-              "sleep"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["walk-right"],
+            "condition:normal": ["walk-right"],
+            "condition:sleep": ["sleep"],
+            "condition:death": ["egg"]
           },
           "priority": 5,
           "isMoving": {
@@ -812,36 +642,20 @@
         },
         "wink-left": {
           "animationSet": {
-            "default": [
-              "wink-left"
-            ],
-            "condition:normal": [
-              "wink-left"
-            ],
-            "condition:sleep": [
-              "sleep"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["wink-left"],
+            "condition:normal": ["wink-left"],
+            "condition:sleep": ["sleep"],
+            "condition:death": ["egg"]
           },
           "priority": 4,
           "direction": "left"
         },
         "wink-right": {
           "animationSet": {
-            "default": [
-              "wink-right"
-            ],
-            "condition:normal": [
-              "wink-right"
-            ],
-            "condition:sleep": [
-              "sleep"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["wink-right"],
+            "condition:normal": ["wink-right"],
+            "condition:sleep": ["sleep"],
+            "condition:death": ["egg"]
           },
           "priority": 4,
           "direction": "right"
@@ -850,20 +664,10 @@
       "actions": {
         "drink": {
           "animationSet": {
-            "default": [
-              "drink"
-            ],
-            "condition:normal": [
-              "drink"
-            ],
-            "condition:sleep": [
-              "wake-up",
-              "drink",
-              "lay-down"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["drink"],
+            "condition:normal": ["drink"],
+            "condition:sleep": ["wake-up", "drink", "lay-down"],
+            "condition:death": ["egg"]
           },
           "user": "system",
           "dialogues": [
@@ -880,14 +684,8 @@
         },
         "write": {
           "animationSet": {
-            "default": [
-              "write"
-            ],
-            "condition:sleep": [
-              "wake-up",
-              "write",
-              "lay-down"
-            ]
+            "default": ["write"],
+            "condition:sleep": ["wake-up", "write", "lay-down"]
           },
           "user": "system",
           "dialogues": [
@@ -904,18 +702,10 @@
         },
         "sleep": {
           "animationSet": {
-            "default": [
-              "lay-down"
-            ],
-            "condition:normal": [
-              "lay-down"
-            ],
-            "condition:sleep": [
-              "wake-up"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["lay-down"],
+            "condition:normal": ["lay-down"],
+            "condition:sleep": ["wake-up"],
+            "condition:death": ["egg"]
           },
           "user": "system",
           "dialogues": [
@@ -932,18 +722,10 @@
         },
         "awake": {
           "animationSet": {
-            "default": [
-              "wake-up"
-            ],
-            "condition:normal": [
-              "wake-up"
-            ],
-            "condition:sleep": [
-              "wake-up"
-            ],
-            "condition:death": [
-              "egg"
-            ]
+            "default": ["wake-up"],
+            "condition:normal": ["wake-up"],
+            "condition:sleep": ["wake-up"],
+            "condition:death": ["egg"]
           },
           "user": "system",
           "dialogues": [
@@ -961,10 +743,7 @@
         "reward": {
           "user": "system",
           "animationSet": {
-            "default": [
-              "idle-left",
-              "idle-right"
-            ]
+            "default": ["idle-left", "idle-right"]
           },
           "dialogues": [
             {
@@ -980,10 +759,7 @@
         },
         "lose": {
           "animationSet": {
-            "default": [
-              "idle-left",
-              "idle-right"
-            ]
+            "default": ["idle-left", "idle-right"]
           },
           "dialogues": [
             {
@@ -999,9 +775,7 @@
         },
         "die": {
           "animationSet": {
-            "default": [
-              "lay-down"
-            ]
+            "default": ["lay-down"]
           },
           "dialogues": [
             {
@@ -1017,9 +791,7 @@
         },
         "revive": {
           "animationSet": {
-            "default": [
-              "revive"
-            ]
+            "default": ["revive"]
           },
           "dialogues": [
             {
@@ -1035,9 +807,7 @@
         },
         "lock": {
           "animationSet": {
-            "default": [
-              "egg"
-            ]
+            "default": ["egg"]
           },
           "dialogues": [
             {
@@ -1053,10 +823,7 @@
         },
         "buyLv1": {
           "animationSet": {
-            "default": [
-              "idle-left",
-              "idle-right"
-            ]
+            "default": ["idle-left", "idle-right"]
           },
           "dialogues": [
             {
@@ -1072,10 +839,7 @@
         },
         "buyLv2": {
           "animationSet": {
-            "default": [
-              "idle-left",
-              "idle-right"
-            ]
+            "default": ["idle-left", "idle-right"]
           },
           "dialogues": [
             {
@@ -1091,10 +855,7 @@
         },
         "buyLv3": {
           "animationSet": {
-            "default": [
-              "idle-left",
-              "idle-right"
-            ]
+            "default": ["idle-left", "idle-right"]
           },
           "dialogues": [
             {
@@ -1110,10 +871,7 @@
         },
         "buyLv4": {
           "animationSet": {
-            "default": [
-              "idle-left",
-              "idle-right"
-            ]
+            "default": ["idle-left", "idle-right"]
           },
           "dialogues": [
             {
@@ -1129,10 +887,7 @@
         },
         "buyLv5": {
           "animationSet": {
-            "default": [
-              "idle-left",
-              "idle-right"
-            ]
+            "default": ["idle-left", "idle-right"]
           },
           "dialogues": [
             {

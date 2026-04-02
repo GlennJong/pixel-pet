@@ -1,7 +1,15 @@
 import { getStaticData } from "@/game/staticData";
-import { runtimeData, getRuntimeDataGroup, ObservableValue } from "@/game/runtimeData";
+import {
+  runtimeData,
+  getRuntimeDataGroup,
+  ObservableValue,
+} from "@/game/runtimeData";
 import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
-import { getPetRuntimeDataKey, getPetStaticDataKey, PET_STATIC_KEYS } from "../constants";
+import {
+  getPetRuntimeDataKey,
+  getPetStaticDataKey,
+  PET_STATIC_KEYS,
+} from "../constants";
 import { ActionDef, ActionConditionRule, CharacterStageItem } from "../types";
 
 interface AutoActionRule {
@@ -10,7 +18,10 @@ interface AutoActionRule {
 }
 
 export class AutoActionHandler {
-  private autoWatchers: { key: KnownRuntimeDataKey; handler: (v: unknown) => void }[] = [];
+  private autoWatchers: {
+    key: KnownRuntimeDataKey;
+    handler: (v: unknown) => void;
+  }[] = [];
   private cache: Partial<Record<KnownRuntimeDataKey, unknown>> = {};
   private autoActions: AutoActionRule[] = [];
   private rawActions: Record<string, ActionDef> = {};
@@ -36,14 +47,16 @@ export class AutoActionHandler {
     // 1. Fetch character config for raw actions
     const config = getStaticData(PET_STATIC_KEYS.CHARACTER);
     if (config.watch && config.stages) {
-       const watchKey = getPetRuntimeDataKey(config.watch);
-       const level = getRuntimeDataGroup(watchKey) || 0;
-       const current = config.stages.find((l: CharacterStageItem) => l.value === level) || config.stages[0];
-       this.rawActions = current.actions || {};
+      const watchKey = getPetRuntimeDataKey(config.watch);
+      const level = getRuntimeDataGroup(watchKey) || 0;
+      const current =
+        config.stages.find((l: CharacterStageItem) => l.value === level) ||
+        config.stages[0];
+      this.rawActions = current.actions || {};
     } else {
-       this.rawActions = config.actions || {};
+      this.rawActions = config.actions || {};
     }
-    
+
     // 2. Fetch auto_actions
     const autoActionsKey = getPetStaticDataKey("auto_actions");
     this.autoActions = getStaticData(autoActionsKey) || [];
@@ -54,7 +67,11 @@ export class AutoActionHandler {
     this.init({ onTrigger: this.onTrigger });
   }
 
-  public init({ onTrigger }: { onTrigger?: (action: ActionDef & { action: string }) => void }) {
+  public init({
+    onTrigger,
+  }: {
+    onTrigger?: (action: ActionDef & { action: string }) => void;
+  }) {
     if (onTrigger) {
       this.onTrigger = onTrigger;
     }
@@ -65,7 +82,9 @@ export class AutoActionHandler {
     const watchedKeys = new Set<KnownRuntimeDataKey>();
     this.autoActions.forEach((a) => {
       if (a.when) {
-        Object.keys(a.when).forEach((k) => watchedKeys.add(k as KnownRuntimeDataKey));
+        Object.keys(a.when).forEach((k) =>
+          watchedKeys.add(k as KnownRuntimeDataKey),
+        );
       }
     });
 
@@ -89,7 +108,10 @@ export class AutoActionHandler {
     const matchRule = this.autoActions.find((a) => {
       if (!a.when) return false;
       return Object.entries(a.when).every(([k, cond]) => {
-        const val = this.cache[k as KnownRuntimeDataKey] as number | string | undefined;
+        const val = this.cache[k as KnownRuntimeDataKey] as
+          | number
+          | string
+          | undefined;
 
         if (Array.isArray(cond)) {
           return cond.includes(val);
@@ -127,7 +149,7 @@ export class AutoActionHandler {
       if (this.lastTriggeredAction !== matchRule.action) {
         const fullAction = this.rawActions[matchRule.action];
         if (fullAction) {
-            this.onTrigger?.({ ...fullAction, action: matchRule.action });
+          this.onTrigger?.({ ...fullAction, action: matchRule.action });
         }
         this.lastTriggeredAction = matchRule.action;
       }

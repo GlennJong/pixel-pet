@@ -78,6 +78,6 @@ export class HeaderStatIcon extends Phaser.GameObjects.Container {
   public destroy() {
     this.statState?.unwatch(this.handleSetValue);
     this.text.destroy();
-    super.destroy(); 
+    super.destroy();
   }
 }

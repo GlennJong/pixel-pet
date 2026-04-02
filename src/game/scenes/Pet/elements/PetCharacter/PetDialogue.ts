@@ -10,14 +10,13 @@ type TDialogItem = {
   priority: number;
 };
 
-const DEFAULT_CHARACTER_KEY = "character";
+const DEFAULT_CHARACTER_ID = "character";
 
 export class PetDialogue extends Phaser.GameObjects.Container {
   private dialogue: PrimaryDialogue;
 
   constructor(scene: Phaser.Scene) {
     super(scene);
-
 
     // Window
     this.dialogue = new PrimaryDialogue(scene);
@@ -34,7 +33,7 @@ export class PetDialogue extends Phaser.GameObjects.Container {
     if (dialogues && replacement) {
       const selectedDialog = selectFromPriority<TDialogItem>(dialogues);
       const selectedSentences = selectedDialog.sentences.map((_sentence) => {
-        let portrait = `${DEFAULT_CHARACTER_KEY}_${_sentence.portrait}`;
+        let portrait = `${DEFAULT_CHARACTER_ID}_${_sentence.portrait}`;
         let text = _sentence.text;
         if (replacement) {
           Object.entries(replacement).forEach(([key, value]) => {

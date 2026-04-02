@@ -7,5 +7,7 @@ export function setStaticData(data: StaticDataSchema) {
 }
 
 export function getStaticData<T = any>(path: string): T {
-  return path.split(".").reduce((obj: any, key) => obj?.[key], globalStaticData) as T;
+  return path
+    .split(".")
+    .reduce((obj: any, key) => obj?.[key], globalStaticData) as T;
 }

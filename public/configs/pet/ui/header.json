@@ -1,5 +1,6 @@
 {
-  "key": "header",
+  "id": "header",
+  "atlasId": "header",
   "animations": [
     {
       "prefix": "arrow",

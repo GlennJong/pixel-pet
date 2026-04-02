@@ -95,7 +95,6 @@ function App() {
             />
           </div>
         )} */}
-        
 
         {/* Main Game Area */}
         <div className="game-container">
@@ -123,12 +122,11 @@ function App() {
         </div>
       </div>
 
-
       {/* Bottom Tools */}
       <div className="bottom-tools">
         <div className="tools-content">
           <AutoSaveTrigger />
-          { isCmdOpen && <CommandBoard /> }
+          {isCmdOpen && <CommandBoard />}
         </div>
 
         {isLogOpen && (

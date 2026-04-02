@@ -15,11 +15,10 @@ export class Room {
   private front?: Phaser.GameObjects.Sprite;
   private extras: Phaser.GameObjects.Sprite[] = [];
   private watchState?: ObservableValue<number>;
-  
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    
+
     // this.watchState = runtimeData(`pet.condition`);
     this.config = getStaticData(PET_STATIC_KEYS.ROOM);
   }
@@ -44,9 +43,9 @@ export class Room {
   }
 
   private initAnimations = () => {
-    const { key, texture, animations } = this.config || {};
+    const { atlasId, texture, animations } = this.config || {};
     if (animations) {
-      createAnimationsFromConfig(this.scene, key, animations, texture);
+      createAnimationsFromConfig(this.scene, atlasId, animations, texture);
     }
   };
 
@@ -72,9 +71,9 @@ export class Room {
     if (!current) return;
 
     const { background, back, front, extras } = current;
-    this.back?.play(`${this.config.key}_${back}`);
-    this.front?.play(`${this.config.key}_${front}`);
-    this.background?.play(`${this.config.key}_${background}`);
+    this.back?.play(`${this.config.atlasId}_${back}`);
+    this.front?.play(`${this.config.atlasId}_${front}`);
+    this.background?.play(`${this.config.atlasId}_${background}`);
 
     this.handleRenderExtras(extras);
   };
@@ -95,7 +94,7 @@ export class Room {
         .setOrigin(0)
         .setPosition(x, y)
         .setDepth(depth)
-        .play(`${this.config.key}_${animation}`);
+        .play(`${this.config.atlasId}_${animation}`);
 
       this.extras.push(current);
     });

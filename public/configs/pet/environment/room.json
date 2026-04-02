@@ -1,6 +1,7 @@
 {
   "watch": "level",
-  "key": "room",
+  "id": "room",
+  "atlasId": "room",
   "animations": [
     {
       "prefix": "background",

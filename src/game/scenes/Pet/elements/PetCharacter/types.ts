@@ -37,7 +37,9 @@ export interface ActionDef {
   dialogues?: DialogItem[];
   move?: string;
   auto?: boolean;
-  condition?: Partial<Record<string, ActionConditionRule | number | string | any[]>>;
+  condition?: Partial<
+    Record<string, ActionConditionRule | number | string | any[]>
+  >;
 }
 
 export type IdleActionMap = Record<string, IdleActionDef>;
@@ -51,7 +53,8 @@ export interface CharacterStageItem {
 }
 
 export interface CharacterConfig {
-  key?: string;
+  id?: string;
+  atlasId?: string;
   texture?: string;
   watch?: string;
   stages?: CharacterStageItem[];
@@ -62,7 +65,13 @@ export interface CharacterConfig {
 
 import { CharacterDirection } from "@/game/components/Character";
 
-export type PetCharacterDirection = "none" | "left" | "right" | "top" | "down" | CharacterDirection;
+export type PetCharacterDirection =
+  | "none"
+  | "left"
+  | "right"
+  | "top"
+  | "down"
+  | CharacterDirection;
 
 export enum PetState {
   IDLE = "IDLE",

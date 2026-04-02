@@ -3,16 +3,16 @@ import { AnimationItem } from "@/game/scenes/Pet/types/common";
 
 export function createAnimationsFromConfig(
   scene: Phaser.Scene,
-  configKey: string,
+  atlasId: string,
   animations: AnimationItem[],
-  texture: string = configKey
+  texture: string = atlasId,
 ) {
   if (!animations || animations.length === 0) return;
 
   animations.forEach((_ani: AnimationItem) => {
     if (!_ani) return;
 
-    const animationName = `${configKey}_${_ani.prefix}`;
+    const animationName = `${atlasId}_${_ani.prefix}`;
     if (scene.anims.exists(animationName)) return;
 
     const data: Phaser.Types.Animations.Animation = {
@@ -27,7 +27,7 @@ export function createAnimationsFromConfig(
 
     if (typeof _ani.freq !== "undefined") data.frameRate = _ani.freq;
     if (typeof _ani.duration !== "undefined") data.duration = _ani.duration;
-    
+
     const repeatDelay = _ani.repeatDelay ?? _ani.repeat_delay;
     if (typeof repeatDelay !== "undefined") data.repeatDelay = repeatDelay;
 

@@ -7,9 +7,8 @@ import {
 } from "./game/runtimeData";
 
 function AutoSaveTrigger() {
-  const [isAutoSaved, setLocalIsAutoSaved] = useState<boolean>(
-    getIsAutoSaveEnabled,
-  );
+  const [isAutoSaved, setLocalIsAutoSaved] =
+    useState<boolean>(getIsAutoSaveEnabled);
   const [saveExists, setSaveExists] = useState<boolean>(hasSaveData);
 
   const handleAutoSaveChange = () => {
@@ -33,7 +32,7 @@ function AutoSaveTrigger() {
         />
         <span>Auto Save</span>
       </label>
-      {(!isAutoSaved && saveExists) && (
+      {!isAutoSaved && saveExists && (
         <button onClick={handleClickClearLocalStorage}>Clear Save</button>
       )}
     </div>

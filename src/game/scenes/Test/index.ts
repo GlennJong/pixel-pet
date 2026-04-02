@@ -17,7 +17,6 @@ export default class TestScene extends Scene {
 
     this.dialogue = new PrimaryDialogue(this);
     this.dialogue.initDialogue();
-
   }
 
   update() {}

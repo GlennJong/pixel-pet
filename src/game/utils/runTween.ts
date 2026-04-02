@@ -38,7 +38,7 @@ export function runTween<T>(
         return;
       }
       tween.once("complete", completeInfo);
-      
+
       // Failsafe if tween never resolves due to pausing or destruction
       setTimeout(completeInfo, duration + 100);
     });

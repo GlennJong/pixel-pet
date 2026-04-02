@@ -10,7 +10,13 @@ import { selectFromPriority } from "@/game/utils/selectFromPriority";
 import { getStaticData } from "@/game/staticData";
 import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
 import { runtimeData, ObservableValue } from "@/game/runtimeData";
-import { PET_DEFAULT_POSITION, PET_AUTO_ACTION_DURATION, PET_MOVE_DISTANCE, PET_IDLE_PREFIX, PET_DEFAULT_CHARACTER_KEY } from "@/game/constants";
+import {
+  PET_DEFAULT_POSITION,
+  PET_AUTO_ACTION_DURATION,
+  PET_MOVE_DISTANCE,
+  PET_IDLE_PREFIX,
+  PET_DEFAULT_CHARACTER_ID,
+} from "@/game/constants";
 import { getPetRuntimeDataKey, PET_STATIC_KEYS } from "../../constants";
 import {
   ActionDef,
@@ -18,7 +24,8 @@ import {
   PetState,
   PetCharacterDirection,
   CharacterConfig,
-  CharacterStageItem } from "./types";
+  CharacterStageItem,
+} from "./types";
 import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
 
 export class PetCharacter extends Character {
@@ -34,23 +41,23 @@ export class PetCharacter extends Character {
   public activities: Record<string, ActionDef>;
 
   constructor(scene: Phaser.Scene) {
-    
-    const config = getStaticData<CharacterConfig>(
-      PET_STATIC_KEYS.CHARACTER,
-    );
+    const config = getStaticData<CharacterConfig>(PET_STATIC_KEYS.CHARACTER);
 
     let initialAnimations = config.animations || [];
     if (config.watch && config.stages && config.stages.length > 0) {
       const watchKey = getPetRuntimeDataKey(config.watch);
       const level = runtimeData(watchKey as KnownRuntimeDataKey)?.get() || 0;
-      const initialConfig = config.stages.find((l) => l.value === level) || config.stages[0];
-      if (initialConfig.animations) initialAnimations = initialConfig.animations;
+      const initialConfig =
+        config.stages.find((l) => l.value === level) || config.stages[0];
+      if (initialConfig.animations)
+        initialAnimations = initialConfig.animations;
     }
 
-    super(scene, config.key || PET_DEFAULT_CHARACTER_KEY, {
+    super(scene, config.atlasId || PET_DEFAULT_CHARACTER_ID, {
       ...PET_DEFAULT_POSITION,
       texture: config.texture,
-      animations: initialAnimations as AnimationItem[] });
+      animations: initialAnimations as AnimationItem[],
+    });
 
     this.character.setDepth(2);
 
@@ -78,14 +85,17 @@ export class PetCharacter extends Character {
   private handleCharacterUpgrade(value: number, list: CharacterStageItem[]) {
     const current = list.find((item) => item.value === value) || list[0];
     if (!current) return;
-    
+
     // Register new animations if provided
     if (current.animations) {
-      const config = getStaticData<CharacterConfig>(
-        PET_STATIC_KEYS.CHARACTER,
+      const config = getStaticData<CharacterConfig>(PET_STATIC_KEYS.CHARACTER);
+      const atlasId = config.atlasId || PET_DEFAULT_CHARACTER_ID;
+      createAnimationsFromConfig(
+        this.scene,
+        atlasId,
+        current.animations,
+        config.texture,
       );
-      const key = config.key || PET_DEFAULT_CHARACTER_KEY;
-      createAnimationsFromConfig(this.scene, key, current.animations, config.texture);
     }
 
     this.idleActions = current.idleActions || {};
@@ -118,8 +128,7 @@ export class PetCharacter extends Character {
     if (this._state !== PetState.IDLE) return;
 
     // Idle
-    const currentAction =
-      selectFromPriority<IdleActionDef>(this.idleActions);
+    const currentAction = selectFromPriority<IdleActionDef>(this.idleActions);
     const currentAnimation = getValueFromColonRuntimeData(
       currentAction.animationSet,
     );
@@ -161,15 +170,11 @@ export class PetCharacter extends Character {
     } else {
       this._state = PetState.MOVING;
       // Note: Character.ts defines TDirection locally, which is compatible with our TDirection
-      this.moveDirection(
-        this.direction,
-        PET_MOVE_DISTANCE,
-        () => {
-          if (this.isInterrupted) return;
-          this._state = PetState.IDLE;
-          this.handleDefaultIdleAction();
-        },
-      );
+      this.moveDirection(this.direction, PET_MOVE_DISTANCE, () => {
+        if (this.isInterrupted) return;
+        this._state = PetState.IDLE;
+        this.handleDefaultIdleAction();
+      });
     }
   }
 
@@ -181,7 +186,8 @@ export class PetCharacter extends Character {
       this.autoActionTimer = this.scene.time.addEvent({
         delay: PET_AUTO_ACTION_DURATION,
         loop: true,
-        callback: () => this.handleAutomaticAction() });
+        callback: () => this.handleAutomaticAction(),
+      });
     }
   }
   public stopPet() {
@@ -210,10 +216,7 @@ export class PetCharacter extends Character {
     this.handleDefaultIdleAction();
   }
 
-  private async playAnimationSet(
-    animationSet: string | string[],
-
-  ) {
+  private async playAnimationSet(animationSet: string | string[]) {
     this.isInterrupted = false;
     const animations = Array.isArray(animationSet)
       ? animationSet
@@ -235,7 +238,8 @@ export class PetCharacter extends Character {
             timer.remove();
             resolve();
           }
-        } });
+        },
+      });
     });
     this.runFunctionalAction(action);
   }
@@ -244,14 +248,15 @@ export class PetCharacter extends Character {
     this.isInterrupted = true;
     this._state = PetState.IDLE;
     this.stopAllActions();
-    
+
     // Reset auto action timer so it doesn't sneak in before emergent tasks start
     if (this.autoActionTimer && this.isStarted) {
       this.autoActionTimer.remove();
       this.autoActionTimer = this.scene.time.addEvent({
         delay: PET_AUTO_ACTION_DURATION,
         loop: true,
-        callback: () => this.handleAutomaticAction() });
+        callback: () => this.handleAutomaticAction(),
+      });
     }
   }
 

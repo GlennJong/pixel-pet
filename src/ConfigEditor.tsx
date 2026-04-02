@@ -15,10 +15,16 @@ const configsFiles = [
   { key: "ui", filename: "configs/global/ui.json" },
   { key: "config_pet_assets", filename: "configs/pet/assets.json" },
   { key: "config_pet_stats", filename: "configs/pet/character/stats.json" },
-  { key: "config_pet_conditions", filename: "configs/pet/character/conditions.json" },
+  {
+    key: "config_pet_conditions",
+    filename: "configs/pet/character/conditions.json",
+  },
   { key: "config_pet_header", filename: "configs/pet/ui/header.json" },
   { key: "config_pet_character", filename: "configs/pet/character/main.json" },
-  { key: "config_pet_auto_actions", filename: "configs/pet/character/auto_actions.json" },
+  {
+    key: "config_pet_auto_actions",
+    filename: "configs/pet/character/auto_actions.json",
+  },
   { key: "config_pet_effects", filename: "configs/pet/character/effects.json" },
   { key: "config_pet_room", filename: "configs/pet/environment/room.json" },
 ];
@@ -235,7 +241,14 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
       <JsonEditor
         title="自動動作：死亡"
         wording={actionsWording}
-        hide={["animationSet", "action", "user", "portrait", "auto", "condition"]}
+        hide={[
+          "animationSet",
+          "action",
+          "user",
+          "portrait",
+          "auto",
+          "condition",
+        ]}
         value={config.pet.mycharacter.list[0].actions.die}
         template={templates}
         onChange={(data) => {

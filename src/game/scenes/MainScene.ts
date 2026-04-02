@@ -3,7 +3,8 @@ import {
   getIsAutoSaveEnabled,
   hasSaveData,
   initRuntimeData,
-  loadAllRuntimeDataFromLocalStorage } from "@/game/runtimeData";
+  loadAllRuntimeDataFromLocalStorage,
+} from "@/game/runtimeData";
 import { GLOBAL_DEFAULT_TRANSMIT } from "@/game/constants";
 
 export class MainScene extends Scene {

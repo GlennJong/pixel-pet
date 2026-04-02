@@ -9,7 +9,8 @@ export interface MenuItem {
 }
 
 export interface HeaderConfig {
-  key: string;
+  id: string;
+  atlasId: string;
   texture: string;
   preload: AssetItem;
   animations: AnimationItem[];
@@ -24,6 +25,7 @@ export interface HeaderSelectorOption {
   start: number;
   end: number;
   freq: number;
-  key: string;
+  id: string;
+  atlasId: string;
   frame: string;
-};
+}

@@ -9,12 +9,10 @@ export class IconCoin extends Phaser.GameObjects.Container {
   private text: Phaser.GameObjects.Text;
   private value: number;
   private targetValue: number | undefined;
-  
 
   constructor(scene: Phaser.Scene, option: { x: number; y: number }) {
     super(scene);
 
-    
     this.coinState = runtimeData(`pet.coin`);
 
     // Watch coin change
@@ -95,6 +93,6 @@ export class IconCoin extends Phaser.GameObjects.Container {
 
   public destroy() {
     this.text.destroy();
-    super.destroy(); 
+    super.destroy();
   }
 }

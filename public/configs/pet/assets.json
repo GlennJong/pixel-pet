@@ -1,21 +1,21 @@
 [
   {
-    "id": "room",
+    "atlasId": "room",
     "png": "assets/sprites/pet/environment/room/spritesheet.png",
     "json": "assets/sprites/pet/environment/room/spritesheet.json"
   },
   {
-    "id": "header",
+    "atlasId": "header",
     "png": "assets/sprites/pet/ui/header/spritesheet.png",
     "json": "assets/sprites/pet/ui/header/spritesheet.json"
   },
   {
-    "id": "header_frame",
+    "atlasId": "header_frame",
     "png": "assets/sprites/pet/ui/header_frame/spritesheet.png",
     "json": "assets/sprites/pet/ui/header_frame/spritesheet.json"
   },
   {
-    "id": "character",
+    "atlasId": "character",
     "png": "assets/sprites/pet/character/afk/spritesheet.png",
     "json": "assets/sprites/pet/character/afk/spritesheet.json"
   }

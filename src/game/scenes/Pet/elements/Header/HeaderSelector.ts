@@ -24,9 +24,9 @@ export class HeaderSelector extends Phaser.GameObjects.Container {
   }
 
   private initAnimations = () => {
-    const { key, texture, animations } = this.config;
+    const { atlasId, texture, animations } = this.config;
     if (animations) {
-      createAnimationsFromConfig(this.scene, key, animations, texture);
+      createAnimationsFromConfig(this.scene, atlasId, animations, texture);
     }
   };
 

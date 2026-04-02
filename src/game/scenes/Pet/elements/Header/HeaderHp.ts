@@ -12,12 +12,10 @@ export class IconHp extends Phaser.GameObjects.Container {
   private value: number;
   private targetValue: number | undefined;
   private step: "100" | "75" | "50" | "25" | "10" = "100";
-  
 
   constructor(scene: Phaser.Scene, option: { x: number; y: number }) {
     super(scene);
-    
-    
+
     this.hpState = runtimeData(`pet.hp`);
 
     this.value =

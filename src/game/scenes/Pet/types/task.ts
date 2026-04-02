@@ -12,8 +12,7 @@ export type Message = {
 export type Task = {
   user: string;
   action: string;
-  params?: UserParams &
-    AwardParams & { [key: string]: string | number };
+  params?: UserParams & AwardParams & { [key: string]: string | number };
   effect?: Partial<Record<string, ActionEffect>>;
   dialogues?: DialogItem[];
   move?: string;

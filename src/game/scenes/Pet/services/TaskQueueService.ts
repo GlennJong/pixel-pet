@@ -1,14 +1,17 @@
 import Phaser from "phaser";
 
-import { runtimeData, setRuntimeData, getRuntimeDataGroup, ObservableValue } from "@/game/runtimeData";
+import {
+  runtimeData,
+  setRuntimeData,
+  getRuntimeDataGroup,
+  ObservableValue,
+} from "@/game/runtimeData";
 import { filterFromMatchList } from "@/game/utils/filterFromMatchList";
 import { ActionMap, CharacterStageItem } from "../elements/PetCharacter/types";
 import { getPetRuntimeDataKey, PET_STATIC_KEYS } from "../constants";
 
 import { Message, CommandMap, Task } from "../types";
-import {
-  MESSAGE_QUEUE_STORE_KEY,
-} from "./constants";
+import { MESSAGE_QUEUE_STORE_KEY } from "./constants";
 import { getStaticData } from "@/game/staticData";
 
 export class TaskQueueService {
@@ -25,7 +28,7 @@ export class TaskQueueService {
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    
+
     this.taskQueueState = runtimeData("pet.taskQueue");
   }
 
@@ -58,12 +61,15 @@ export class TaskQueueService {
       if (characterConfig.watch && characterConfig.stages) {
         const watchKey = getPetRuntimeDataKey(characterConfig.watch);
         const level = getRuntimeDataGroup(watchKey) || 0;
-        const current = characterConfig.stages.find((l: CharacterStageItem) => l.value === level) || characterConfig.stages[0];
+        const current =
+          characterConfig.stages.find(
+            (l: CharacterStageItem) => l.value === level,
+          ) || characterConfig.stages[0];
         actionsConfig = current.actions || {};
       } else {
         actionsConfig = characterConfig.actions || {};
       }
-      
+
       if (result) {
         console.log({ result });
 

@@ -9,7 +9,9 @@ export default function PipButton() {
 
   const startPip = async () => {
     try {
-      const sourceCanvas = document.querySelector("#game-container canvas") as HTMLCanvasElement;
+      const sourceCanvas = document.querySelector(
+        "#game-container canvas",
+      ) as HTMLCanvasElement;
       if (!sourceCanvas) {
         alert("找不到遊戲畫面，請稍後再試。");
         return;
@@ -32,7 +34,12 @@ export default function PipButton() {
       // 每幀同步與放大原始畫布
       const syncFrames = () => {
         if (proxyCtx && sourceCanvas.width > 0) {
-          proxyCtx.clearRect(0, 0, proxyCanvasRef.current!.width, proxyCanvasRef.current!.height);
+          proxyCtx.clearRect(
+            0,
+            0,
+            proxyCanvasRef.current!.width,
+            proxyCanvasRef.current!.height,
+          );
           proxyCtx.drawImage(
             sourceCanvas,
             0,
@@ -42,12 +49,12 @@ export default function PipButton() {
             0,
             0,
             proxyCanvasRef.current!.width,
-            proxyCanvasRef.current!.height
+            proxyCanvasRef.current!.height,
           );
         }
         renderLoopRef.current = requestAnimationFrame(syncFrames);
       };
-      
+
       // 確保沒有重複的繪製迴圈正在執行
       if (renderLoopRef.current) cancelAnimationFrame(renderLoopRef.current);
       syncFrames();
@@ -60,18 +67,20 @@ export default function PipButton() {
         // 增強小視窗畫質，避免影片平滑化導致像素模糊
         video.style.imageRendering = "pixelated";
         videoRef.current = video;
-        
+
         // Listen to exit pip event (Standard)
         video.addEventListener("leavepictureinpicture", () => {
           setIsPipActive(false);
-          if (renderLoopRef.current) cancelAnimationFrame(renderLoopRef.current);
+          if (renderLoopRef.current)
+            cancelAnimationFrame(renderLoopRef.current);
         });
 
         // Listen to exit pip event (Safari)
         video.addEventListener("webkitpresentationmodechanged", (e: any) => {
           if (e.target?.webkitPresentationMode !== "picture-in-picture") {
             setIsPipActive(false);
-            if (renderLoopRef.current) cancelAnimationFrame(renderLoopRef.current);
+            if (renderLoopRef.current)
+              cancelAnimationFrame(renderLoopRef.current);
           }
         });
       }
@@ -80,7 +89,7 @@ export default function PipButton() {
       const stream = proxyCanvasRef.current.captureStream(30); // 30 fps
       const v = videoRef.current as any;
       v.srcObject = stream;
-      
+
       // We must wait for the video to load metadata and play before requesting PiP
       await new Promise<void>((resolve) => {
         if (!v) return;
@@ -93,10 +102,13 @@ export default function PipButton() {
       // 支援標準 API 與 Safari 的 WebKit API
       if (v.requestPictureInPicture) {
         await v.requestPictureInPicture();
-      } else if (v.webkitSetPresentationMode && v.webkitSupportsPresentationMode?.("picture-in-picture")) {
+      } else if (
+        v.webkitSetPresentationMode &&
+        v.webkitSupportsPresentationMode?.("picture-in-picture")
+      ) {
         v.webkitSetPresentationMode("picture-in-picture");
       }
-      
+
       setIsPipActive(true);
     } catch (error) {
       console.error("啟動 PiP 失敗:", error);

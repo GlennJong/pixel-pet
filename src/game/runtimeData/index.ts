@@ -42,17 +42,32 @@ export class ObservableValue<T> {
 // 全域 runtimeData 管理
 const runtimeDataRegistry = new Map<string, ObservableValue<unknown>>();
 
-export function initRuntimeData<K extends KnownRuntimeDataKey>(key: K, initialValue: RuntimeDataValue<K>): ObservableValue<RuntimeDataValue<K>> {
+export function initRuntimeData<K extends KnownRuntimeDataKey>(
+  key: K,
+  initialValue: RuntimeDataValue<K>,
+): ObservableValue<RuntimeDataValue<K>> {
   if (runtimeDataRegistry.has(key)) {
-    return runtimeDataRegistry.get(key) as unknown as ObservableValue<RuntimeDataValue<K>>;
+    return runtimeDataRegistry.get(key) as unknown as ObservableValue<
+      RuntimeDataValue<K>
+    >;
   }
-  const runtimeData = new ObservableValue<RuntimeDataValue<K>>(initialValue, key);
-  runtimeDataRegistry.set(key, runtimeData as unknown as ObservableValue<unknown>);
+  const runtimeData = new ObservableValue<RuntimeDataValue<K>>(
+    initialValue,
+    key,
+  );
+  runtimeDataRegistry.set(
+    key,
+    runtimeData as unknown as ObservableValue<unknown>,
+  );
   return runtimeData;
 }
 
-export function runtimeData<K extends KnownRuntimeDataKey>(key: K): ObservableValue<RuntimeDataValue<K>> | undefined {
-  return runtimeDataRegistry.get(key) as unknown as ObservableValue<RuntimeDataValue<K>> | undefined;
+export function runtimeData<K extends KnownRuntimeDataKey>(
+  key: K,
+): ObservableValue<RuntimeDataValue<K>> | undefined {
+  return runtimeDataRegistry.get(key) as unknown as
+    | ObservableValue<RuntimeDataValue<K>>
+    | undefined;
 }
 
 // Select a group of runtimeData values by key prefix, auto-combine nested objects
@@ -84,14 +99,21 @@ export function getRuntimeDataGroup<T = unknown>(groupKey: string): T {
 }
 
 // Set runtimeData value by key, forbid parent group key
-export function setRuntimeData<K extends KnownRuntimeDataKey>(key: K, value: RuntimeDataValue<K>): void {
-  const storeRef = runtimeDataRegistry.get(key) as unknown as ObservableValue<RuntimeDataValue<K>> | undefined;
+export function setRuntimeData<K extends KnownRuntimeDataKey>(
+  key: K,
+  value: RuntimeDataValue<K>,
+): void {
+  const storeRef = runtimeDataRegistry.get(key) as unknown as
+    | ObservableValue<RuntimeDataValue<K>>
+    | undefined;
   if (!storeRef) throw new Error(`[ObservableValue] '${key}' 尚未初始化`);
   storeRef.set(value);
 }
 
 // 儲存所有 global runtime data 到 localStorage
-export function saveAllRuntimeDataToLocalStorage(storageKey: string = "pet_store") {
+export function saveAllRuntimeDataToLocalStorage(
+  storageKey: string = "pet_store",
+) {
   const data: Record<string, unknown> = {};
   for (const [key, runtimeData] of runtimeDataRegistry.entries()) {
     data[key] = runtimeData.get();
@@ -112,7 +134,10 @@ export function loadAllRuntimeDataFromLocalStorage(
         if (runtimeDataRegistry.has(key)) {
           runtimeDataRegistry.get(key)?.set(value);
         } else {
-          initRuntimeData(key as KnownRuntimeDataKey, value as RuntimeDataValue<KnownRuntimeDataKey>);
+          initRuntimeData(
+            key as KnownRuntimeDataKey,
+            value as RuntimeDataValue<KnownRuntimeDataKey>,
+          );
         }
       }
     } catch (e) {
@@ -123,7 +148,9 @@ export function loadAllRuntimeDataFromLocalStorage(
 }
 
 // 清除所有 global runtime data 的 localStorage
-export function clearAllRuntimeDataFromLocalStorage(storageKey: string = "pet_store") {
+export function clearAllRuntimeDataFromLocalStorage(
+  storageKey: string = "pet_store",
+) {
   localStorage.removeItem(storageKey);
 }
 

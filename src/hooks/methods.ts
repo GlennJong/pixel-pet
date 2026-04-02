@@ -84,14 +84,17 @@ type TData =
     }
   | string;
 
-export const getValueByPath = (path: string, data: TData): string | undefined => {
+export const getValueByPath = (
+  path: string,
+  data: TData,
+): string | undefined => {
   let result = data;
   const paths = path.split(".");
 
   for (const p of paths) {
     if (typeof result !== "object" || result === null || !result[p]) {
-       // Stop if path broken
-       return undefined;
+      // Stop if path broken
+      return undefined;
     }
     result = result[p];
   }

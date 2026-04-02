@@ -13,7 +13,12 @@ const DEFAULT_HEIGHT = 25;
 
 // TODO Constant Naming
 export class Header extends Phaser.GameObjects.Container {
-  private selectorGroup: { arrow: Phaser.GameObjects.Sprite; icon: Phaser.GameObjects.Sprite; onBlur: () => void; onSelect: () => void }[] = [];
+  private selectorGroup: {
+    arrow: Phaser.GameObjects.Sprite;
+    icon: Phaser.GameObjects.Sprite;
+    onBlur: () => void;
+    onSelect: () => void;
+  }[] = [];
   private statGroup: HeaderStatIcon[] = [];
   private current = 0;
 
@@ -40,9 +45,9 @@ export class Header extends Phaser.GameObjects.Container {
   }
 
   private initAnimations = () => {
-    const { key, texture, animations } = this.config;
+    const { atlasId, texture, animations } = this.config;
     if (animations) {
-      createAnimationsFromConfig(this.scene, key, animations, texture);
+      createAnimationsFromConfig(this.scene, atlasId, animations, texture);
     }
   };
 
@@ -78,7 +83,7 @@ export class Header extends Phaser.GameObjects.Container {
           frame: "",
         })
         .setOrigin(0);
-      arrow.play(`${this.config.key}_${this.config.arrow.animation}`);
+      arrow.play(`${this.config.atlasId}_${this.config.arrow.animation}`);
       this.add(arrow);
 
       const icon = this.scene.make
@@ -89,7 +94,7 @@ export class Header extends Phaser.GameObjects.Container {
           frame: "",
         })
         .setOrigin(0);
-      icon.play(`${this.config.key}_${animation.unselected}`);
+      icon.play(`${this.config.atlasId}_${animation.unselected}`);
       this.add(icon);
 
       this.selectorGroup.push({
@@ -97,11 +102,11 @@ export class Header extends Phaser.GameObjects.Container {
         icon,
         onBlur: () => {
           arrow.setAlpha(0);
-          icon.play(`${this.config.key}_${animation.unselected}`);
+          icon.play(`${this.config.atlasId}_${animation.unselected}`);
         },
         onSelect: () => {
           arrow.setAlpha(1);
-          icon.play(`${this.config.key}_${animation.selected}`);
+          icon.play(`${this.config.atlasId}_${animation.selected}`);
         },
       });
     });
@@ -116,7 +121,7 @@ export class Header extends Phaser.GameObjects.Container {
         x: startFrom + gap * i,
         y,
         key: `pet.${stat}`,
-        animation: `${this.config.key}_${animation}`,
+        animation: `${this.config.atlasId}_${animation}`,
       });
       this.add(icon);
       this.statGroup.push(icon);
@@ -162,6 +167,6 @@ export class Header extends Phaser.GameObjects.Container {
       icon.destroy();
     });
     clearTimeout(this.timer);
-    super.destroy(); 
+    super.destroy();
   }
 }

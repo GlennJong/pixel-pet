@@ -1,5 +1,5 @@
 export interface AssetItem {
-  id: string;
+  atlasId: string;
   png: string;
   json: string;
 }
@@ -15,7 +15,7 @@ export interface AnimationItem {
 }
 
 export interface StatItem {
-  key: string;
+  id: string;
   value: number;
   max?: number;
   min?: number;

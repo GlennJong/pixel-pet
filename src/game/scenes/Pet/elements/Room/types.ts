@@ -17,7 +17,8 @@ export interface RoomStageItem {
 
 export interface RoomConfig {
   watch: string;
-  key: string;
+  id: string;
+  atlasId: string;
   preload: AssetItem;
   animations: AnimationItem[];
   stages: RoomStageItem[]; // Changed from 'list'

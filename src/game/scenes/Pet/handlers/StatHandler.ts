@@ -1,9 +1,21 @@
 import Phaser from "phaser";
-import { runtimeData, getRuntimeDataGroup, setRuntimeData, ObservableValue } from "@/game/runtimeData";
+import {
+  runtimeData,
+  getRuntimeDataGroup,
+  setRuntimeData,
+  ObservableValue,
+} from "@/game/runtimeData";
 import { getStaticData } from "@/game/staticData";
 import { ActionEffect } from "../elements/PetCharacter/types";
-import { KnownRuntimeDataKey, RuntimeDataValue } from "@/game/runtimeData/types";
-import { getPetRuntimeDataKey, PET_CORE_RUNTIME_KEYS, PET_STATIC_KEYS } from "../constants";
+import {
+  KnownRuntimeDataKey,
+  RuntimeDataValue,
+} from "@/game/runtimeData/types";
+import {
+  getPetRuntimeDataKey,
+  PET_CORE_RUNTIME_KEYS,
+  PET_STATIC_KEYS,
+} from "../constants";
 import { StatItem } from "../types";
 
 export class StatsHandler {
@@ -11,8 +23,13 @@ export class StatsHandler {
   constructor(scene: Phaser.Scene) {
     const stats = getStaticData(PET_STATIC_KEYS.STATS);
 
-    stats.forEach(({ key, min, max }: StatItem) => {
-      const handler = new StatHandler(scene, getPetRuntimeDataKey(key) as KnownRuntimeDataKey, min, max);
+    stats.forEach(({ id, min, max }: StatItem) => {
+      const handler = new StatHandler(
+        scene,
+        getPetRuntimeDataKey(id) as KnownRuntimeDataKey,
+        min,
+        max,
+      );
       handler.init();
       this.group.push(handler);
     });
@@ -52,7 +69,7 @@ export class StatHandler<K extends KnownRuntimeDataKey> {
     this.statState = runtimeData(storeKey);
     this.min = min ?? -Infinity;
     this.max = max ?? Infinity;
-    
+
     this.conditionState = runtimeData(PET_CORE_RUNTIME_KEYS.CONDITION);
   }
 
@@ -84,7 +101,9 @@ export class StatHandler<K extends KnownRuntimeDataKey> {
       callback: () => {
         const isStopped = getRuntimeDataGroup("global.is_paused");
         if (isStopped) return;
-        const currentValue = getRuntimeDataGroup(this.storeKey as string) as number;
+        const currentValue = getRuntimeDataGroup(
+          this.storeKey as string,
+        ) as number;
         const { method, value } = rule;
         let newValue = 0;
         if (method === "sub") {
@@ -131,7 +150,10 @@ export class StatHandler<K extends KnownRuntimeDataKey> {
     } else if (statEffect.method === "set") {
       setRuntimeData(
         this.storeKey,
-        Math.max(this.min, Math.min(this.max, effectValue)) as RuntimeDataValue<K>,
+        Math.max(
+          this.min,
+          Math.min(this.max, effectValue),
+        ) as RuntimeDataValue<K>,
       );
     }
   };
