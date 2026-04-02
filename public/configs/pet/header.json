@@ -1,9 +1,5 @@
 {
   "key": "pet_header",
-  "preload": {
-    "png": "assets/sprites/pet/header/icons/spritesheet.png",
-    "json": "assets/sprites/pet/header/icons/spritesheet.json"
-  },
   "animations": [
     {
       "prefix": "arrow",
