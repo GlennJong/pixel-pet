@@ -22,26 +22,26 @@ export class Preloader extends Scene {
       { key: `config_pet_assets`, filename: `configs/pet/assets.json` },
       {
         key: `config_pet_stats`,
-        filename: `configs/pet/stats.json`,
+        filename: `configs/pet/character/stats.json`,
       },
       {
         key: `config_pet_conditions`,
-        filename: `configs/pet/conditions.json`,
+        filename: `configs/pet/character/conditions.json`,
       },
-      { key: `config_pet_header`, filename: `configs/pet/header.json` },
+      { key: `config_pet_header`, filename: `configs/pet/ui/header.json` },
       {
         key: `config_pet_character`,
-        filename: `configs/pet/character.json`,
+        filename: `configs/pet/character/main.json`,
       },
       {
         key: `config_pet_auto_actions`,
-        filename: `configs/pet/auto_actions.json`,
+        filename: `configs/pet/character/auto_actions.json`,
       },
       {
         key: `config_pet_effects`,
-        filename: `configs/pet/effects.json`,
+        filename: `configs/pet/character/effects.json`,
       },
-      { key: `config_pet_room`, filename: `configs/pet/room.json` },
+      { key: `config_pet_room`, filename: `configs/pet/environment/room.json` },
     ];
   }
 
