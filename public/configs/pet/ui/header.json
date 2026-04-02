@@ -61,7 +61,6 @@
     "animation": "arrow"
   },
   "frame": {
-    "atlasId": "header_frame_classic_01",
     "textureFrame": "frame",
     "leftWidth": 8,
     "rightWidth": 8,

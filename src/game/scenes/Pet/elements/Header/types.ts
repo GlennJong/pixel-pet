@@ -15,7 +15,6 @@ export interface HeaderConfig {
   preload: AssetItem;
   animations: AnimationItem[];
   frame: {
-    atlasId: string;
     textureFrame: string;
     leftWidth?: number;
     rightWidth?: number;

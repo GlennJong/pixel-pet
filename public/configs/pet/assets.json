@@ -5,14 +5,19 @@
     "json": "assets/sprites/pet/environment/my_room/spritesheet.json"
   },
   {
+    "atlasId": "recorder",
+    "png": "assets/sprites/pet/environment/recorder/spritesheet.png",
+    "json": "assets/sprites/pet/environment/recorder/spritesheet.json"
+  },
+  {
+    "atlasId": "window",
+    "png": "assets/sprites/pet/environment/window/spritesheet.png",
+    "json": "assets/sprites/pet/environment/window/spritesheet.json"
+  },
+  {
     "atlasId": "header_cute_01",
     "png": "assets/sprites/pet/ui/header_cute_01/spritesheet.png",
     "json": "assets/sprites/pet/ui/header_cute_01/spritesheet.json"
-  },
-  {
-    "atlasId": "header_frame_classic_01",
-    "png": "assets/sprites/pet/ui/header_frame_classic_01/spritesheet.png",
-    "json": "assets/sprites/pet/ui/header_frame_classic_01/spritesheet.json"
   },
   {
     "atlasId": "afk",
