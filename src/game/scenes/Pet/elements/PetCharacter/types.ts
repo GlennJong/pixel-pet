@@ -47,6 +47,7 @@ export type ActionMap = Record<string, ActionDef>;
 
 export interface CharacterStageItem {
   value: number;
+  atlasId?: string;
   animations?: AnimationItem[];
   idleActions?: IdleActionMap;
   actions?: ActionMap;
