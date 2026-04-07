@@ -12,7 +12,7 @@
     "stats": {
       "startX": 100,
       "y": 7,
-      "itemGap": 30
+      "itemGap": 6
     }
   },
   "animations": [
@@ -67,7 +67,31 @@
     {
       "prefix": "heart",
       "qty": 5,
-      "freq": 8,
+      "freq": 6,
+      "repeat": -1
+    },
+    {
+      "prefix": "hp-100",
+      "qty": 5,
+      "freq": 6,
+      "repeat": -1
+    },
+    {
+      "prefix": "hp-75",
+      "qty": 5,
+      "freq": 6,
+      "repeat": -1
+    },
+    {
+      "prefix": "hp-50",
+      "qty": 5,
+      "freq": 6,
+      "repeat": -1
+    },
+    {
+      "prefix": "hp-25",
+      "qty": 5,
+      "freq": 6,
       "repeat": -1
     }
   ],
@@ -156,6 +180,32 @@
     }
   ],
   "stats": [
+    {
+      "stat": "hp",
+      "showValue": false,
+      "thresholds": [
+        {
+          "min": 76,
+          "animation": "hp-100"
+        },
+        {
+          "min": 51,
+          "animation": "hp-75"
+        },
+        {
+          "min": 26,
+          "animation": "hp-50"
+        },
+        {
+          "min": 11,
+          "animation": "hp-25"
+        },
+        {
+          "min": 0,
+          "frame": "hp-empty"
+        }
+      ]
+    },
     {
       "stat": "hp",
       "animation": "heart"

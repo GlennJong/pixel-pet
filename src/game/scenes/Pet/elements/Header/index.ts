@@ -146,15 +146,21 @@ export class Header extends Phaser.GameObjects.Container {
       itemGap: 30,
     };
 
-    this.config.stats.forEach(({ stat, animation }, i) => {
+    let currentX = layout.startX;
+
+    this.config.stats.forEach((statConfig) => {
       const icon = new HeaderStatIcon(this.scene, {
-        x: layout.startX + layout.itemGap * i,
+        x: currentX,
         y: layout.y,
-        key: `pet.${stat}`,
-        animation: `${this.config.atlasId}_${animation}`,
+        key: `pet.${statConfig.stat}`,
+        config: statConfig,
+        atlasId: this.config.atlasId,
       });
       this.add(icon);
       this.statGroup.push(icon);
+
+      const iconTotalWidth = icon.getWidth();
+      currentX += iconTotalWidth + layout.itemGap;
     });
   }
 

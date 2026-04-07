@@ -8,6 +8,19 @@ export interface MenuItem {
   action: Record<string, string>;
 }
 
+export interface StatThreshold {
+  min: number;
+  animation?: string;
+  frame?: string;
+}
+
+export interface StatItemConfig {
+  stat: string;
+  animation?: string;
+  thresholds?: StatThreshold[];
+  showValue?: boolean;
+}
+
 export interface HeaderLayout {
   menu: {
     startX: number;
@@ -39,7 +52,7 @@ export interface HeaderConfig {
   };
   arrow: { animation: string };
   menu: MenuItem[];
-  stats: { stat: string; animation: string }[];
+  stats: StatItemConfig[];
 }
 
 export interface HeaderSelectorOption {
