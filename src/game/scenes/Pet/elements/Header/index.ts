@@ -14,6 +14,7 @@ export class Header extends Phaser.GameObjects.Container {
   private selectorGroup: {
     arrow: Phaser.GameObjects.Sprite;
     icon: Phaser.GameObjects.Sprite;
+    page: number;
     onBlur: () => void;
     onSelect: () => void;
   }[] = [];
@@ -74,15 +75,22 @@ export class Header extends Phaser.GameObjects.Container {
   }
 
   private initMenu() {
-    const startFrom = 4;
-    const arrowSpace = 12;
-    const gap = 8;
-    const y = 7;
-    this.config.menu.forEach(({ animation }, i) => {
+    const layout = this.config.layout?.menu || {
+      startX: 4,
+      y: 7,
+      itemGap: 2,
+      internalGap: 1,
+      maxWidth: 90,
+    };
+
+    let currentX = layout.startX;
+    let currentPage = 0;
+
+    this.config.menu.forEach(({ animation }) => {
       const arrow = this.scene.make
         .sprite({
-          x: startFrom + gap * i + i * arrowSpace,
-          y,
+          x: 0,
+          y: layout.y,
           key: "",
           frame: "",
         })
@@ -92,8 +100,8 @@ export class Header extends Phaser.GameObjects.Container {
 
       const icon = this.scene.make
         .sprite({
-          x: startFrom + gap * i + (i + 1) * arrowSpace,
-          y,
+          x: 0,
+          y: layout.y,
           key: "",
           frame: "",
         })
@@ -101,9 +109,24 @@ export class Header extends Phaser.GameObjects.Container {
       icon.play(`${this.config.atlasId}_${animation.unselected}`);
       this.add(icon);
 
+      const arrowWidth = arrow.width > 0 ? arrow.width : 5;
+      const iconWidth = icon.width > 0 ? icon.width : 16;
+      const itemTotalWidth = arrowWidth + layout.internalGap + iconWidth;
+
+      if (currentX !== layout.startX && currentX + itemTotalWidth > layout.maxWidth) {
+        currentPage++;
+        currentX = layout.startX;
+      }
+
+      arrow.setX(currentX);
+      icon.setX(currentX + arrowWidth + layout.internalGap);
+      
+      currentX += itemTotalWidth + layout.itemGap;
+
       this.selectorGroup.push({
         arrow,
         icon,
+        page: currentPage,
         onBlur: () => {
           arrow.setAlpha(0);
           icon.play(`${this.config.atlasId}_${animation.unselected}`);
@@ -117,13 +140,16 @@ export class Header extends Phaser.GameObjects.Container {
   }
 
   private initStats() {
-    const startFrom = 100;
-    const gap = 30;
-    const y = 7;
+    const layout = this.config.layout?.stats || {
+      startX: 100,
+      y: 7,
+      itemGap: 30,
+    };
+
     this.config.stats.forEach(({ stat, animation }, i) => {
       const icon = new HeaderStatIcon(this.scene, {
-        x: startFrom + gap * i,
-        y,
+        x: layout.startX + layout.itemGap * i,
+        y: layout.y,
         key: `pet.${stat}`,
         animation: `${this.config.atlasId}_${animation}`,
       });
@@ -133,11 +159,27 @@ export class Header extends Phaser.GameObjects.Container {
   }
 
   private handleUpdateSelector() {
-    this.selectorGroup.forEach(({ onBlur, onSelect }, i) => {
-      if (i === this.current) {
-        onSelect();
+    const selectedItem = this.selectorGroup[this.current];
+    if (!selectedItem) return;
+
+    const targetPage = selectedItem.page;
+
+    this.selectorGroup.forEach(({ arrow, icon, page, onBlur, onSelect }, i) => {
+      const isVisible = page === targetPage;
+
+      if (!isVisible) {
+        arrow.setVisible(false);
+        icon.setVisible(false);
       } else {
-        onBlur();
+        icon.setVisible(true);
+        if (i === this.current) {
+          onSelect();
+          arrow.setVisible(true);
+        } else {
+          onBlur();
+          // arrow handles its own visual state (alpha 0) in onBlur, but we must ensure it's in a visible state in engine
+          arrow.setVisible(true);
+        }
       }
     });
   }

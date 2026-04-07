@@ -8,12 +8,28 @@ export interface MenuItem {
   action: Record<string, string>;
 }
 
+export interface HeaderLayout {
+  menu: {
+    startX: number;
+    y: number;
+    itemGap: number;
+    internalGap: number;
+    maxWidth: number;
+  };
+  stats: {
+    startX: number;
+    y: number;
+    itemGap: number;
+  };
+}
+
 export interface HeaderConfig {
   id: string;
   atlasId: string;
   texture: string;
   preload: AssetItem;
   animations: AnimationItem[];
+  layout?: HeaderLayout;
   frame: {
     textureFrame: string;
     leftWidth?: number;

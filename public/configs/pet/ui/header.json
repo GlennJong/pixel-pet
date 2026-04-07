@@ -1,6 +1,20 @@
 {
   "id": "header",
   "atlasId": "header_cute_01",
+  "layout": {
+    "menu": {
+      "startX": 4,
+      "y": 7,
+      "itemGap": 2,
+      "internalGap": 1,
+      "maxWidth": 90
+    },
+    "stats": {
+      "startX": 100,
+      "y": 7,
+      "itemGap": 30
+    }
+  },
   "animations": [
     {
       "prefix": "arrow",
@@ -77,6 +91,42 @@
         "default": "drink",
         "condition:normal": "drink",
         "condition:sleep": "drink",
+        "condition:death": "lock"
+      }
+    },
+    {
+      "animation": {
+        "selected": "write-selected",
+        "unselected": "write-unselected"
+      },
+      "action": {
+        "default": "write",
+        "condition:normal": "write",
+        "condition:sleep": "write",
+        "condition:death": "lock"
+      }
+    },
+    {
+      "animation": {
+        "selected": "write-selected",
+        "unselected": "write-unselected"
+      },
+      "action": {
+        "default": "write",
+        "condition:normal": "write",
+        "condition:sleep": "write",
+        "condition:death": "lock"
+      }
+    },
+    {
+      "animation": {
+        "selected": "write-selected",
+        "unselected": "write-unselected"
+      },
+      "action": {
+        "default": "write",
+        "condition:normal": "write",
+        "condition:sleep": "write",
         "condition:death": "lock"
       }
     },
