@@ -2,15 +2,17 @@
   "id": "header",
   "atlasId": "header_cute_01",
   "layout": {
-    "menu": {
-      "startX": 4,
+    "left": {
+      "content": "stats",
+      "paddingX": 4,
       "y": 7,
       "itemGap": 2,
       "internalGap": 1,
       "maxWidth": 90
     },
-    "stats": {
-      "startX": 100,
+    "right": {
+      "content": "menu",
+      "paddingX": 6,
       "y": 7,
       "itemGap": 6
     }

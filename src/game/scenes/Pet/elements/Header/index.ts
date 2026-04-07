@@ -4,7 +4,7 @@ import Phaser from "phaser";
 import { getStaticData } from "@/game/staticData";
 import { HeaderStatIcon } from "./HeaderStatIcon";
 import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
-import { HeaderConfig } from "./types";
+import { HeaderConfig, RegionLayout } from "./types";
 import { PET_HEADER_HEIGHT, PET_STATIC_KEYS } from "../../constants";
 import { createAnimationsFromConfig } from "@/game/utils/animation";
 import { CANVAS_WIDTH } from "@/game/constants";
@@ -34,8 +34,7 @@ export class Header extends Phaser.GameObjects.Container {
     this.initAnimations();
 
     this.initBackground();
-    this.initMenu();
-    this.initStats();
+    this.initRegions();
 
     this.handleUpdateSelector();
 
@@ -74,17 +73,33 @@ export class Header extends Phaser.GameObjects.Container {
     this.add(this.background);
   }
 
-  private initMenu() {
-    const layout = this.config.layout?.menu || {
-      startX: 4,
-      y: 7,
-      itemGap: 2,
-      internalGap: 1,
-      maxWidth: 90,
-    };
+  private initRegions() {
+    const layout = this.config.layout;
+    if (!layout || !layout.left || !layout.right) {
+      console.warn("Header layout is missing left or right configuration.");
+      return;
+    }
 
-    let currentX = layout.startX;
+    this.buildRegion("left", layout.left);
+    this.buildRegion("right", layout.right);
+  }
+
+  private buildRegion(align: "left" | "right", layout: RegionLayout) {
+    if (layout.content === "menu") {
+      this.buildMenu(align, layout);
+    } else if (layout.content === "stats") {
+      this.buildStats(align, layout);
+    }
+  }
+
+  private buildMenu(align: "left" | "right", layout: RegionLayout) {
+    let currentX = 0;
     let currentPage = 0;
+    const startX = 0;
+    const maxW = layout.maxWidth || 90;
+    const paddingX = layout.paddingX || 4;
+
+    const builtObjects: Phaser.GameObjects.Sprite[] = [];
 
     this.config.menu.forEach(({ animation }) => {
       const arrow = this.scene.make
@@ -97,6 +112,7 @@ export class Header extends Phaser.GameObjects.Container {
         .setOrigin(0);
       arrow.play(`${this.config.atlasId}_${this.config.arrow.animation}`);
       this.add(arrow);
+      builtObjects.push(arrow);
 
       const icon = this.scene.make
         .sprite({
@@ -108,19 +124,21 @@ export class Header extends Phaser.GameObjects.Container {
         .setOrigin(0);
       icon.play(`${this.config.atlasId}_${animation.unselected}`);
       this.add(icon);
+      builtObjects.push(icon);
 
       const arrowWidth = arrow.width > 0 ? arrow.width : 5;
       const iconWidth = icon.width > 0 ? icon.width : 16;
-      const itemTotalWidth = arrowWidth + layout.internalGap + iconWidth;
+      const internalGap = layout.internalGap || 1;
+      const itemTotalWidth = arrowWidth + internalGap + iconWidth;
 
-      if (currentX !== layout.startX && currentX + itemTotalWidth > layout.maxWidth) {
+      if (currentX !== startX && currentX + itemTotalWidth > startX + maxW) {
         currentPage++;
-        currentX = layout.startX;
+        currentX = startX;
       }
 
       arrow.setX(currentX);
-      icon.setX(currentX + arrowWidth + layout.internalGap);
-      
+      icon.setX(currentX + arrowWidth + internalGap);
+
       currentX += itemTotalWidth + layout.itemGap;
 
       this.selectorGroup.push({
@@ -137,16 +155,22 @@ export class Header extends Phaser.GameObjects.Container {
         },
       });
     });
+
+    const actualWidth = currentPage > 0 ? maxW : currentX - layout.itemGap;
+    let offsetX = paddingX;
+    if (align === "right") {
+      offsetX = CANVAS_WIDTH - paddingX - actualWidth;
+    }
+
+    builtObjects.forEach((obj) => {
+      obj.setX(obj.x + offsetX);
+    });
   }
 
-  private initStats() {
-    const layout = this.config.layout?.stats || {
-      startX: 100,
-      y: 7,
-      itemGap: 30,
-    };
-
-    let currentX = layout.startX;
+  private buildStats(align: "left" | "right", layout: RegionLayout) {
+    let currentX = 0;
+    const paddingX = layout.paddingX || 4;
+    const builtObjects: HeaderStatIcon[] = [];
 
     this.config.stats.forEach((statConfig) => {
       const icon = new HeaderStatIcon(this.scene, {
@@ -158,9 +182,20 @@ export class Header extends Phaser.GameObjects.Container {
       });
       this.add(icon);
       this.statGroup.push(icon);
+      builtObjects.push(icon);
 
       const iconTotalWidth = icon.getWidth();
       currentX += iconTotalWidth + layout.itemGap;
+    });
+
+    const actualWidth = builtObjects.length > 0 ? currentX - layout.itemGap : 0;
+    let offsetX = paddingX;
+    if (align === "right") {
+      offsetX = CANVAS_WIDTH - paddingX - actualWidth;
+    }
+
+    builtObjects.forEach((obj) => {
+      obj.setX(obj.x + offsetX);
     });
   }
 

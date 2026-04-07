@@ -21,19 +21,18 @@ export interface StatItemConfig {
   showValue?: boolean;
 }
 
+export interface RegionLayout {
+  content: 'menu' | 'stats';
+  paddingX: number;
+  y: number;
+  itemGap: number;
+  internalGap?: number;
+  maxWidth?: number;
+}
+
 export interface HeaderLayout {
-  menu: {
-    startX: number;
-    y: number;
-    itemGap: number;
-    internalGap: number;
-    maxWidth: number;
-  };
-  stats: {
-    startX: number;
-    y: number;
-    itemGap: number;
-  };
+  left: RegionLayout;
+  right: RegionLayout;
 }
 
 export interface HeaderConfig {
