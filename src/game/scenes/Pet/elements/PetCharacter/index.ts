@@ -11,13 +11,13 @@ import { getStaticData } from "@/game/staticData";
 import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
 import { runtimeData, ObservableValue } from "@/game/runtimeData";
 import {
+  getPetRuntimeDataKey,
+  PET_STATIC_KEYS,
   PET_DEFAULT_POSITION,
   PET_AUTO_ACTION_DURATION,
   PET_MOVE_DISTANCE,
   PET_IDLE_PREFIX,
-  PET_DEFAULT_CHARACTER_ID,
-} from "@/game/constants";
-import { getPetRuntimeDataKey, PET_STATIC_KEYS } from "../../constants";
+} from "../../constants";
 import {
   ActionDef,
   IdleActionDef,
@@ -42,6 +42,9 @@ export class PetCharacter extends Character {
 
   constructor(scene: Phaser.Scene) {
     const config = getStaticData<CharacterConfig>(PET_STATIC_KEYS.CHARACTER);
+    if (!config || !config.atlasId) {
+      throw new Error("[PetCharacter] Invalid CharacterConfig: Missing atlasId");
+    }
 
     let initialAnimations = config.animations || [];
     if (config.watch && config.stages && config.stages.length > 0) {
@@ -53,7 +56,7 @@ export class PetCharacter extends Character {
         initialAnimations = initialConfig.animations;
     }
 
-    super(scene, config.atlasId || PET_DEFAULT_CHARACTER_ID, {
+    super(scene, config.atlasId, {
       ...PET_DEFAULT_POSITION,
       texture: config.texture,
       animations: initialAnimations as AnimationItem[],
@@ -84,10 +87,15 @@ export class PetCharacter extends Character {
 
   private handleCharacterUpgrade(value: number, list: CharacterStageItem[]) {
     const config = getStaticData<CharacterConfig>(PET_STATIC_KEYS.CHARACTER);
+    if (!config || !config.atlasId) {
+      console.warn("[PetCharacter] Missing config or atlasId on upgrade.");
+      return;
+    }
+
     const current = list.find((item) => item.value === value) || list[0] || {};
     
     // Merge atlasId (Stage overrides Root)
-    this.atlasId = current.atlasId || config.atlasId || PET_DEFAULT_CHARACTER_ID;
+    this.atlasId = current.atlasId || config.atlasId;
 
     // Merge animations (Stage overrides Root)
     const mergedAnimations = current.animations || config.animations || [];

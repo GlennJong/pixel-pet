@@ -27,11 +27,12 @@ import { StatsHandler } from "./handlers/StatHandler";
 // config
 import { getStaticData } from "@/game/staticData";
 import {
+  getPetRuntimeDataKey,
+  PET_STATIC_KEYS,
   PET_DEFAULT_HP,
   PET_DEFAULT_COIN,
   PET_DEFAULT_LEVEL,
-} from "@/game/constants";
-import { getPetRuntimeDataKey, PET_STATIC_KEYS } from "./constants";
+} from "./constants";
 import { StatItem } from "./types/common";
 import { PetStats } from "./types/runtime";
 import { initRuntimeData } from "@/game/runtimeData";

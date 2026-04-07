@@ -5,94 +5,43 @@ export type TDialogData = {
   text: string;
 };
 
-const SCENE_WIDTH = 160;
-const SCENE_HEIGHT = 144;
+export interface IPrimaryDialogueConfig {
+  sceneWidth: number;
+  sceneHeight: number;
+  portraitSize?: number;
+  portraitFrameSize?: number;
+  dialogueWidth?: number;
+  dialogueHeight?: number;
+  dialoguePaddingX?: number;
+  dialoguePaddingY?: number;
+  fontFamily?: string;
+  fontSize?: number;
+  fontColor?: string;
+  lineSpacing?: number;
+  letterDisplaySpeed?: number;
+  autoPageSwitchDelay?: number;
+  frameKey: string;
+  frameFrame: string;
+}
 
-const PORTRAIT_SIZE = 32;
-const PORTRAIT_FRAME_SIZE = 40;
-const PORTRAIT_X = 0;
-const PORTRAIT_Y = SCENE_HEIGHT - PORTRAIT_FRAME_SIZE;
-
-const DIALOGUE_WIDTH = 120;
-const DIALOGUE_HEIGHT = 40;
-const DIALOGUE_X = SCENE_WIDTH - DIALOGUE_WIDTH;
-const DIALOGUE_Y = SCENE_HEIGHT - DIALOGUE_HEIGHT;
-const DIALOGUE_PADDING_X = 8;
-const DIALOGUE_PADDING_Y = 8;
-
-const TEXTBOX_X = DIALOGUE_X + DIALOGUE_PADDING_X;
-const TEXTBOX_Y = DIALOGUE_Y + DIALOGUE_PADDING_Y;
-const TEXTBOX_WIDTH = DIALOGUE_WIDTH - DIALOGUE_PADDING_X * 2;
-// const TEXTBOX_HEIGHT = DIALOGUE_HEIGHT - DIALOGUE_PADDING_Y * 2; // unused
-const TEXTBOX_FONT_FAMILY = "BoutiqueBitmap";
-const TEXTBOX_FONT_SIZE = 10;
-const TEXTBOX_FONT_COLOR = "#000000";
-const TEXTBOX_LINE_SPACING = 4;
-
-const DEFAULT_LETTER_DISPLAY_SPEED = 50;
-const DEFAULT_AUTO_PAGE_SWITCH_DELAY = 1000;
-
-const DIALOGUE_FRAME_CONFIG = {
-  key: "dialogue_frame",
-  frame: "frame",
-  leftWidth: 8,
-  rightWidth: 8,
-  topHeight: 8,
-  bottomHeight: 8,
-  x: DIALOGUE_X,
-  y: DIALOGUE_Y,
-  width: DIALOGUE_WIDTH,
-  height: DIALOGUE_HEIGHT,
-};
-
-const PORTRAIT_FRAME_CONFIG = {
-  key: "dialogue_frame",
-  frame: "frame",
-  leftWidth: 8,
-  rightWidth: 8,
-  topHeight: 8,
-  bottomHeight: 8,
-  x: PORTRAIT_X,
-  y: PORTRAIT_Y,
-  width: PORTRAIT_FRAME_SIZE,
-  height: PORTRAIT_FRAME_SIZE,
-};
-
-const PORTRAIT_CONFIG = {
-  x: PORTRAIT_X + 4,
-  y: PORTRAIT_Y + 4,
-  width: PORTRAIT_SIZE,
-  height: PORTRAIT_SIZE,
-};
-
-const TEXTBOX_CONFIT = {
-  fontFamily: TEXTBOX_FONT_FAMILY,
-  fontSize: `${TEXTBOX_FONT_SIZE}px`,
-  color: TEXTBOX_FONT_COLOR,
-  wordWrap: {
-    width: TEXTBOX_WIDTH,
-    useAdvancedWrap: true,
-  },
-  lineSpacing: TEXTBOX_LINE_SPACING,
-  resolution: 3,
-};
-
-const MOCK_TEXTBOX_CONFIT = {
-  style: {
-    fontFamily: TEXTBOX_FONT_FAMILY,
-    fontSize: `${TEXTBOX_FONT_SIZE}px`,
-    wordWrap: {
-      width: TEXTBOX_WIDTH,
-      useAdvancedWrap: true,
-    },
-    lineSpacing: TEXTBOX_LINE_SPACING,
-  },
-  x: 0,
-  y: 0,
-  text: "",
+const DEFAULT_CONFIG = {
+  portraitSize: 32,
+  portraitFrameSize: 40,
+  dialogueWidth: 120,
+  dialogueHeight: 40,
+  dialoguePaddingX: 8,
+  dialoguePaddingY: 8,
+  fontFamily: "monospace",
+  fontSize: 10,
+  fontColor: "#000000",
+  lineSpacing: 4,
+  letterDisplaySpeed: 50,
+  autoPageSwitchDelay: 1000,
 };
 
 export class PrimaryDialogue extends Phaser.GameObjects.Container {
+  private config!: Required<IPrimaryDialogueConfig>;
+
   private onDialogueStart?: () => void;
   private onDialogueEnd?: () => void;
 
@@ -112,8 +61,6 @@ export class PrimaryDialogue extends Phaser.GameObjects.Container {
 
   private currentDialogueSegment: string = "";
   private currentLetterIndex: number = 0;
-  private letterDisplaySpeed = DEFAULT_LETTER_DISPLAY_SPEED;
-  private autoPageSwitchDelay = DEFAULT_AUTO_PAGE_SWITCH_DELAY;
 
   private resolvePromise: ((value?: unknown) => void) | null = null;
 
@@ -159,11 +106,27 @@ export class PrimaryDialogue extends Phaser.GameObjects.Container {
 
   private paginateDialogue = (fullText: string) => {
     const pages = [];
+    
+    // Calculate layout based on config
+    const textboxWidth = this.config.dialogueWidth - this.config.dialoguePaddingX * 2;
+
     const mockText = this.scene.make
       .text({
-        ...MOCK_TEXTBOX_CONFIT,
+        style: {
+          fontFamily: this.config.fontFamily,
+          fontSize: `${this.config.fontSize}px`,
+          wordWrap: {
+            width: textboxWidth,
+            useAdvancedWrap: true,
+          },
+          lineSpacing: this.config.lineSpacing,
+        },
+        x: 0,
+        y: 0,
+        text: "",
       })
       .setVisible(false);
+      
     let currentWorkingSegment = "";
     let tempPageCandidate = "";
 
@@ -229,7 +192,7 @@ export class PrimaryDialogue extends Phaser.GameObjects.Container {
     this.textbox!.setText("");
 
     this.dialogueTimer = this.scene.time.addEvent({
-      delay: this.letterDisplaySpeed,
+      delay: this.config.letterDisplaySpeed,
       callback: this.handleTypeLetter,
       callbackScope: this,
       loop: true,
@@ -240,39 +203,36 @@ export class PrimaryDialogue extends Phaser.GameObjects.Container {
     if (this.currentLetterIndex < this.currentDialogueSegment.length) {
       this.textbox!.setText(
         this.currentDialogueSegment.substring(0, this.currentLetterIndex + 1),
-      ); // 變更為 this.textbox
+      );
       this.currentLetterIndex++;
     } else {
       this.dialogueTimer!.remove();
 
-      if (this.autoPageSwitchDelay === 0) return; // 新增的判斷，如果延遲為0則不自動換頁
+      if (this.config.autoPageSwitchDelay === 0) return;
 
-      // 條件 1: 當前頁面已完成，且當前對話條目中還有更多頁面
       if (this.currentPageIndex < this.dialoguePages.length - 1) {
         this.autoPageSwitchTimer = this.scene.time.addEvent({
-          delay: this.autoPageSwitchDelay,
-          callback: this.handleAdvancePage, // 變更為 handleAdvancePage
-          callbackScope: this, // 確保回呼函式中的 'this' 指向 PrimaryDialogue 實例
-          loop: false, // 只執行一次
+          delay: this.config.autoPageSwitchDelay,
+          callback: this.handleAdvancePage,
+          callbackScope: this,
+          loop: false,
         });
       }
-      // 條件 2: 當前頁面是當前對話條目的最後一頁，且還有更多對話條目要來。
       else if (this.currentDialogueEntryIndex < this.dialogueData.length - 1) {
         this.autoPageSwitchTimer = this.scene.time.addEvent({
-          delay: this.autoPageSwitchDelay,
-          callback: this.handleAdvancePage, // 變更為 handleAdvancePage
-          callbackScope: this, // 確保回呼函式中的 'this' 指向 PrimaryDialogue 實例
-          loop: false, // 只執行一次
+          delay: this.config.autoPageSwitchDelay,
+          callback: this.handleAdvancePage,
+          callbackScope: this,
+          loop: false,
         });
       }
-      // 條件 3: 當前頁面是當前對話條目的最後一頁，
       else if (
         this.currentPageIndex === this.dialoguePages.length - 1 &&
         this.currentDialogueEntryIndex === this.dialogueData.length - 1
       ) {
         this.autoPageSwitchTimer = this.scene.time.addEvent({
-          delay: this.autoPageSwitchDelay,
-          callback: this.handleAdvancePage, // 這將導致呼叫 setHideDialogueBox()
+          delay: this.config.autoPageSwitchDelay,
+          callback: this.handleAdvancePage,
           callbackScope: this,
           loop: false,
         });
@@ -319,17 +279,39 @@ export class PrimaryDialogue extends Phaser.GameObjects.Container {
     });
   }
 
-  public initDialogue(params?: {
-    onDialogueStart?: () => void;
-    onDialogueEnd?: () => void;
-  }) {
+  public initDialogue(
+    config: IPrimaryDialogueConfig,
+    params?: {
+      onDialogueStart?: () => void;
+      onDialogueEnd?: () => void;
+    }
+  ) {
+    this.config = { ...DEFAULT_CONFIG, ...config } as Required<IPrimaryDialogueConfig>;
+
     const { onDialogueStart, onDialogueEnd } = params || {};
     this.onDialogueStart = onDialogueStart;
     this.onDialogueEnd = onDialogueEnd;
 
+    const portraitX = 0;
+    const portraitY = this.config.sceneHeight - this.config.portraitFrameSize;
+    const dialogueX = this.config.sceneWidth - this.config.dialogueWidth;
+    const dialogueY = this.config.sceneHeight - this.config.dialogueHeight;
+    const textboxX = dialogueX + this.config.dialoguePaddingX;
+    const textboxY = dialogueY + this.config.dialoguePaddingY;
+    const textboxWidth = this.config.dialogueWidth - this.config.dialoguePaddingX * 2;
+
     this.textboxBackground = this.scene.make
       .nineslice({
-        ...DIALOGUE_FRAME_CONFIG,
+        key: this.config.frameKey,
+        frame: this.config.frameFrame,
+        leftWidth: 8,
+        rightWidth: 8,
+        topHeight: 8,
+        bottomHeight: 8,
+        x: dialogueX,
+        y: dialogueY,
+        width: this.config.dialogueWidth,
+        height: this.config.dialogueHeight,
       })
       .setOrigin(0)
       .setVisible(false)
@@ -337,7 +319,16 @@ export class PrimaryDialogue extends Phaser.GameObjects.Container {
 
     this.portraitBackground = this.scene.make
       .nineslice({
-        ...PORTRAIT_FRAME_CONFIG,
+        key: this.config.frameKey,
+        frame: this.config.frameFrame,
+        leftWidth: 8,
+        rightWidth: 8,
+        topHeight: 8,
+        bottomHeight: 8,
+        x: portraitX,
+        y: portraitY,
+        width: this.config.portraitFrameSize,
+        height: this.config.portraitFrameSize,
       })
       .setOrigin(0)
       .setVisible(false)
@@ -345,18 +336,25 @@ export class PrimaryDialogue extends Phaser.GameObjects.Container {
 
     this.portrait = this.scene.make
       .sprite({
-        ...PORTRAIT_CONFIG,
-        // key: 'pet_room',
-        // frame: 'room',
+        x: portraitX + 4,
+        y: portraitY + 4,
       })
-      .setDisplaySize(PORTRAIT_SIZE, PORTRAIT_SIZE)
+      .setDisplaySize(this.config.portraitSize, this.config.portraitSize)
       .setOrigin(0)
       .setDepth(999)
       .setVisible(false);
 
     this.textbox = this.scene.add
-      .text(TEXTBOX_X, TEXTBOX_Y, "", {
-        ...TEXTBOX_CONFIT,
+      .text(textboxX, textboxY, "", {
+        fontFamily: this.config.fontFamily,
+        fontSize: `${this.config.fontSize}px`,
+        color: this.config.fontColor,
+        wordWrap: {
+          width: textboxWidth,
+          useAdvancedWrap: true,
+        },
+        lineSpacing: this.config.lineSpacing,
+        resolution: 3,
       })
       .setDepth(2)
       .setOrigin(0)
@@ -397,6 +395,5 @@ export class PrimaryDialogue extends Phaser.GameObjects.Container {
     // Release callback references to avoid closure leaks
     this.onDialogueStart = undefined;
     this.onDialogueEnd = undefined;
-    // this.scene.input.off('pointerdown', this.boundAdvancePage);
   }
 }

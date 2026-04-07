@@ -1,5 +1,6 @@
 import { PrimaryDialogue } from "../../components/PrimaryDialogue";
 import { Scene } from "phaser";
+import { GLOBAL_DIALOGUE_CONFIG } from "@/game/constants";
 
 export default class TestScene extends Scene {
   constructor() {
@@ -16,7 +17,7 @@ export default class TestScene extends Scene {
     this.add.rectangle(400, 300, 800, 600, 0x444444).setOrigin(0.5);
 
     this.dialogue = new PrimaryDialogue(this);
-    this.dialogue.initDialogue();
+    this.dialogue.initDialogue(GLOBAL_DIALOGUE_CONFIG);
   }
 
   update() {}

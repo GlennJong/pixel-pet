@@ -56,7 +56,7 @@ export interface CharacterStageItem {
 
 export interface CharacterConfig {
   id?: string;
-  atlasId?: string;
+  atlasId: string;
   texture?: string;
   watch?: string;
   stages?: CharacterStageItem[];
