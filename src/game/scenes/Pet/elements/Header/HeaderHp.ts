@@ -1,8 +1,6 @@
 import Phaser from "phaser";
 import { runtimeData, ObservableValue } from "@/game/runtimeData";
-import { PET_HEADER_TEXT_STYLE } from "../../constants";
-
-const DEFAULT_HP = 88;
+import { PET_HEADER_TEXT_STYLE, PET_DEFAULT_HP } from "../../constants";
 
 export class IconHp extends Phaser.GameObjects.Container {
   private hpState?: ObservableValue<number>;
@@ -20,7 +18,7 @@ export class IconHp extends Phaser.GameObjects.Container {
     this.value =
       typeof this.hpState?.get() === "number"
         ? this.hpState?.get()
-        : DEFAULT_HP;
+        : PET_DEFAULT_HP;
     this.hpState?.watch(this.handleSetValue);
 
     const { x, y } = option;

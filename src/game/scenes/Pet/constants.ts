@@ -20,6 +20,7 @@ export const PET_HEADER_TEXT_STYLE = {
   fontSize: 8,
   color: "#000",
 };
+export const PET_HEADER_HEIGHT = 25;
 
 export const PET_NAMESPACE = "pet" as const;
 

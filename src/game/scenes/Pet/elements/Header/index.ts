@@ -5,11 +5,9 @@ import { getStaticData } from "@/game/staticData";
 import { HeaderStatIcon } from "./HeaderStatIcon";
 import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
 import { HeaderConfig } from "./types";
-import { PET_STATIC_KEYS } from "../../constants";
+import { PET_HEADER_HEIGHT, PET_STATIC_KEYS } from "../../constants";
 import { createAnimationsFromConfig } from "@/game/utils/animation";
-
-const DEFAULT_WIDTH = 160;
-const DEFAULT_HEIGHT = 25;
+import { CANVAS_WIDTH } from "@/game/constants";
 
 // TODO Constant Naming
 export class Header extends Phaser.GameObjects.Container {
@@ -64,8 +62,8 @@ export class Header extends Phaser.GameObjects.Container {
         frame: frameConfig.textureFrame,
         x: 0,
         y: 0,
-        width: DEFAULT_WIDTH,
-        height: DEFAULT_HEIGHT,
+        width: CANVAS_WIDTH,
+        height: PET_HEADER_HEIGHT,
         leftWidth: frameConfig.leftWidth || 8,
         rightWidth: frameConfig.rightWidth || 8,
         topHeight: frameConfig.topHeight || 8,

@@ -1,8 +1,6 @@
 import Phaser from "phaser";
 import { runtimeData, ObservableValue } from "@/game/runtimeData";
-import { PET_HEADER_TEXT_STYLE } from "../../constants";
-
-const DEFAULT_COIN = 888;
+import { PET_HEADER_TEXT_STYLE, PET_DEFAULT_COIN } from "../../constants";
 
 export class IconCoin extends Phaser.GameObjects.Container {
   private coinState?: ObservableValue<number>;
@@ -20,7 +18,7 @@ export class IconCoin extends Phaser.GameObjects.Container {
     this.value =
       typeof this.coinState?.get() === "number"
         ? this.coinState?.get()
-        : DEFAULT_COIN;
+        : PET_DEFAULT_COIN;
     this.coinState?.watch(this.handleSetValue);
 
     const { x, y } = option;
