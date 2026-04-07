@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { runtimeData, ObservableValue } from "@/game/runtimeData";
+import { PET_HEADER_TEXT_STYLE } from "../../constants";
 
 const DEFAULT_COIN = 888;
 
@@ -53,7 +54,7 @@ export class IconCoin extends Phaser.GameObjects.Container {
       .text({
         x: x + 12,
         y: y + 2,
-        style: { fontFamily: "Tiny5", fontSize: 8, color: "#000" },
+        style: PET_HEADER_TEXT_STYLE,
       })
       .setOrigin(0);
     text.setResolution(4);

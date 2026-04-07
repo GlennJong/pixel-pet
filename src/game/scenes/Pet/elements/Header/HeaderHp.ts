@@ -1,9 +1,8 @@
 import Phaser from "phaser";
 import { runtimeData, ObservableValue } from "@/game/runtimeData";
+import { PET_HEADER_TEXT_STYLE } from "../../constants";
 
 const DEFAULT_HP = 88;
-const FONT_FAMILY = "Tiny5";
-const FONT_SIZE = 8;
 
 export class IconHp extends Phaser.GameObjects.Container {
   private hpState?: ObservableValue<number>;
@@ -96,7 +95,7 @@ export class IconHp extends Phaser.GameObjects.Container {
       .text({
         x: x + 12,
         y: y + 2,
-        style: { fontFamily: FONT_FAMILY, fontSize: FONT_SIZE, color: "#000" },
+        style: PET_HEADER_TEXT_STYLE,
         text: "",
       })
       .setOrigin(0);

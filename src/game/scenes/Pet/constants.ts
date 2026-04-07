@@ -15,6 +15,12 @@ export const PET_AUTO_ACTION_DURATION = 3000;
 export const PET_MOVE_DISTANCE = 24;
 export const PET_IDLE_PREFIX = "idle";
 
+export const PET_HEADER_TEXT_STYLE = {
+  fontFamily: "Tiny5",
+  fontSize: 8,
+  color: "#000",
+};
+
 export const PET_NAMESPACE = "pet" as const;
 
 export const PET_CORE_RUNTIME_KEYS = {
