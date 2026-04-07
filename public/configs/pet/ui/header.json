@@ -3,7 +3,7 @@
   "atlasId": "header_cute_01",
   "layout": {
     "left": {
-      "content": "stats",
+      "content": "menu",
       "paddingX": 4,
       "y": 7,
       "itemGap": 2,
@@ -11,7 +11,7 @@
       "maxWidth": 90
     },
     "right": {
-      "content": "menu",
+      "content": "stats",
       "paddingX": 6,
       "y": 7,
       "itemGap": 6

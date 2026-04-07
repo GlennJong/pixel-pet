@@ -24,7 +24,8 @@ export class Header extends Phaser.GameObjects.Container {
   private config: HeaderConfig;
 
   private background?: Phaser.GameObjects.NineSlice;
-  private timer: number | undefined;
+  private idleTimer: ReturnType<typeof setTimeout> | undefined;
+  private readonly IDLE_TIMEOUT = 5000;
 
   constructor(scene: Phaser.Scene) {
     super(scene);
@@ -40,6 +41,8 @@ export class Header extends Phaser.GameObjects.Container {
 
     this.setDepth(1000);
     this.scene.add.existing(this);
+
+    this.wakeUp();
   }
 
   private initAnimations = () => {
@@ -225,19 +228,40 @@ export class Header extends Phaser.GameObjects.Container {
     });
   }
 
+  public wakeUp() {
+    if (!this.visible) {
+      this.setVisible(true);
+    }
+    this.resetIdleTimer();
+  }
+
+  private hide() {
+    this.setVisible(false);
+  }
+
+  private resetIdleTimer() {
+    if (this.idleTimer) clearTimeout(this.idleTimer);
+    this.idleTimer = setTimeout(() => {
+      this.hide();
+    }, this.IDLE_TIMEOUT);
+  }
+
   public moveNext() {
+    this.wakeUp();
     this.current =
       this.current === this.selectorGroup.length - 1 ? 0 : this.current + 1;
     this.handleUpdateSelector();
   }
 
   public movePrev() {
+    this.wakeUp();
     this.current =
       this.current === 0 ? this.selectorGroup.length - 1 : this.current - 1;
     this.handleUpdateSelector();
   }
 
   public select() {
+    this.wakeUp();
     const { action } = this.config.menu[this.current];
     const currentAction = getValueFromColonRuntimeData(action);
     return currentAction;
@@ -253,7 +277,7 @@ export class Header extends Phaser.GameObjects.Container {
       arrow.destroy();
       icon.destroy();
     });
-    clearTimeout(this.timer);
+    if (this.idleTimer) clearTimeout(this.idleTimer);
     super.destroy();
   }
 }
