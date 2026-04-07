@@ -54,9 +54,23 @@ export interface CharacterStageItem {
   actions?: ActionMap;
 }
 
+export interface CharacterSettings {
+  width?: number;
+  height?: number;
+  idlePrefix: string;
+  autoActionDuration: number;
+  moveDistance: number;
+  defaultPosition: {
+    x: number;
+    y: number;
+    edge: { from: number; to: number };
+  };
+}
+
 export interface CharacterConfig {
   id?: string;
   atlasId: string;
+  settings: CharacterSettings;
   texture?: string;
   watch?: string;
   stages?: CharacterStageItem[];

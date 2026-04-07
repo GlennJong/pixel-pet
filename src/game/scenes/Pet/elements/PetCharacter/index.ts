@@ -13,10 +13,6 @@ import { runtimeData, ObservableValue } from "@/game/runtimeData";
 import {
   getPetRuntimeDataKey,
   PET_STATIC_KEYS,
-  PET_DEFAULT_POSITION,
-  PET_AUTO_ACTION_DURATION,
-  PET_MOVE_DISTANCE,
-  PET_IDLE_PREFIX,
 } from "../../constants";
 import {
   ActionDef,
@@ -25,6 +21,7 @@ import {
   PetCharacterDirection,
   CharacterConfig,
   CharacterStageItem,
+  CharacterSettings,
 } from "./types";
 import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
 
@@ -37,6 +34,7 @@ export class PetCharacter extends Character {
   private direction: PetCharacterDirection = "left";
   private isInterrupted: boolean = false;
   private watchState?: ObservableValue<number>;
+  private settings: CharacterSettings;
 
   public activities: Record<string, ActionDef>;
 
@@ -46,6 +44,11 @@ export class PetCharacter extends Character {
       throw new Error("[PetCharacter] Invalid CharacterConfig: Missing atlasId");
     }
 
+    if (!config.settings) {
+      throw new Error("[PetCharacter] Invalid CharacterConfig: Missing settings");
+    }
+    const settings = config.settings;
+    
     let initialAnimations = config.animations || [];
     if (config.watch && config.stages && config.stages.length > 0) {
       const watchKey = getPetRuntimeDataKey(config.watch);
@@ -57,10 +60,12 @@ export class PetCharacter extends Character {
     }
 
     super(scene, config.atlasId, {
-      ...PET_DEFAULT_POSITION,
+      ...settings.defaultPosition,
       texture: config.texture,
       animations: initialAnimations as AnimationItem[],
     });
+
+    this.settings = settings;
 
     this.character.setDepth(2);
 
@@ -69,7 +74,7 @@ export class PetCharacter extends Character {
     this.activities = config.actions || {};
 
     // define moving limitation
-    this.spaceEdge = PET_DEFAULT_POSITION.edge;
+    this.spaceEdge = this.settings.defaultPosition.edge;
 
     // setup watcher for level or other state based on config (like room.json)
     if (config.watch && config.stages) {
@@ -119,7 +124,7 @@ export class PetCharacter extends Character {
 
   private handleDefaultIdleAction() {
     if (this._state !== PetState.IDLE) return;
-    const defaultKey = `${PET_IDLE_PREFIX}-${this.direction}`;
+    const defaultKey = `${this.settings.idlePrefix}-${this.direction}`;
     const actionConfig = this.idleActions[defaultKey];
 
     if (actionConfig) {
@@ -168,10 +173,10 @@ export class PetCharacter extends Character {
     let isMovingDistanceOverEdge = false;
     if (this.direction === "right") {
       isMovingDistanceOverEdge =
-        this.character.x + PET_MOVE_DISTANCE > this.spaceEdge.to;
+        this.character.x + this.settings.moveDistance > this.spaceEdge.to;
     } else if (this.direction === "left") {
       isMovingDistanceOverEdge =
-        this.character.x - PET_MOVE_DISTANCE < this.spaceEdge.from;
+        this.character.x - this.settings.moveDistance < this.spaceEdge.from;
     }
 
     if (isMovingDistanceOverEdge) {
@@ -181,7 +186,7 @@ export class PetCharacter extends Character {
     } else {
       this._state = PetState.MOVING;
       // Note: Character.ts defines TDirection locally, which is compatible with our TDirection
-      this.moveDirection(this.direction, PET_MOVE_DISTANCE, () => {
+      this.moveDirection(this.direction, this.settings.moveDistance, () => {
         if (this.isInterrupted) return;
         this._state = PetState.IDLE;
         this.handleDefaultIdleAction();
@@ -195,7 +200,7 @@ export class PetCharacter extends Character {
     this.isStarted = true;
     if (!this.autoActionTimer) {
       this.autoActionTimer = this.scene.time.addEvent({
-        delay: PET_AUTO_ACTION_DURATION,
+        delay: this.settings.autoActionDuration,
         loop: true,
         callback: () => this.handleAutomaticAction(),
       });
@@ -264,7 +269,7 @@ export class PetCharacter extends Character {
     if (this.autoActionTimer && this.isStarted) {
       this.autoActionTimer.remove();
       this.autoActionTimer = this.scene.time.addEvent({
-        delay: PET_AUTO_ACTION_DURATION,
+        delay: this.settings.autoActionDuration,
         loop: true,
         callback: () => this.handleAutomaticAction(),
       });

@@ -29,13 +29,11 @@ import { getStaticData } from "@/game/staticData";
 import {
   getPetRuntimeDataKey,
   PET_STATIC_KEYS,
-  PET_DEFAULT_HP,
-  PET_DEFAULT_COIN,
-  PET_DEFAULT_LEVEL,
 } from "./constants";
 import { StatItem } from "./types/common";
 import { PetStats } from "./types/runtime";
 import { initRuntimeData } from "@/game/runtimeData";
+import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
 
 export default class PetScene extends Scene {
   private header?: Header;
@@ -72,10 +70,7 @@ export default class PetScene extends Scene {
   private initDomainData() {
     const stats = getStaticData<StatItem[]>(PET_STATIC_KEYS.STATS) || [];
 
-    const defaultStats: PetStats = {
-      hp: PET_DEFAULT_HP,
-      coin: PET_DEFAULT_COIN,
-      level: PET_DEFAULT_LEVEL,
+    const defaultStats: Partial<PetStats> = {
       condition: "normal",
       taskQueue: [] as Task[],
     };
@@ -90,7 +85,7 @@ export default class PetScene extends Scene {
 
     // Init runtime data
     for (const [id, value] of Object.entries(defaultStats)) {
-      initRuntimeData<typeof value>(getPetRuntimeDataKey(id), value);
+      initRuntimeData(getPetRuntimeDataKey(id) as KnownRuntimeDataKey, value as any);
     }
   }
 

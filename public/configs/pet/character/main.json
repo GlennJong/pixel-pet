@@ -1,6 +1,18 @@
 {
   "id": "character",
   "atlasId": "afk",
+  "settings": { 
+    "width": 32, 
+    "height": 32, 
+    "idlePrefix": "idle", 
+    "autoActionDuration": 3000, 
+    "moveDistance": 24, 
+    "defaultPosition": { 
+      "x": 60, 
+      "y": 68, 
+      "edge": { "from": 20, "to": 140 } 
+    } 
+  },
   "watch": "level",
   "stages": [
     {
