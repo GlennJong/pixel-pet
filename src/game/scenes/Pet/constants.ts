@@ -7,6 +7,10 @@ export const PET_HEADER_TEXT_STYLE = {
 };
 export const PET_HEADER_HEIGHT = 25;
 
+export const PET_TASK_QUEUE_INTERVAL = 150;
+export const PET_TASK_QUEUE_MAX_RETRY = 3;
+export const PET_CHARACTER_DIALOGUE_TYPING_DELAY = 50;
+
 export const PET_NAMESPACE = "pet" as const;
 
 export const PET_CORE_RUNTIME_KEYS = {

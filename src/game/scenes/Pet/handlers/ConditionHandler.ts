@@ -43,6 +43,6 @@ export class ConditionHandler {
   };
 
   destroy() {
-    this.conditionState?.unwatchAll();
+    // No active watchers to remove from this class
   }
 }

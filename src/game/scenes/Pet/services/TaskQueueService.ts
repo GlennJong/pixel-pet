@@ -11,6 +11,7 @@ import { Message, CommandMap, Task } from "../types";
 import { MESSAGE_QUEUE_STORE_KEY } from "./constants";
 import { getStaticData } from "@/game/staticData";
 import { getCharacterActionsConfig } from "../utils/resolveActions";
+import { PET_TASK_QUEUE_MAX_RETRY } from "../constants";
 
 // Generate a unique fallback ID for tasks
 const generateTaskId = () => Date.now().toString(36) + Math.random().toString(36).substring(2);
@@ -123,7 +124,7 @@ export class TaskQueueService {
       task.id = generateTaskId();
     }
     const taskId = task.id; // Use real unique ID
-    const maxRetry = 3;
+    const maxRetry = PET_TASK_QUEUE_MAX_RETRY;
 
     const handleTask = async () => {
       let success = false;

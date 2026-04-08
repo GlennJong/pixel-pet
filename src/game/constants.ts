@@ -12,3 +12,8 @@ export const GLOBAL_DIALOGUE_CONFIG: IPrimaryDialogueConfig = {
   frameFrame: "frame",
   fontFamily: "BoutiqueBitmap",
 };
+
+export const GLOBAL_DIALOGUE_AUTO_NEXT_DELAY = 1000;
+export const SCENE_TRANSITION_DURATION = 1000;
+export const DEBUG_STORE_POLLING_INTERVAL = 100;
+

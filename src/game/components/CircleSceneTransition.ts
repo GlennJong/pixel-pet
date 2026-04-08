@@ -1,8 +1,9 @@
 import Phaser from "phaser";
 import { runTween } from "../utils/runTween";
+import { SCENE_TRANSITION_DURATION } from "../constants";
 
 const maskCoverColor = 0x000000;
-const DURATION = 1000;
+const DURATION = SCENE_TRANSITION_DURATION;
 
 export async function sceneConverter(
   scene: Phaser.Scene,

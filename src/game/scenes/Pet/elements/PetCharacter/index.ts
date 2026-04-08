@@ -13,6 +13,7 @@ import { runtimeData, ObservableValue } from "@/game/runtimeData";
 import {
   getPetRuntimeDataKey,
   PET_STATIC_KEYS,
+  PET_CHARACTER_DIALOGUE_TYPING_DELAY,
 } from "../../constants";
 import {
   ActionDef,
@@ -247,7 +248,7 @@ export class PetCharacter extends Character {
   public async runFunctionalActionAsync(action: string) {
     await new Promise<void>((resolve) => {
       const timer = this.scene.time.addEvent({
-        delay: 50,
+        delay: PET_CHARACTER_DIALOGUE_TYPING_DELAY,
         loop: true,
         callback: () => {
           if (this._state === PetState.IDLE) {

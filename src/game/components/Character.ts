@@ -51,6 +51,7 @@ export class Character extends Phaser.GameObjects.Container {
   }
 
   private pendingResolves: Array<() => void> = [];
+  private activeTimeouts: ReturnType<typeof setTimeout>[] = [];
 
   public async playAnimation(prefix: string, time?: number): Promise<void> {
     return new Promise((resolve) => {
@@ -76,12 +77,16 @@ export class Character extends Phaser.GameObjects.Container {
       const onComplete = (anim: Phaser.Animations.Animation) => {
         if (anim.key === animationName) {
           if (typeof time !== "undefined") {
-            setTimeout(() => {
+            const timeoutId = setTimeout(() => {
               this.pendingResolves = this.pendingResolves.filter(
                 (r) => r !== resolve,
               );
+              this.activeTimeouts = this.activeTimeouts.filter(
+                (t) => t !== timeoutId,
+              );
               resolve();
             }, time);
+            this.activeTimeouts.push(timeoutId);
           } else {
             this.pendingResolves = this.pendingResolves.filter(
               (r) => r !== resolve,
@@ -140,6 +145,10 @@ export class Character extends Phaser.GameObjects.Container {
     this.pendingResolves.forEach((resolve) => resolve());
     this.pendingResolves = [];
 
+    // Clear all pending timeouts to prevent memory leaks and dangling resolves
+    this.activeTimeouts.forEach(clearTimeout);
+    this.activeTimeouts = [];
+
     if (this.currentMoveTween?.isPlaying()) {
       this.currentMoveTween.stop();
       this.currentMoveTween = undefined;
@@ -151,6 +160,8 @@ export class Character extends Phaser.GameObjects.Container {
   }
 
   public destroy() {
+    this.activeTimeouts.forEach(clearTimeout);
+    this.activeTimeouts = [];
     this.character.destroy();
   }
 }

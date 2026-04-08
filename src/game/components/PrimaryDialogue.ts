@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { GLOBAL_DIALOGUE_AUTO_NEXT_DELAY } from "../constants";
 
 export type TDialogData = {
   portrait: string;
@@ -36,7 +37,7 @@ const DEFAULT_CONFIG = {
   fontColor: "#000000",
   lineSpacing: 4,
   letterDisplaySpeed: 50,
-  autoPageSwitchDelay: 1000,
+  autoPageSwitchDelay: GLOBAL_DIALOGUE_AUTO_NEXT_DELAY,
 };
 
 export class PrimaryDialogue extends Phaser.GameObjects.Container {

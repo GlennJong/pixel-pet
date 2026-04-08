@@ -6,6 +6,7 @@ import {
   runtimeData,
 } from "@/game/runtimeData";
 import { Task } from "@/game/scenes/Pet/types";
+import { DEBUG_STORE_POLLING_INTERVAL } from "@/game/constants";
 
 export default function DebugPanel() {
   if (!import.meta.env.DEV) return null;
@@ -22,7 +23,7 @@ function DebugPanelInner() {
         setIsReady(true);
         clearInterval(checkStore);
       }
-    }, 100);
+    }, DEBUG_STORE_POLLING_INTERVAL);
     return () => clearInterval(checkStore);
   }, []);
 

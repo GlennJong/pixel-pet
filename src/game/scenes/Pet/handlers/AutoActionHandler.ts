@@ -15,6 +15,7 @@ import { ActionDef, ActionConditionRule, CharacterStageItem } from "../types";
 interface AutoActionRule {
   action: string;
   when: NonNullable<ActionDef["condition"]>;
+  parsedWhen?: Record<string, any>;
 }
 
 export class AutoActionHandler {
@@ -59,7 +60,27 @@ export class AutoActionHandler {
 
     // 2. Fetch auto_actions
     const autoActionsKey = getPetStaticDataKey("auto_actions");
-    this.autoActions = getStaticData(autoActionsKey) || [];
+    const rawAutoActions: AutoActionRule[] = getStaticData(autoActionsKey) || [];
+
+    // Pre-parse the rules (e.g. converting numeric values to numbers ahead of time)
+    this.autoActions = rawAutoActions.map((a) => {
+      const parsedWhen: Record<string, any> = {};
+      if (a.when) {
+        for (const [k, cond] of Object.entries(a.when)) {
+          if (
+            typeof cond === "object" &&
+            cond !== null &&
+            "op" in cond &&
+            "value" in cond
+          ) {
+            parsedWhen[k] = { ...cond, numericValue: Number((cond as any).value) };
+          } else {
+            parsedWhen[k] = cond;
+          }
+        }
+      }
+      return { ...a, parsedWhen };
+    });
   }
 
   public reinit() {
@@ -81,8 +102,9 @@ export class AutoActionHandler {
     // Cache initial values and setup listeners
     const watchedKeys = new Set<KnownRuntimeDataKey>();
     this.autoActions.forEach((a) => {
-      if (a.when) {
-        Object.keys(a.when).forEach((k) =>
+      const targetWhen = a.parsedWhen || a.when;
+      if (targetWhen) {
+        Object.keys(targetWhen).forEach((k) =>
           watchedKeys.add(k as KnownRuntimeDataKey),
         );
       }
@@ -106,8 +128,9 @@ export class AutoActionHandler {
 
   private checkConditions() {
     const matchRule = this.autoActions.find((a) => {
-      if (!a.when) return false;
-      return Object.entries(a.when).every(([k, cond]) => {
+      const targetWhen = a.parsedWhen || a.when;
+      if (!targetWhen) return false;
+      return Object.entries(targetWhen).every(([k, cond]) => {
         const val = this.cache[k as KnownRuntimeDataKey] as
           | number
           | string
@@ -123,19 +146,20 @@ export class AutoActionHandler {
           "op" in cond &&
           "value" in cond
         ) {
-          const rule = cond as ActionConditionRule;
+          const rule = cond as ActionConditionRule & { numericValue: number };
           if (typeof val === "undefined") return false;
+          const numVal = Number(val);
           switch (rule.op) {
             case "==":
               return val == rule.value;
             case ">=":
-              return Number(val) >= Number(rule.value);
+              return numVal >= rule.numericValue;
             case "<=":
-              return Number(val) <= Number(rule.value);
+              return numVal <= rule.numericValue;
             case ">":
-              return Number(val) > Number(rule.value);
+              return numVal > rule.numericValue;
             case "<":
-              return Number(val) < Number(rule.value);
+              return numVal < rule.numericValue;
             default:
               return false;
           }

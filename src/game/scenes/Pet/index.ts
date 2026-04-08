@@ -29,6 +29,7 @@ import { getStaticData } from "@/game/staticData";
 import {
   getPetRuntimeDataKey,
   PET_STATIC_KEYS,
+  PET_TASK_QUEUE_INTERVAL,
 } from "./constants";
 import { StatItem } from "./types/common";
 import { PetStats } from "./types/runtime";
@@ -106,7 +107,7 @@ export default class PetScene extends Scene {
     this.taskQueueService = new TaskQueueService(this);
     this.taskQueueService.init({
       onTask: (task) => this.handleActionQueueTask(task),
-      interval: 300,
+      interval: PET_TASK_QUEUE_INTERVAL,
     });
 
     this.autoActionHandler = new AutoActionHandler();
@@ -120,16 +121,20 @@ export default class PetScene extends Scene {
     });
   }
 
+  private handleLeftKeyDown = () => this.handleControlButton("left");
+  private handleRightKeyDown = () => this.handleControlButton("right");
+  private handleSelectKeyDown = () => this.handleControlButton("space");
+
   private initControls() {
     this.keyboardHandler = new KeyboardHandler(this, {
-      onLeft: () => this.handleControlButton("left"),
-      onRight: () => this.handleControlButton("right"),
-      onSpace: () => this.handleControlButton("space"),
+      onLeft: this.handleLeftKeyDown,
+      onRight: this.handleRightKeyDown,
+      onSpace: this.handleSelectKeyDown,
     });
 
-    EventBus.on("game-left-keydown", () => this.handleControlButton("left"));
-    EventBus.on("game-right-keydown", () => this.handleControlButton("right"));
-    EventBus.on("game-select-keydown", () => this.handleControlButton("space"));
+    EventBus.on("game-left-keydown", this.handleLeftKeyDown);
+    EventBus.on("game-right-keydown", this.handleRightKeyDown);
+    EventBus.on("game-select-keydown", this.handleSelectKeyDown);
   }
 
   private async startScene() {
@@ -240,9 +245,10 @@ export default class PetScene extends Scene {
     this.autoActionHandler?.destroy();
     this.taskQueueService?.destroy();
     this.stats?.destroy();
+    this.keyboardHandler?.destroy();
 
-    EventBus.off("game-left-keydown");
-    EventBus.off("game-right-keydown");
-    EventBus.off("game-select-keydown");
+    EventBus.off("game-left-keydown", this.handleLeftKeyDown);
+    EventBus.off("game-right-keydown", this.handleRightKeyDown);
+    EventBus.off("game-select-keydown", this.handleSelectKeyDown);
   };
 }

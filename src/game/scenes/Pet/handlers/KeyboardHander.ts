@@ -41,7 +41,7 @@ export class KeyboardHandler {
     }
   }
 
-  destory() {
+  destroy() {
     this.spaceKey?.destroy();
   }
 }

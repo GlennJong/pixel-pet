@@ -55,6 +55,7 @@ export class StatHandler<K extends KnownRuntimeDataKey> {
   private conditionState;
   private statState: ObservableValue<RuntimeDataValue<K>> | undefined;
   private storeKey: K;
+  private statKey: string;
   private min: number;
   private max: number;
 
@@ -66,6 +67,11 @@ export class StatHandler<K extends KnownRuntimeDataKey> {
   ) {
     this.scene = scene;
     this.storeKey = storeKey;
+    
+    // Cache the stat key parsing to avoid hot path string splitting
+    const parts = (storeKey as string).split(".");
+    this.statKey = parts[parts.length - 1];
+
     this.statState = runtimeData(storeKey);
     this.min = min ?? -Infinity;
     this.max = max ?? Infinity;
@@ -90,7 +96,7 @@ export class StatHandler<K extends KnownRuntimeDataKey> {
     const conditionObj = conditions[condition];
     if (!conditionObj || typeof conditionObj !== "object") return;
     const rules = conditionObj;
-    const statKey = this.getStatKey();
+    const statKey = this.statKey;
     if (!rules || !rules[statKey]) return;
     const rule = rules[statKey];
     if (!rule) return;
@@ -120,16 +126,10 @@ export class StatHandler<K extends KnownRuntimeDataKey> {
     });
   };
 
-  // 取得資源 key (如 'hp', 'mp')
-  private getStatKey(): string {
-    const parts = (this.storeKey as string).split(".");
-    return parts[parts.length - 1];
-  }
-
   public runEffect = (effect: Partial<Record<string, ActionEffect>>): void => {
     if (!effect) return;
 
-    const key = this.getStatKey();
+    const key = this.statKey;
     const statEffect = effect[key];
     if (!statEffect) return;
     const current = getRuntimeDataGroup(this.storeKey as string) as number;
