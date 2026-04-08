@@ -1,0 +1,27 @@
+{
+  "id": "transition",
+  "watch": "level",
+  "atlasId": "hi",
+  "animations": [
+    {
+      "prefix": "full",
+      "qty": 2,
+      "freq": 2,
+      "repeat": -1
+    }
+  ],
+  "stages": [
+    {
+      "value": 0,
+      "animation": "full",
+      "effect": "circle",
+      "delay": 500
+    },
+    {
+      "value": 5,
+      "animation": "full",
+      "effect": "fade",
+      "delay": 500
+    }
+  ]
+}

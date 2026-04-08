@@ -138,7 +138,7 @@ export default class PetScene extends Scene {
   }
 
   private async startScene() {
-    await sceneStarter(this, { type: 'circle', delay: 2000 });
+    await sceneStarter(this);
     this.character?.startPet();
     this.isPetReady = true;
     setRuntimeData("global.is_paused", false);

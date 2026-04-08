@@ -30,6 +30,7 @@ export class Preloader extends Scene {
         filename: `configs/pet/character/conditions.json`,
       },
       { key: `config_pet_header`, filename: `configs/pet/ui/header.json` },
+      { key: `config_pet_transition`, filename: `configs/pet/transition.json` },
       { key: `config_pet_character`, filename: `configs/pet/character/main.json` },
       { key: `config_pet_zh-tw`, filename: `configs/pet/character/zh-tw.json` },
       {

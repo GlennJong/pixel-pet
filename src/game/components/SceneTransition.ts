@@ -1,6 +1,11 @@
 import Phaser from "phaser";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, SCENE_TRANSITION_DURATION } from "../constants";
 import { runTween } from "../utils/runTween";
+import { getStaticData } from "@/game/staticData";
+import { runtimeData } from "@/game/runtimeData";
+import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
+import { getPetRuntimeDataKey } from "@/game/scenes/Pet/constants";
+import { createAnimationsFromConfig } from "@/game/utils/animation";
 
 const defaultWidth = CANVAS_WIDTH;
 const defaultHeight = CANVAS_HEIGHT;
@@ -10,9 +15,54 @@ const maskCoverColor = 0x000000;
 
 export type TransitionType = "fade" | "circle";
 
-// 用來隨機取得 Transition
-function getRandomTransitionType(): TransitionType {
-  return Math.random() > 0.5 ? "fade" : "circle";
+export interface TransitionStage {
+  value: number;
+  effect?: TransitionType;
+  delay?: number;
+  animation?: string;
+  animations?: { key: string; x: number; y: number; depth?: number }[];
+}
+
+export interface TransitionConfig {
+  id?: string;
+  atlasId?: string;
+  watch?: string;
+  animations?: any[];
+  stages?: TransitionStage[];
+}
+
+const FALLBACK_STAGE: TransitionStage = {
+  value: 0,
+  effect: "fade",
+  delay: 0,
+};
+
+// 從 staticData 取得轉場設定，並根據 watch 的等級返回適合的 stage
+function getCurrentStage(config?: TransitionConfig): TransitionStage {
+  if (!config || !config.stages || config.stages.length === 0) {
+    return FALLBACK_STAGE;
+  }
+
+  const { watch, stages } = config;
+  let currentValue = 0;
+
+  if (watch) {
+    const watchKey = getPetRuntimeDataKey(watch);
+    const state = runtimeData(watchKey as KnownRuntimeDataKey);
+    if (state) {
+      currentValue = Number(state.get()) || 0;
+    }
+  }
+
+  // 尋找最大不超過 currentValue 的 stage 設定
+  const match = stages.slice().reverse().find(s => currentValue >= s.value);
+  return match || stages[0] || FALLBACK_STAGE;
+}
+
+// 根據 config 建立預載動畫
+function processAnimationsConfig(scene: Phaser.Scene, config?: TransitionConfig) {
+  if (!config || !config.animations || !config.atlasId) return;
+  createAnimationsFromConfig(scene, config.atlasId, config.animations);
 }
 
 // 產生對應的 Transition 實例
@@ -21,6 +71,33 @@ function createTransitionContainer(scene: Phaser.Scene, type: TransitionType) {
     return new CircleScreenTransition(scene);
   }
   return new ScreenTransition(scene);
+}
+
+// 播放 Stage 中夾帶的擴充動畫Sprite
+function playStageAnimations(container: Phaser.GameObjects.Container, scene: Phaser.Scene, config?: TransitionConfig, stage?: TransitionStage) {
+  if (!config || !stage) return;
+  const atlasId = config.atlasId || "";
+  
+  const addAndPlay = (key: string, x: number, y: number, depth: number = 100) => {
+    if (!key) return;
+    const sprite = scene.make.sprite({ key: "" })
+      .setPosition(x, y)
+      .setDepth(depth);
+      
+    container.add(sprite);
+    
+    // Play before setting display size to ensure the stretch correctly ignores ratio based on the newly loaded frame
+    sprite.play(`${atlasId}_${key}`);
+    sprite.setDisplaySize(defaultWidth, defaultHeight); // 強制全畫面尺寸
+  };
+
+  if (stage.animation) {
+    addAndPlay(stage.animation, defaultWidth / 2, defaultHeight / 2);
+  }
+  
+  if (stage.animations) {
+    stage.animations.forEach(anim => addAndPlay(anim.key, anim.x, anim.y, anim.depth));
+  }
 }
 
 export async function sceneConverter(
@@ -33,24 +110,34 @@ export async function sceneConverter(
   }
 ) {
   const { scene: sceneController } = scene;
-  const { data, type, delay } = options ?? {};
   
-  // 決定轉場方式
-  const transitionType = type ?? getRandomTransitionType();
-  const cover = createTransitionContainer(scene, transitionType);
+  // 準備 Data-Driven 設定
+  const config = getStaticData<TransitionConfig>("pet.transition");
+  processAnimationsConfig(scene, config);
+  const stageInfo = getCurrentStage(config);
+  
+  // 取出套用的參數 (如果使用者有傳 Options，優先用 Options；否則套用 Stage 設定，最後預設 fade)
+  const effectParams = options?.type ?? stageInfo.effect ?? "fade";
+  const delayParams = options?.delay ?? stageInfo.delay ?? 0;
+  const { data } = options ?? {};
+  
+  const cover = createTransitionContainer(scene, effectParams);
   cover.setDepth(999999);
   
-  // circle 初始為最大畫面，fade 則初始為透明
-  if (transitionType === "circle") {
+  // 初始化
+  if (effectParams === "circle") {
     (cover as CircleScreenTransition).max();
   } else {
     (cover as ScreenTransition).init();
   }
   
+  // 加入自訂 Sprite 動畫 (如果有)
+  playStageAnimations(cover, scene, config, stageInfo);
+  
   await cover.runMask();
 
-  if (delay && delay > 0) {
-    await new Promise((resolve) => setTimeout(resolve, delay));
+  if (delayParams > 0) {
+    await new Promise((resolve) => setTimeout(resolve, delayParams));
   }
 
   if (typeof nextSceneName !== "undefined") {
@@ -65,41 +152,48 @@ export async function sceneStarter(
     delay?: number;
   }
 ) {
-  const { type, delay } = options ?? {};
-  const transitionType = type ?? getRandomTransitionType();
-  const cover = createTransitionContainer(scene, transitionType);
+  // 準備 Data-Driven 設定
+  const config = getStaticData<TransitionConfig>("pet.transition");
+  processAnimationsConfig(scene, config);
+  const stageInfo = getCurrentStage(config);
+
+  const effectParams = options?.type ?? stageInfo.effect ?? "fade";
+  const delayParams = options?.delay ?? stageInfo.delay ?? 0;
+
+  const cover = createTransitionContainer(scene, effectParams);
   cover.setDepth(999999);
   
-  // 反方向：circle 初始為半徑 0，fade 則初始為不透明
-  if (transitionType === "circle") {
+  // 反方向初始化：circle 半徑 0，fade 不透明
+  if (effectParams === "circle") {
     (cover as CircleScreenTransition).init();
   } else {
     (cover as ScreenTransition).max();
   }
   
-  if (delay && delay > 0) {
-    await new Promise((resolve) => setTimeout(resolve, delay));
+  // 加入自訂 Sprite 動畫 (如果有)
+  playStageAnimations(cover, scene, config, stageInfo);
+
+  if (delayParams > 0) {
+    await new Promise((resolve) => setTimeout(resolve, delayParams));
   }
 
   await cover.runUnmask();
+  cover.destroy(); // 避免轉場圖層殘留與動畫持續消耗效能
 }
 
 /** 
  * 像素風（不滑順）的淡入淡出 
  */
 class ScreenTransition extends Phaser.GameObjects.Container {
-  private cover: Phaser.GameObjects.Image;
+  private cover: Phaser.GameObjects.Rectangle;
 
   constructor(scene: Phaser.Scene) {
     super(scene);
 
     const cover = scene.add
-      .image(defaultWidth / 2, defaultHeight / 2, "transition-cover")
-      .setAlpha(0)
-      .setOrigin(0.5)
-      .setDepth(9999) 
-      .setSize(defaultWidth, defaultHeight)
-      .setDisplaySize(defaultWidth, defaultHeight);
+      .rectangle(defaultWidth / 2, defaultHeight / 2, defaultWidth, defaultHeight, maskCoverColor)
+      .setAlpha(1)
+      .setOrigin(0.5);
 
     this.cover = cover;
     this.add(this.cover);
@@ -107,19 +201,19 @@ class ScreenTransition extends Phaser.GameObjects.Container {
   }
 
   public init() {
-    this.cover.setAlpha(0);
+    this.setAlpha(0);
   }
 
   public max() {
-    this.cover.setAlpha(1);
+    this.setAlpha(1);
   }
 
   public async runMask() {
-    await runTween(this.cover, { alpha: 1 }, DURATION, (v) => Phaser.Math.Easing.Stepped(v, FADE_STEPS));
+    await runTween(this, { alpha: 1 }, DURATION, (v) => Phaser.Math.Easing.Stepped(v, FADE_STEPS));
   }
 
   public async runUnmask() {
-    await runTween(this.cover, { alpha: 0 }, DURATION, (v) => Phaser.Math.Easing.Stepped(v, FADE_STEPS));
+    await runTween(this, { alpha: 0 }, DURATION, (v) => Phaser.Math.Easing.Stepped(v, FADE_STEPS));
   }
 }
 
@@ -127,37 +221,32 @@ class ScreenTransition extends Phaser.GameObjects.Container {
  * 中心圓形縮放過場
  */
 class CircleScreenTransition extends Phaser.GameObjects.Container {
-  private cover: Phaser.GameObjects.Image;
+  private cover: Phaser.GameObjects.Rectangle;
   private visibleArea: Phaser.GameObjects.Arc;
   private circleMaxSize: number;
 
   constructor(scene: Phaser.Scene) {
     super(scene);
 
-    const { zoom } = scene.scale;
-    const { width, height } = scene.sys.game.canvas;
+    // 半徑最大為畫面對角線長度加一點緩衝
+    this.circleMaxSize = Math.sqrt(Math.pow(defaultWidth / 2, 2) + Math.pow(defaultHeight / 2, 2)) + 10;
 
-    this.circleMaxSize = Math.max(width * zoom, height * zoom);
-
-    // 用原本的圖片當作底層
+    // 用黑底顏色當作底層
     this.cover = scene.add
-      .image(defaultWidth / 2, defaultHeight / 2, "transition-cover")
+      .rectangle(defaultWidth / 2, defaultHeight / 2, defaultWidth, defaultHeight, maskCoverColor)
       .setOrigin(0.5)
-      .setDepth(9999)
-      .setSize(defaultWidth, defaultHeight)
-      .setDisplaySize(defaultWidth, defaultHeight)
       .setAlpha(1);
 
-    // 建立一個圓形作為遮罩（hole）
+    // 建立一個圓形作為遮罩（hole），使用遊戲固定寬高避免多螢幕縮放時計算出界
     this.visibleArea = scene.add
-      .circle(width / 2, height / 2, 0, maskCoverColor)
+      .circle(defaultWidth / 2, defaultHeight / 2, 0, maskCoverColor)
       .setVisible(false);
 
     const mask = this.visibleArea.createGeometryMask();
 
-    // invertAlpha = true 表示：圓形範圍內「不顯示」cover，圓形範圍外「顯示」cover
+    // invertAlpha = true 表示：圓形範圍內「不顯示」，圓形範圍外「顯示」
     mask.invertAlpha = true;
-    this.cover.setMask(mask);
+    this.setMask(mask); // 將 Mask 綁在 Container 身上，讓自訂動畫也跟著受到控制
     
     this.add(this.cover);
     scene.add.existing(this);
