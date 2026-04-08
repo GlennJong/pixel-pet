@@ -4,7 +4,7 @@ import { Scene } from "phaser";
 import {
   sceneConverter,
   sceneStarter,
-} from "@/game/components/CircleSceneTransition";
+} from "@/game/components/SceneTransition";
 import { setRuntimeData } from "@/game/runtimeData";
 import { EventBus } from "@/game/EventBus";
 
@@ -138,7 +138,7 @@ export default class PetScene extends Scene {
   }
 
   private async startScene() {
-    await sceneStarter(this);
+    await sceneStarter(this, { type: 'circle', delay: 2000 });
     this.character?.startPet();
     this.isPetReady = true;
     setRuntimeData("global.is_paused", false);
