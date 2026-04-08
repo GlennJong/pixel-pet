@@ -1,7 +1,7 @@
 {
   "id": "transition",
   "watch": "level",
-  "atlasId": "hi",
+  "atlasId": "ui_transition_hi",
   "animations": [
     {
       "prefix": "full",

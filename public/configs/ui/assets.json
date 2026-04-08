@@ -1,12 +1,1 @@
-[
-  {
-    "atlasId": "dialogue_frame",
-    "png": "assets/sprites/dialogue/frame/spritesheet.png",
-    "json": "assets/sprites/dialogue/frame/spritesheet.json"
-  },
-  {
-    "atlasId": "hi",
-    "png": "assets/sprites/ui/transition/hi/spritesheet.png",
-    "json": "assets/sprites/ui/transition/hi/spritesheet.json"
-  }
-]
+["ui/dialogue/frame", "ui/transition/hi"]

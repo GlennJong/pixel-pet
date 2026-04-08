@@ -8,7 +8,7 @@ export const GLOBAL_DEFAULT_TRANSMIT = {};
 export const GLOBAL_DIALOGUE_CONFIG: IPrimaryDialogueConfig = {
   sceneWidth: CANVAS_WIDTH,
   sceneHeight: CANVAS_HEIGHT,
-  frameKey: "dialogue_frame",
+  frameKey: "ui_dialogue_frame",
   frameFrame: "frame",
   fontFamily: "BoutiqueBitmap",
 };

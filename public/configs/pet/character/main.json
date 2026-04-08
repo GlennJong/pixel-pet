@@ -1,6 +1,6 @@
 {
   "id": "character",
-  "atlasId": "afk",
+  "atlasId": "pet_character_afk",
   "settings": { 
     "width": 32, 
     "height": 32, 
@@ -17,11 +17,11 @@
   "stages": [
     {
       "value": 0,
-      "atlasId": "afk"
+      "atlasId": "pet_character_afk"
     },
     {
       "value": 1,
-      "atlasId": "afk"
+      "atlasId": "pet_character_afk"
     }
   ],
   "animations": [

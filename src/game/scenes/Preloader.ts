@@ -4,7 +4,7 @@ import { initI18n } from "../utils/i18n";
 import { StaticDataSchema } from "../staticData/types";
 
 interface UIConfig {
-  assets?: Array<{ atlasId: string; png: string; json: string }>;
+  assets?: string[];
 }
 
 interface PreloadConfig extends Partial<StaticDataSchema> {
@@ -14,35 +14,6 @@ interface PreloadConfig extends Partial<StaticDataSchema> {
 export class Preloader extends Scene {
   constructor() {
     super("Preloader");
-  }
-
-  private getConfigsFiles() {
-    return [
-      { key: "config_ui_assets", filename: "configs/ui/assets.json" },
-      { key: "commands", filename: "configs/global/commands.json" },
-      { key: `config_pet_assets`, filename: `configs/pet/assets.json` },
-      {
-        key: `config_pet_stats`,
-        filename: `configs/pet/character/stats.json`,
-      },
-      {
-        key: `config_pet_conditions`,
-        filename: `configs/pet/character/conditions.json`,
-      },
-      { key: `config_pet_header`, filename: `configs/pet/ui/header.json` },
-      { key: `config_pet_transition`, filename: `configs/pet/transition.json` },
-      { key: `config_pet_character`, filename: `configs/pet/character/main.json` },
-      { key: `config_pet_zh-tw`, filename: `configs/pet/character/zh-tw.json` },
-      {
-        key: `config_pet_auto_actions`,
-        filename: `configs/pet/character/auto_actions.json`,
-      },
-      {
-        key: `config_pet_effects`,
-        filename: `configs/pet/character/effects.json`,
-      },
-      { key: `config_pet_room`, filename: `configs/pet/environment/room.json` },
-    ];
   }
 
   init() {
@@ -66,46 +37,47 @@ export class Preloader extends Scene {
       this.cache.json.add("config", customConfig);
       this._preloadAssetsFromConfig(customConfig);
     } else {
-      const configsFiles = this.getConfigsFiles();
+      this.load.json("manifest", "configs/manifest.json");
+      this.load.once("filecomplete-json-manifest", (_key: unknown, _type: unknown, data: any[]) => {
+        let num = 0;
+        let result: PreloadConfig = { pet: {} } as PreloadConfig;
 
-      let num = 0;
-      let result: PreloadConfig = { pet: {} } as PreloadConfig;
+        for (const { key, filename } of data) {
+          this.load.json(key, filename);
+          this.load.on(
+            `filecomplete-json-${key}`,
+            (_k: unknown, _t: unknown, fileData: unknown) => {
+              num += 1;
 
-      for (const { key, filename } of configsFiles) {
-        this.load.json(key, filename);
-        this.load.on(
-          `filecomplete-json-${key}`,
-          (_key: unknown, _type: unknown, data: unknown) => {
-            num += 1;
+              if (key.startsWith(`config_pet_`)) {
+                const subKey = key.replace(`config_pet_`, "");
+                const currentPet = result.pet || {};
+                result.pet = {
+                  ...currentPet,
+                  [subKey]: fileData,
+                } as PreloadConfig["pet"];
+              } else if (key.startsWith(`config_ui_`)) {
+                const subKey = key.replace(`config_ui_`, "");
+                const currentUi = result.ui || {};
+                result.ui = {
+                  ...currentUi,
+                  [subKey]: fileData,
+                } as unknown as PreloadConfig["ui"];
+              } else {
+                result = {
+                  ...result,
+                  [key]: fileData,
+                };
+              }
 
-            if (key.startsWith(`config_pet_`)) {
-              const subKey = key.replace(`config_pet_`, "");
-              const currentPet = result.pet || {};
-              result.pet = {
-                ...currentPet,
-                [subKey]: data,
-              } as PreloadConfig["pet"];
-            } else if (key.startsWith(`config_ui_`)) {
-              const subKey = key.replace(`config_ui_`, "");
-              const currentUi = result.ui || {};
-              result.ui = {
-                ...currentUi,
-                [subKey]: data,
-              } as unknown as PreloadConfig["ui"];
-            } else {
-              result = {
-                ...result,
-                [key]: data,
-              };
-            }
-
-            if (num === configsFiles.length) {
-              this.cache.json.add("config", result);
-              this._preloadAssetsFromConfig(result);
-            }
-          },
-        );
-      }
+              if (num === data.length) {
+                this.cache.json.add("config", result);
+                this._preloadAssetsFromConfig(result);
+              }
+            },
+          );
+        }
+      });
     }
 
     this.load.font(
@@ -119,17 +91,18 @@ export class Preloader extends Scene {
   _preloadAssetsFromConfig(data: PreloadConfig) {
     const { ui, pet } = data;
 
-    const allAssets = [
+    const allAssets: string[] = [
       ...(ui?.assets || []),
-      ...((pet?.assets as Array<{
-        atlasId: string;
-        png: string;
-        json: string;
-      }>) || []),
+      ...(pet?.assets || []),
     ];
 
-    for (const { atlasId, png, json } of allAssets) {
-      this.load.atlas(atlasId, png, json);
+    for (const atlasPath of allAssets) {
+      const atlasKey = atlasPath.replace(/\//g, "_");
+      this.load.atlas(
+        atlasKey,
+        `assets/sprites/${atlasPath}/spritesheet.png`,
+        `assets/sprites/${atlasPath}/spritesheet.json`
+      );
     }
   }
 

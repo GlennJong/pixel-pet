@@ -1,7 +1,7 @@
 {
   "watch": "level",
   "id": "room",
-  "atlasId": "my_room",
+  "atlasId": "pet_environment_my_room",
   "animations": [
     {
       "prefix": "background",
