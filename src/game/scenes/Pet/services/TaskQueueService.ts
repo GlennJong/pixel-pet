@@ -3,16 +3,17 @@ import Phaser from "phaser";
 import {
   runtimeData,
   setRuntimeData,
-  getRuntimeDataGroup,
   ObservableValue,
 } from "@/game/runtimeData";
 import { filterFromMatchList } from "@/game/utils/filterFromMatchList";
-import { ActionMap, CharacterStageItem } from "../elements/PetCharacter/types";
-import { getPetRuntimeDataKey, PET_STATIC_KEYS } from "../constants";
 
 import { Message, CommandMap, Task } from "../types";
 import { MESSAGE_QUEUE_STORE_KEY } from "./constants";
 import { getStaticData } from "@/game/staticData";
+import { getCharacterActionsConfig } from "../utils/resolveActions";
+
+// Generate a unique fallback ID for tasks
+const generateTaskId = () => Date.now().toString(36) + Math.random().toString(36).substring(2);
 
 export class TaskQueueService {
   private taskQueueState?: ObservableValue<Task[]>;
@@ -54,26 +55,21 @@ export class TaskQueueService {
     if (!messages.length) return;
     const tasks: Task[] = [];
     let updated = false;
+
+    const actionsConfig = getCharacterActionsConfig();
+
     messages.forEach((msg) => {
       const result = filterFromMatchList(msg, this.commandMapList);
-      const characterConfig = getStaticData(PET_STATIC_KEYS.CHARACTER);
-      let actionsConfig: ActionMap = {};
-      if (characterConfig.watch && characterConfig.stages) {
-        const watchKey = getPetRuntimeDataKey(characterConfig.watch);
-        const level = getRuntimeDataGroup(watchKey) || 0;
-        const current =
-          characterConfig.stages.find(
-            (l: CharacterStageItem) => l.value === level,
-          ) || characterConfig.stages[0];
-        actionsConfig = { ...(characterConfig.actions || {}), ...(current?.actions || {}) };
-      } else {
-        actionsConfig = characterConfig.actions || {};
-      }
-
+      
       if (result) {
         console.log({ result });
 
-        tasks.push({ ...actionsConfig[result.action], ...msg, ...result });
+        tasks.push({ 
+          id: generateTaskId(), 
+          ...actionsConfig[result.action], 
+          ...msg, 
+          ...result 
+        });
         updated = true;
       }
     });
@@ -92,12 +88,12 @@ export class TaskQueueService {
 
   addTask(task: Task) {
     const queue = this.taskQueueState?.get() || [];
-    setRuntimeData("pet.taskQueue", [...queue, task]);
+    setRuntimeData("pet.taskQueue", [...queue, { ...task, id: task.id || generateTaskId() }]);
   }
 
   addEmergentTask(task: Task) {
     const queue = this.taskQueueState?.get() || [];
-    setRuntimeData("pet.taskQueue", [task, ...queue]);
+    setRuntimeData("pet.taskQueue", [{ ...task, id: task.id || generateTaskId() }, ...queue]);
   }
 
   removeTask(index: number) {
@@ -105,6 +101,12 @@ export class TaskQueueService {
     if (index < 0 || index >= queue.length) return;
     queue.splice(index, 1);
     setRuntimeData("pet.taskQueue", [...queue]);
+  }
+
+  removeTaskById(taskId: string) {
+    const queue = this.taskQueueState?.get() || [];
+    const newQueue = queue.filter(t => t.id !== taskId);
+    setRuntimeData("pet.taskQueue", newQueue);
   }
 
   clearQueue() {
@@ -116,7 +118,11 @@ export class TaskQueueService {
     if (queue.length === 0) return;
 
     const task = queue[0];
-    const taskId = JSON.stringify(task); // Use a unique identifier for the task
+    // Assign ID if it doesn't have one (for backwards compatibility/unexpected insertions)
+    if (!task.id) {
+      task.id = generateTaskId();
+    }
+    const taskId = task.id; // Use real unique ID
     const maxRetry = 3;
 
     const handleTask = async () => {
@@ -130,11 +136,7 @@ export class TaskQueueService {
         success = false;
       }
       if (success) {
-        const currentQueue = this.taskQueueState?.get() || [];
-        const index = currentQueue.indexOf(task);
-        if (index !== -1) {
-          this.removeTask(index);
-        }
+        this.removeTaskById(taskId);
         this.retryCounts.delete(taskId);
       } else {
         const retryCount = (this.retryCounts.get(taskId) || 0) + 1;
@@ -144,11 +146,7 @@ export class TaskQueueService {
             "TaskQueueService: task failed too many times, removing from queue.",
             task,
           );
-          const currentQueue = this.taskQueueState?.get() || [];
-          const index = currentQueue.indexOf(task);
-          if (index !== -1) {
-            this.removeTask(index);
-          }
+          this.removeTaskById(taskId);
           this.retryCounts.delete(taskId);
         } else {
           console.warn("TaskQueueService: task failed, will retry.", task);

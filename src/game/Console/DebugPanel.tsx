@@ -5,6 +5,7 @@ import {
   setRuntimeData,
   runtimeData,
 } from "@/game/runtimeData";
+import { Task } from "@/game/scenes/Pet/types";
 
 export default function DebugPanel() {
   if (!import.meta.env.DEV) return null;
@@ -31,6 +32,22 @@ function DebugPanelInner() {
 }
 
 function DebugControls() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  useEffect(() => {
+    const queueState = runtimeData("pet.taskQueue" as any);
+    if (queueState) {
+      setTasks((queueState.get() as Task[]) || []);
+      const handleTaskChange = (val: unknown) => {
+        setTasks((val as Task[]) || []);
+      };
+      queueState.watch(handleTaskChange);
+      return () => {
+        queueState.unwatch(handleTaskChange);
+      };
+    }
+  }, []);
+
   const [, set] = useControls(() => ({
     "屬性 (Properties)": folder({
       hp: {
@@ -139,5 +156,54 @@ function DebugControls() {
     };
   }, [set]);
 
-  return null;
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 10,
+        right: 300,
+        width: 250,
+        pointerEvents: "none"
+      }}
+    >
+      {tasks.length > 0 && (
+        <div
+          style={{
+            padding: "8px",
+            background: "rgba(0, 0, 0, 0.7)",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            borderRadius: "6px",
+            fontSize: "12px",
+            color: "#ccc",
+            textAlign: "left",
+            pointerEvents: "auto",
+            maxHeight: "400px",
+            overflowY: "auto",
+          }}
+        >
+          <h4 style={{ margin: "0 0 8px 0", color: "#fff" }}>
+            Current Task Queue ({tasks.length})
+          </h4>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            {tasks.map((task, idx) => (
+              <div
+                key={task.id || idx}
+                style={{
+                  background: "rgba(255,255,255,0.1)",
+                  padding: "4px 8px",
+                  borderRadius: "4px",
+                  wordBreak: "break-all"
+                }}
+              >
+                <div style={{ color: "#aaa", fontSize: "10px", marginBottom: "2px" }}>
+                  [{idx + 1}] <strong>{task.user}</strong>
+                </div>
+                <div style={{ color: "#fff" }}>{task.action}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

@@ -9,6 +9,7 @@ function CommandBoard() {
   const [selectedStateOptionIndex, setSelectedStateOptionIndex] = useState(0);
   const [selectedCommandOptionIndex, setSelectedCommandOptionIndex] =
     useState(0);
+
   const stateOptions = [
     { label: "裝潢等級 = 1", key: "pet.level", value: () => 1 },
     { label: "裝潢等級 = 2", key: "pet.level", value: () => 2 },

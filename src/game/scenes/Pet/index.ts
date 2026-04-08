@@ -5,7 +5,7 @@ import {
   sceneConverter,
   sceneStarter,
 } from "@/game/components/CircleSceneTransition";
-import { setRuntimeData, getRuntimeDataGroup } from "@/game/runtimeData";
+import { setRuntimeData } from "@/game/runtimeData";
 import { EventBus } from "@/game/EventBus";
 
 // partial elements
@@ -16,7 +16,7 @@ import { Room } from "./elements/Room";
 
 // services
 import { TaskQueueService } from "./services/TaskQueueService";
-import { ActionEffect, ActionMap, CharacterStageItem, Task } from "./types";
+import { ActionEffect, Task } from "./types";
 
 // handlers
 import { KeyboardHandler } from "./handlers/KeyboardHander";
@@ -34,6 +34,7 @@ import { StatItem } from "./types/common";
 import { PetStats } from "./types/runtime";
 import { initRuntimeData } from "@/game/runtimeData";
 import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
+import { getCharacterActionsConfig } from "./utils/resolveActions";
 
 export default class PetScene extends Scene {
   private header?: Header;
@@ -153,20 +154,7 @@ export default class PetScene extends Scene {
   };
 
   private resolveActionTask(actionName: string): Task | null {
-    const characterConfig = getStaticData(PET_STATIC_KEYS.CHARACTER);
-    let actionsConfig: ActionMap = {};
-
-    if (characterConfig.watch && characterConfig.stages) {
-      const watchKey = getPetRuntimeDataKey(characterConfig.watch);
-      const level = getRuntimeDataGroup(watchKey) || 0;
-      const current =
-        characterConfig.stages?.find(
-          (l: CharacterStageItem) => l.value === level,
-        ) || characterConfig.stages?.[0];
-      actionsConfig = { ...(characterConfig.actions || {}), ...(current?.actions || {}) };
-    } else {
-      actionsConfig = characterConfig.actions || {};
-    }
+    const actionsConfig = getCharacterActionsConfig();
 
     const action = actionsConfig[actionName];
     return action

@@ -10,6 +10,7 @@ export type Message = {
 };
 
 export type Task = {
+  id?: string;
   user: string;
   action: string;
   params?: UserParams & AwardParams & { [key: string]: string | number };
