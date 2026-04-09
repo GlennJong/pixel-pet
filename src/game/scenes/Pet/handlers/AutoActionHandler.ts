@@ -29,7 +29,7 @@ export class AutoActionHandler {
   private onTrigger?: (action: ActionDef & { action: string }) => void;
   private lastTriggeredAction: string | null = null; // Prevent repeated triggers
 
-  private levelWatcher?: ObservableValue<unknown>;
+  private watcher?: ObservableValue<unknown>;
 
   constructor() {
     this.setupActions();
@@ -37,8 +37,8 @@ export class AutoActionHandler {
     const config = getStaticData(PET_STATIC_KEYS.CHARACTER);
     if (config.watch && config.stages) {
       const watchKey = getPetRuntimeDataKey(config.watch);
-      this.levelWatcher = runtimeData(watchKey as KnownRuntimeDataKey);
-      this.levelWatcher?.watch(() => {
+      this.watcher = runtimeData(watchKey as KnownRuntimeDataKey);
+      this.watcher?.watch(() => {
         this.reinit();
       });
     }
@@ -59,7 +59,7 @@ export class AutoActionHandler {
     }
 
     // 2. Fetch auto_actions
-    const autoActionsKey = getPetStaticDataKey("auto_actions");
+    const autoActionsKey = getPetStaticDataKey("autoActions");
     const rawAutoActions: AutoActionRule[] = getStaticData(autoActionsKey) || [];
 
     // Pre-parse the rules (e.g. converting numeric values to numbers ahead of time)

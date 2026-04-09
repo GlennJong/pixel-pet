@@ -9,6 +9,6 @@
   { "key": "pet_character", "filename": "configs/pet/character/core.json" },
   { "key": "pet_stats", "filename": "configs/pet/character/stats.json" },
   { "key": "pet_conditions", "filename": "configs/pet/character/conditions.json" },
-  { "key": "pet_auto_actions", "filename": "configs/pet/character/auto_actions.json" },
+  { "key": "pet_autoActions", "filename": "configs/pet/character/autoActions.json" },
   { "key": "pet_effects", "filename": "configs/pet/character/effects.json" }
 ]

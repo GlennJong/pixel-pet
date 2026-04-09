@@ -22,7 +22,7 @@ const configsFiles = [
   { key: "pet_character_stats", filename: "configs/pet/character/stats.json" },
   { key: "pet_character_conditions", filename: "configs/pet/character/conditions.json" },
   { key: "pet_character_effects", filename: "configs/pet/character/effects.json" },
-  { key: "pet_character_auto_actions", filename: "configs/pet/character/auto_actions.json" }
+  { key: "pet_character_autoActions", filename: "configs/pet/character/autoActions.json" }
 ];
 
 const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {

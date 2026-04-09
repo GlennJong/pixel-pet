@@ -17,7 +17,7 @@ export interface PetConfig {
     conditions: ConditionMap;
     character: CharacterConfig;
     room: RoomConfig;
-    auto_actions: any;
+    autoActions: any;
     effects: any;
   };
   global?: {
