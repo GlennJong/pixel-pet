@@ -1,4 +1,4 @@
-import { StatItem } from "./common";
+import { AssetItem, StatItem } from "./common";
 import { HeaderConfig } from "../elements/Header/types";
 import { ConditionMap } from "./conditions";
 import { CharacterConfig } from "../elements/PetCharacter/types";
@@ -12,7 +12,7 @@ export * from "./task";
 
 export interface PetConfig {
   pet: {
-    assets: string[];
+    assets: AssetItem[];
     stats: StatItem[];
     header: HeaderConfig;
     conditions: ConditionMap;

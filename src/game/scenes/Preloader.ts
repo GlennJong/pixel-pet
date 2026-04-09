@@ -4,7 +4,7 @@ import { initI18n } from "../utils/i18n";
 import { StaticDataSchema } from "../staticData/types";
 
 interface UIConfig {
-  assets?: string[];
+  assets?: Array<{ atlasId: string; png: string; json: string }>;
 }
 
 interface PreloadConfig extends Partial<StaticDataSchema> {
@@ -91,18 +91,17 @@ export class Preloader extends Scene {
   _preloadAssetsFromConfig(data: PreloadConfig) {
     const { ui, pet } = data;
 
-    const allAssets: string[] = [
+    const allAssets = [
       ...(ui?.assets || []),
-      ...(pet?.assets || []),
+      ...((pet?.assets as Array<{
+        atlasId: string;
+        png: string;
+        json: string;
+      }>) || []),
     ];
 
-    for (const atlasPath of allAssets) {
-      const atlasKey = atlasPath.replace(/\//g, "_");
-      this.load.atlas(
-        atlasKey,
-        `assets/sprites/${atlasPath}/spritesheet.png`,
-        `assets/sprites/${atlasPath}/spritesheet.json`
-      );
+    for (const { atlasId, png, json } of allAssets) {
+      this.load.atlas(atlasId, png, json);
     }
   }
 
