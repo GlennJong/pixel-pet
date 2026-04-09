@@ -5,7 +5,6 @@ import {
 import { selectFromPriority } from "@/game/utils/selectFromPriority";
 import { t } from "@/game/utils/i18n";
 import { getStaticData } from "@/game/staticData";
-import { GLOBAL_DIALOGUE_CONFIG } from "@/game/constants";
 import { PET_STATIC_KEYS, getPetRuntimeDataKey } from "../../constants";
 import { CharacterConfig, CharacterStageItem, DialogItem } from "./types";
 import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
@@ -20,7 +19,11 @@ export class PetDialogue extends Phaser.GameObjects.Container {
     // Window
     this.dialogue = new PrimaryDialogue(scene);
     this.dialogue.initDialogue(
-      GLOBAL_DIALOGUE_CONFIG,
+      {
+        ...((runtimeData("system.core") as any)?.get()?.dialogue),
+        sceneWidth: (runtimeData("system.core") as any)?.get()?.canvas?.width || 160,
+        sceneHeight: (runtimeData("system.core") as any)?.get()?.canvas?.height || 144
+      },
       {
         onDialogueStart: () => setRuntimeData("global.is_paused", true),
         onDialogueEnd: () => setRuntimeData("global.is_paused", false),

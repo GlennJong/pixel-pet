@@ -3,7 +3,8 @@ import { setStaticData } from "../staticData";
 import { initI18n } from "../utils/i18n";
 import { StaticDataSchema } from "../staticData/types";
 import { ProgressBar } from "../components/ProgressBar";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, PROGRESS_BAR_CONFIG } from "../constants";
+import { PROGRESS_BAR_CONFIG } from "../constants";
+import { runtimeData } from "../runtimeData";
 
 interface PreloadConfig extends Partial<StaticDataSchema> {
   assets?: {
@@ -23,10 +24,11 @@ export class Preloader extends Scene {
   init() {}
 
   preload() {
+    const core = (runtimeData("system.core") as any)?.get() || { canvas: { width: 160, height: 144 } };
     const barWidth = PROGRESS_BAR_CONFIG.width;
     const barHeight = PROGRESS_BAR_CONFIG.height;
-    const barX = (CANVAS_WIDTH - barWidth) / 2;
-    const barY = (CANVAS_HEIGHT - barHeight) / 2;
+    const barX = (core.canvas.width - barWidth) / 2;
+    const barY = (core.canvas.height - barHeight) / 2;
     
     new ProgressBar(this, {
       x: barX,

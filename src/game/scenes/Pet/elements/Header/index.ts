@@ -7,7 +7,7 @@ import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
 import { HeaderConfig, RegionLayout } from "./types";
 import { PET_HEADER_HEIGHT, PET_STATIC_KEYS } from "../../constants";
 import { createAnimationsFromConfig } from "@/game/utils/animation";
-import { CANVAS_WIDTH } from "@/game/constants";
+import { runtimeData } from "@/game/runtimeData";
 
 // TODO Constant Naming
 export class Header extends Phaser.GameObjects.Container {
@@ -65,7 +65,7 @@ export class Header extends Phaser.GameObjects.Container {
         frame: frameConfig.textureFrame,
         x: 0,
         y: 0,
-        width: CANVAS_WIDTH,
+        width: (runtimeData("system.core") as any)?.get()?.canvas?.width || 160,
         height: PET_HEADER_HEIGHT,
         leftWidth: frameConfig.leftWidth || 8,
         rightWidth: frameConfig.rightWidth || 8,
@@ -162,7 +162,7 @@ export class Header extends Phaser.GameObjects.Container {
     const actualWidth = currentPage > 0 ? maxW : currentX - layout.itemGap;
     let offsetX = paddingX;
     if (align === "right") {
-      offsetX = CANVAS_WIDTH - paddingX - actualWidth;
+      offsetX = ((runtimeData("system.core") as any)?.get()?.canvas?.width || 160) - paddingX - actualWidth;
     }
 
     builtObjects.forEach((obj) => {
@@ -194,7 +194,7 @@ export class Header extends Phaser.GameObjects.Container {
     const actualWidth = builtObjects.length > 0 ? currentX - layout.itemGap : 0;
     let offsetX = paddingX;
     if (align === "right") {
-      offsetX = CANVAS_WIDTH - paddingX - actualWidth;
+      offsetX = ((runtimeData("system.core") as any)?.get()?.canvas?.width || 160) - paddingX - actualWidth;
     }
 
     builtObjects.forEach((obj) => {

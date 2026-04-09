@@ -7,7 +7,8 @@ export interface RuntimeDataSchema {}
 export type KnownRuntimeDataKey =
   | keyof RuntimeDataSchema
   | `pet.${string}`
-  | `global.${string}`;
+  | `global.${string}`
+  | `system.${string}`;
 
 // 從 Schema 中提取型別，若尚未定義在 Schema 內，則 fallback 回 any
 export type RuntimeDataValue<K extends string> =

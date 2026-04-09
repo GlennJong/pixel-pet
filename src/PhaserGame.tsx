@@ -1,16 +1,27 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import StartGame from "./game";
 import {
   getIsAutoSaveEnabled,
   saveAllRuntimeDataToLocalStorage,
+
+  initRuntimeData,
 } from "./game/runtimeData";
 
 export const PhaserGame = () => {
   const gameRef = useRef<Phaser.Game | null>(null);
+  const [coreConfig, setCoreConfig] = useState<any>(null);
 
   useEffect(() => {
+    fetch("configs/system/core.json").then(r => r.json()).then(data => {
+      initRuntimeData("system.core", data);
+      setCoreConfig(data);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!coreConfig) return;
     // 啟動遊戲
-    gameRef.current = StartGame("game-container");
+    gameRef.current = StartGame("game-container", coreConfig.canvas.width, coreConfig.canvas.height);
 
     // 關閉視窗時自動儲存
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -38,6 +49,7 @@ export const PhaserGame = () => {
         gameRef.current = null;
       }
     };
-  }, []);
+  }, [coreConfig]);
+  if (!coreConfig) return null;
   return <div id="game-container"></div>;
 };

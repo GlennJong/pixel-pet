@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from "@/game/constants";
 
 export default function PipButton() {
   const [isPipActive, setIsPipActive] = useState(false);
@@ -21,8 +20,8 @@ export default function PipButton() {
       const SCALE_FACTOR = 5; // 160x144 放大 5 倍 = 800x720
       if (!proxyCanvasRef.current) {
         proxyCanvasRef.current = document.createElement("canvas");
-        proxyCanvasRef.current.width = CANVAS_WIDTH * SCALE_FACTOR;
-        proxyCanvasRef.current.height = CANVAS_HEIGHT * SCALE_FACTOR;
+        proxyCanvasRef.current.width = sourceCanvas.width * SCALE_FACTOR;
+        proxyCanvasRef.current.height = sourceCanvas.height * SCALE_FACTOR;
       }
 
       const proxyCtx = proxyCanvasRef.current.getContext("2d");

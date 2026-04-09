@@ -1,17 +1,17 @@
 import Phaser from "phaser";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, SCENE_TRANSITION_DURATION } from "../constants";
-import { runTween } from "../utils/runTween";
 import { getStaticData } from "@/game/staticData";
 import { runtimeData } from "@/game/runtimeData";
+import { runTween } from "../utils/runTween";
 import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
 import { getPetRuntimeDataKey } from "@/game/scenes/Pet/constants";
 import { createAnimationsFromConfig } from "@/game/utils/animation";
 
-const defaultWidth = CANVAS_WIDTH;
-const defaultHeight = CANVAS_HEIGHT;
-const DURATION = SCENE_TRANSITION_DURATION;
+const core = (runtimeData("system.core") as any)?.get() || { canvas: { width: 160, height: 144 }, transition: { duration: 1000 } };
+const defaultWidth = core.canvas.width;
+const defaultHeight = core.canvas.height;
+const DURATION = core.transition?.duration || 1000;
 const FADE_STEPS = 16;
-const maskCoverColor = 0x000000;
+
 
 export type TransitionType = "fade" | "circle";
 
@@ -21,6 +21,7 @@ export interface TransitionStage {
   delay?: number;
   animation?: string;
   animations?: { key: string; x: number; y: number; depth?: number }[];
+  color?: string | number;
 }
 
 export interface TransitionConfig {
@@ -29,6 +30,7 @@ export interface TransitionConfig {
   watch?: string;
   animations?: any[];
   stages?: TransitionStage[];
+  color?: string | number;
 }
 
 const FALLBACK_STAGE: TransitionStage = {
@@ -65,12 +67,23 @@ function processAnimationsConfig(scene: Phaser.Scene, config?: TransitionConfig)
   createAnimationsFromConfig(scene, config.atlasId, config.animations);
 }
 
-// 產生對應的 Transition 實例
-function createTransitionContainer(scene: Phaser.Scene, type: TransitionType) {
-  if (type === "circle") {
-    return new CircleScreenTransition(scene);
+
+function parseColor(color?: string | number): number {
+  if (typeof color === "string") {
+    return Phaser.Display.Color.HexStringToColor(color).color;
   }
-  return new ScreenTransition(scene);
+  if (typeof color === "number") {
+    return color;
+  }
+  return 0x000000;
+}
+
+// 產生對應的 Transition 實例
+function createTransitionContainer(scene: Phaser.Scene, type: TransitionType, color: number) {
+  if (type === "circle") {
+    return new CircleScreenTransition(scene, color);
+  }
+  return new ScreenTransition(scene, color);
 }
 
 // 播放 Stage 中夾帶的擴充動畫Sprite
@@ -121,7 +134,9 @@ export async function sceneConverter(
   const delayParams = options?.delay ?? stageInfo.delay ?? 0;
   const { data } = options ?? {};
   
-  const cover = createTransitionContainer(scene, effectParams);
+  const colorRaw = stageInfo.color ?? config?.color;
+  const effectColor = parseColor(colorRaw);
+  const cover = createTransitionContainer(scene, effectParams, effectColor);
   cover.setDepth(999999);
   
   // 初始化
@@ -160,7 +175,9 @@ export async function sceneStarter(
   const effectParams = options?.type ?? stageInfo.effect ?? "fade";
   const delayParams = options?.delay ?? stageInfo.delay ?? 0;
 
-  const cover = createTransitionContainer(scene, effectParams);
+  const colorRaw = stageInfo.color ?? config?.color;
+  const effectColor = parseColor(colorRaw);
+  const cover = createTransitionContainer(scene, effectParams, effectColor);
   cover.setDepth(999999);
   
   // 反方向初始化：circle 半徑 0，fade 不透明
@@ -187,11 +204,11 @@ export async function sceneStarter(
 class ScreenTransition extends Phaser.GameObjects.Container {
   private cover: Phaser.GameObjects.Rectangle;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, color: number) {
     super(scene);
 
     const cover = scene.add
-      .rectangle(defaultWidth / 2, defaultHeight / 2, defaultWidth, defaultHeight, maskCoverColor)
+      .rectangle(defaultWidth / 2, defaultHeight / 2, defaultWidth, defaultHeight, color)
       .setAlpha(1)
       .setOrigin(0.5);
 
@@ -225,7 +242,7 @@ class CircleScreenTransition extends Phaser.GameObjects.Container {
   private visibleArea: Phaser.GameObjects.Arc;
   private circleMaxSize: number;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, color: number) {
     super(scene);
 
     // 半徑最大為畫面對角線長度加一點緩衝
@@ -233,13 +250,13 @@ class CircleScreenTransition extends Phaser.GameObjects.Container {
 
     // 用黑底顏色當作底層
     this.cover = scene.add
-      .rectangle(defaultWidth / 2, defaultHeight / 2, defaultWidth, defaultHeight, maskCoverColor)
+      .rectangle(defaultWidth / 2, defaultHeight / 2, defaultWidth, defaultHeight, color)
       .setOrigin(0.5)
       .setAlpha(1);
 
     // 建立一個圓形作為遮罩（hole），使用遊戲固定寬高避免多螢幕縮放時計算出界
     this.visibleArea = scene.add
-      .circle(defaultWidth / 2, defaultHeight / 2, 0, maskCoverColor)
+      .circle(defaultWidth / 2, defaultHeight / 2, 0, color)
       .setVisible(false);
 
     const mask = this.visibleArea.createGeometryMask();
