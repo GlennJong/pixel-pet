@@ -104,8 +104,8 @@ export class Preloader extends Scene {
     setStaticData(data as StaticDataSchema);
 
     // 修正 locales 取得方式，對應 manifest 結構
-    if (data["locales_zh-tw"]) {
-      initI18n(data["locales_zh-tw"]);
+    if (data.locales && data.locales['zh-tw']) {
+      initI18n(data.locales['zh-tw']);
     }
 
     this.scene.start("MainScene");
