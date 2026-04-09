@@ -17,10 +17,11 @@ export class PetDialogue extends Phaser.GameObjects.Container {
     super(scene);
 
     // Window
+    const dialogueConfig = getStaticData<any>("global.dialogue") || {};
     this.dialogue = new PrimaryDialogue(scene);
     this.dialogue.initDialogue(
       {
-        ...((runtimeData("system.core") as any)?.get()?.dialogue),
+        ...dialogueConfig,
         sceneWidth: (runtimeData("system.core") as any)?.get()?.canvas?.width || 160,
         sceneHeight: (runtimeData("system.core") as any)?.get()?.canvas?.height || 144
       },

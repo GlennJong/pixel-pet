@@ -6,10 +6,11 @@ import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
 import { getPetRuntimeDataKey } from "@/game/scenes/Pet/constants";
 import { createAnimationsFromConfig } from "@/game/utils/animation";
 
-const core = (runtimeData("system.core") as any)?.get() || { canvas: { width: 160, height: 144 }, transition: { duration: 1000 } };
+const core = (runtimeData("system.core") as any)?.get() || { canvas: { width: 160, height: 144 } };
+const transitionData = getStaticData<TransitionConfig>("global.transition") || { duration: 1000 };
 const defaultWidth = core.canvas.width;
 const defaultHeight = core.canvas.height;
-const DURATION = core.transition?.duration || 1000;
+const DURATION = transitionData?.duration || 1000;
 const FADE_STEPS = 16;
 
 
@@ -31,6 +32,7 @@ export interface TransitionConfig {
   animations?: any[];
   stages?: TransitionStage[];
   color?: string | number;
+  duration?: number;
 }
 
 const FALLBACK_STAGE: TransitionStage = {
@@ -125,7 +127,7 @@ export async function sceneConverter(
   const { scene: sceneController } = scene;
   
   // 準備 Data-Driven 設定
-  const config = getStaticData<TransitionConfig>("global.ui.transition");
+  const config = getStaticData<TransitionConfig>("global.transition");
   processAnimationsConfig(scene, config);
   const stageInfo = getCurrentStage(config);
   
@@ -168,7 +170,7 @@ export async function sceneStarter(
   }
 ) {
   // 準備 Data-Driven 設定
-  const config = getStaticData<TransitionConfig>("global.ui.transition");
+  const config = getStaticData<TransitionConfig>("global.transition");
   processAnimationsConfig(scene, config);
   const stageInfo = getCurrentStage(config);
 

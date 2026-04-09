@@ -3,15 +3,6 @@
     "width": 160,
     "height": 144
   },
-  "dialogue": {
-    "frameKey": "ui_dialogue_frame",
-    "frameFrame": "frame",
-    "fontFamily": "BoutiqueBitmap",
-    "autoNextDelay": 1000
-  },
-  "transition": {
-    "duration": 1000
-  },
   "debug": {
     "storePollingInterval": 100
   }

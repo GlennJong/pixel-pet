@@ -3,6 +3,7 @@
   "watch": "level",
   "atlasId": "ui_transition_hi",
   "color": "#000000",
+  "duration": 1000,
   "animations": [
     {
       "prefix": "full",
