@@ -2,9 +2,14 @@ import { Scene } from "phaser";
 import { setStaticData } from "../staticData";
 import { initI18n } from "../utils/i18n";
 import { StaticDataSchema } from "../staticData/types";
+import { ProgressBar } from "../components/ProgressBar";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, PROGRESS_BAR_CONFIG } from "../constants";
 
 interface PreloadConfig extends Partial<StaticDataSchema> {
-  assets?: Array<{ atlasId: string; png: string; json: string }>;
+  assets?: {
+    atlases?: Array<{ atlasId: string; png: string; json: string }>;
+    fonts?: Array<{ key: string; url: string; format: string }>;
+  };
   locales?: {
     "zh-tw"?: any;
   };
@@ -15,11 +20,19 @@ export class Preloader extends Scene {
     super("Preloader");
   }
 
-  init() {
-    this.add.image(512, 384, "background");
-  }
+  init() {}
 
   preload() {
+    const barWidth = PROGRESS_BAR_CONFIG.width;
+    const barHeight = PROGRESS_BAR_CONFIG.height;
+    const barX = (CANVAS_WIDTH - barWidth) / 2;
+    const barY = (CANVAS_HEIGHT - barHeight) / 2;
+    
+    new ProgressBar(this, {
+      x: barX,
+      y: barY,
+      ...PROGRESS_BAR_CONFIG
+    });
     this.load.setPath("");
 
     let customConfig: PreloadConfig | null = null;
@@ -39,7 +52,7 @@ export class Preloader extends Scene {
       this.load.json("manifest", "configs/manifest.json");
       this.load.once("filecomplete-json-manifest", (_key: unknown, _type: unknown, data: any[]) => {
         let num = 0;
-        let result: PreloadConfig = { pet: {} } as PreloadConfig;
+        let result: PreloadConfig = {} as PreloadConfig;
 
         for (const { key, filename } of data) {
           this.load.json(key, filename);
@@ -66,19 +79,21 @@ export class Preloader extends Scene {
       });
     }
 
-    this.load.font(
-      "BoutiqueBitmap",
-      "assets/fonts/BoutiqueBitmap9x9.ttf",
-      "truetype",
-    );
-    this.load.font("Tiny5", "assets/fonts/Tiny5-Regular.ttf", "truetype");
+
   }
 
   _preloadAssetsFromConfig(data: PreloadConfig) {
-    const allAssets = data.assets || [];
-
-    for (const { atlasId, png, json } of allAssets) {
+    const atlases = data.assets?.atlases || [];
+    for (const { atlasId, png, json } of atlases) {
       this.load.atlas(atlasId, png, json);
+    }
+
+    const fonts = data.assets?.fonts || [];
+    for (const { key, url, format } of fonts) {
+      // Phaser's font loader usually handles this if a font plugin is used.
+      // But standard phaser 3 doesn't have a built-in 'this.load.font' without custom logic/plugins.
+      // Looks like the user had it natively or via a webfont plugin.
+      (this.load as any).font(key, url, format);
     }
   }
 

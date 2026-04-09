@@ -1,27 +1,41 @@
-[
-  {
-    "atlasId": "pet_environment_my_room",
-    "png": "assets/sprites/pet/environment/my_room/spritesheet.png",
-    "json": "assets/sprites/pet/environment/my_room/spritesheet.json"
-  },
-  {
-    "atlasId": "pet_ui_header_cute_01",
-    "png": "assets/sprites/pet/ui/header_cute_01/spritesheet.png",
-    "json": "assets/sprites/pet/ui/header_cute_01/spritesheet.json"
-  },
-  {
-    "atlasId": "pet_character_afk",
-    "png": "assets/sprites/pet/character/afk/spritesheet.png",
-    "json": "assets/sprites/pet/character/afk/spritesheet.json"
-  },
-  {
-    "atlasId": "ui_dialogue_frame",
-    "png": "assets/sprites/ui/dialogue/frame/spritesheet.png",
-    "json": "assets/sprites/ui/dialogue/frame/spritesheet.json"
-  },
-  {
-    "atlasId": "ui_transition_hi",
-    "png": "assets/sprites/ui/transition/hi/spritesheet.png",
-    "json": "assets/sprites/ui/transition/hi/spritesheet.json"
-  }
-]
+{
+  "atlases": [
+    {
+      "atlasId": "pet_environment_my_room",
+      "png": "assets/sprites/pet/environment/my_room/spritesheet.png",
+      "json": "assets/sprites/pet/environment/my_room/spritesheet.json"
+    },
+    {
+      "atlasId": "pet_ui_header_cute_01",
+      "png": "assets/sprites/pet/ui/header_cute_01/spritesheet.png",
+      "json": "assets/sprites/pet/ui/header_cute_01/spritesheet.json"
+    },
+    {
+      "atlasId": "pet_character_afk",
+      "png": "assets/sprites/pet/character/afk/spritesheet.png",
+      "json": "assets/sprites/pet/character/afk/spritesheet.json"
+    },
+    {
+      "atlasId": "ui_dialogue_frame",
+      "png": "assets/sprites/ui/dialogue/frame/spritesheet.png",
+      "json": "assets/sprites/ui/dialogue/frame/spritesheet.json"
+    },
+    {
+      "atlasId": "ui_transition_hi",
+      "png": "assets/sprites/ui/transition/hi/spritesheet.png",
+      "json": "assets/sprites/ui/transition/hi/spritesheet.json"
+    }
+  ],
+  "fonts": [
+    {
+      "key": "BoutiqueBitmap",
+      "url": "assets/fonts/BoutiqueBitmap9x9.ttf",
+      "format": "truetype"
+    },
+    {
+      "key": "Tiny5",
+      "url": "assets/fonts/Tiny5-Regular.ttf",
+      "format": "truetype"
+    }
+  ]
+}
