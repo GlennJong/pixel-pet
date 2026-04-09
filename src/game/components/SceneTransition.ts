@@ -112,7 +112,7 @@ export async function sceneConverter(
   const { scene: sceneController } = scene;
   
   // 準備 Data-Driven 設定
-  const config = getStaticData<TransitionConfig>("pet.transition");
+  const config = getStaticData<TransitionConfig>("global.ui.transition");
   processAnimationsConfig(scene, config);
   const stageInfo = getCurrentStage(config);
   
@@ -153,7 +153,7 @@ export async function sceneStarter(
   }
 ) {
   // 準備 Data-Driven 設定
-  const config = getStaticData<TransitionConfig>("pet.transition");
+  const config = getStaticData<TransitionConfig>("global.ui.transition");
   processAnimationsConfig(scene, config);
   const stageInfo = getCurrentStage(config);
 

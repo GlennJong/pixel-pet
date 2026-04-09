@@ -1,4 +1,4 @@
-import { AssetItem, StatItem } from "./common";
+import { StatItem } from "./common";
 import { HeaderConfig } from "../elements/Header/types";
 import { ConditionMap } from "./conditions";
 import { CharacterConfig } from "../elements/PetCharacter/types";
@@ -12,12 +12,19 @@ export * from "./task";
 
 export interface PetConfig {
   pet: {
-    assets: AssetItem[];
     stats: StatItem[];
     header: HeaderConfig;
     conditions: ConditionMap;
     character: CharacterConfig;
     room: RoomConfig;
+    auto_actions: any;
+    effects: any;
+  };
+  global?: {
+    ui?: {
+      transition?: any;
+    };
+    dialogue?: any;
   };
 }
 

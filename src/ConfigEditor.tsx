@@ -10,24 +10,18 @@ import {
 const LOCAL_KEY = "custom_config";
 
 const configsFiles = [
-  // 可動態擴充，key 為 config 名稱，filename 為檔案名
-  { key: "commands", filename: "configs/global/commands.json" },
-  { key: "ui", filename: "configs/global/ui.json" },
-  { key: "config_pet_assets", filename: "configs/pet/assets.json" },
-  { key: "config_pet_stats", filename: "configs/pet/character/stats.json" },
-  {
-    key: "config_pet_conditions",
-    filename: "configs/pet/character/conditions.json",
-  },
-  { key: "config_pet_header", filename: "configs/pet/ui/header.json" },
-  { key: "config_pet_transition", filename: "configs/pet/transition.json" },
-  { key: "config_pet_character", filename: "configs/pet/character/main.json" },
-  {
-    key: "config_pet_auto_actions",
-    filename: "configs/pet/character/auto_actions.json",
-  },
-  { key: "config_pet_effects", filename: "configs/pet/character/effects.json" },
-  { key: "config_pet_room", filename: "configs/pet/environment/room.json" },
+  { key: "manifest", filename: "configs/manifest.json" },
+  { key: "locales", filename: "configs/locales/zh-tw.json" },
+  { key: "system_commands", filename: "configs/system/commands.json" },
+  { key: "global_ui_transition", filename: "configs/global/ui/transition/core.json" },
+  { key: "assets", filename: "configs/assets.json" },
+  { key: "pet_room", filename: "configs/pet/room/core.json" },
+  { key: "pet_ui_header", filename: "configs/pet/ui/header/core.json" },
+  { key: "pet_character", filename: "configs/pet/character/core.json" },
+  { key: "pet_character_stats", filename: "configs/pet/character/stats.json" },
+  { key: "pet_character_conditions", filename: "configs/pet/character/conditions.json" },
+  { key: "pet_character_effects", filename: "configs/pet/character/effects.json" },
+  { key: "pet_character_auto_actions", filename: "configs/pet/character/auto_actions.json" }
 ];
 
 const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
@@ -65,15 +59,15 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
       }),
     );
 
-    const mergedConfig: Record<string, any> = {};
+            const mergedConfig: Record<string, any> = {};
     Object.keys(rawConfig).forEach((key) => {
-      if (key.startsWith("config_pet_")) {
-        const subKey = key.replace("config_pet_", "");
-        if (!mergedConfig.pet) mergedConfig.pet = {};
-        mergedConfig.pet[subKey] = rawConfig[key];
-      } else {
-        mergedConfig[key] = rawConfig[key];
+      const keys = key.split('_');
+      let current = mergedConfig;
+      for (let i = 0; i < keys.length - 1; i++) {
+        if (!current[keys[i]]) current[keys[i]] = {};
+        current = current[keys[i]];
       }
+      current[keys[keys.length - 1]] = rawConfig[key];
     });
 
     setConfig(mergedConfig);
@@ -99,15 +93,15 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
       }),
     );
 
-    const mergedConfig: Record<string, any> = {};
+            const mergedConfig: Record<string, any> = {};
     Object.keys(rawConfig).forEach((key) => {
-      if (key.startsWith("config_pet_")) {
-        const subKey = key.replace("config_pet_", "");
-        if (!mergedConfig.pet) mergedConfig.pet = {};
-        mergedConfig.pet[subKey] = rawConfig[key];
-      } else {
-        mergedConfig[key] = rawConfig[key];
+      const keys = key.split('_');
+      let current = mergedConfig;
+      for (let i = 0; i < keys.length - 1; i++) {
+        if (!current[keys[i]]) current[keys[i]] = {};
+        current = current[keys[i]];
       }
+      current[keys[keys.length - 1]] = rawConfig[key];
     });
 
     setConfig(mergedConfig);
@@ -170,9 +164,9 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
       <JsonEditor
         title="資源狀態設計"
         wording={petConditionWording}
-        value={config.pet.conditions}
+        value={config.pet.character.conditions}
         onChange={(data) => {
-          config.pet.conditions = data;
+          config.pet.character.conditions = data;
           setConfig({ ...config });
         }}
       />
@@ -180,9 +174,9 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
         title="閒置動作設計"
         wording={idleActionsWording}
         hide={["animationSet", "direction", "isMoving"]}
-        value={config.pet.mycharacter.list[0].idleActions}
+        value={config.pet.character.idleActions}
         onChange={(data) => {
-          config.pet.mycharacter.list[0].idleActions = data;
+          config.pet.character.idleActions = data;
           setConfig({ ...config });
         }}
       />
@@ -190,9 +184,9 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
         title="動作：喝水"
         wording={actionsWording}
         hide={["animationSet", "action", "user", "portrait"]}
-        value={config.pet.mycharacter.list[0].actions.drink}
+        value={config.pet.character.actions.drink}
         onChange={(data) => {
-          config.pet.mycharacter.list[0].actions.drink = data;
+          config.pet.character.actions.drink = data;
           setConfig({ ...config });
         }}
       />
@@ -200,9 +194,9 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
         title="動作：戰鬥"
         wording={actionsWording}
         hide={["animationSet", "action", "user", "portrait"]}
-        value={config.pet.mycharacter.list[0].actions.write}
+        value={config.pet.character.actions.write}
         onChange={(data) => {
-          config.pet.mycharacter.list[0].actions.write = data;
+          config.pet.character.actions.write = data;
           setConfig({ ...config });
         }}
       />
@@ -210,10 +204,10 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
         title="動作：寫字"
         wording={actionsWording}
         hide={["animationSet", "action", "user", "portrait"]}
-        value={config.pet.mycharacter.list[0].actions.write}
+        value={config.pet.character.actions.write}
         template={templates}
         onChange={(data) => {
-          config.pet.mycharacter.list[0].actions.write = data;
+          config.pet.character.actions.write = data;
           setConfig({ ...config });
         }}
       />
@@ -221,10 +215,10 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
         title="動作：睡覺"
         wording={actionsWording}
         hide={["animationSet", "action", "user", "portrait", "effect"]}
-        value={config.pet.mycharacter.list[0].actions.sleep}
+        value={config.pet.character.actions.sleep}
         template={templates}
         onChange={(data) => {
-          config.pet.mycharacter.list[0].actions.sleep = data;
+          config.pet.character.actions.sleep = data;
           setConfig({ ...config });
         }}
       />
@@ -232,10 +226,10 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
         title="動作：起床"
         wording={actionsWording}
         hide={["animationSet", "action", "user", "portrait", "effect"]}
-        value={config.pet.mycharacter.list[0].actions.awake}
+        value={config.pet.character.actions.awake}
         template={templates}
         onChange={(data) => {
-          config.pet.mycharacter.list[0].actions.awake = data;
+          config.pet.character.actions.awake = data;
           setConfig({ ...config });
         }}
       />
@@ -250,10 +244,10 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
           "auto",
           "condition",
         ]}
-        value={config.pet.mycharacter.list[0].actions.die}
+        value={config.pet.character.actions.die}
         template={templates}
         onChange={(data) => {
-          config.pet.mycharacter.list[0].actions.die = data;
+          config.pet.character.actions.die = data;
           setConfig({ ...config });
         }}
       />
@@ -269,10 +263,10 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
           "effect",
           "condition",
         ]}
-        value={config.pet.mycharacter.list[0].actions.revive}
+        value={config.pet.character.actions.revive}
         template={templates}
         onChange={(data) => {
-          config.pet.mycharacter.list[0].actions.revive = data;
+          config.pet.character.actions.revive = data;
           setConfig({ ...config });
         }}
       />
@@ -287,10 +281,10 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
           "auto",
           "condition",
         ]}
-        value={config.pet.mycharacter.list[0].actions.reward}
+        value={config.pet.character.actions.reward}
         template={templates}
         onChange={(data) => {
-          config.pet.mycharacter.list[0].actions.reward = data;
+          config.pet.character.actions.reward = data;
           setConfig({ ...config });
         }}
       />
@@ -305,10 +299,10 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
           "auto",
           "condition",
         ]}
-        value={config.pet.mycharacter.list[0].actions.lose}
+        value={config.pet.character.actions.lose}
         template={templates}
         onChange={(data) => {
-          config.pet.mycharacter.list[0].actions.lose = data;
+          config.pet.character.actions.lose = data;
           setConfig({ ...config });
         }}
       />
@@ -324,10 +318,10 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
           "condition",
           "level",
         ]}
-        value={config.pet.mycharacter.list[0].actions.buyLv1}
+        value={config.pet.character.actions.buyLv1}
         template={templates}
         onChange={(data) => {
-          config.pet.mycharacter.list[0].actions.buyLv1 = data;
+          config.pet.character.actions.buyLv1 = data;
           setConfig({ ...config });
         }}
       />
@@ -343,10 +337,10 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
           "condition",
           "level",
         ]}
-        value={config.pet.mycharacter.list[0].actions.buyLv2}
+        value={config.pet.character.actions.buyLv2}
         template={templates}
         onChange={(data) => {
-          config.pet.mycharacter.list[0].actions.buyLv2 = data;
+          config.pet.character.actions.buyLv2 = data;
           setConfig({ ...config });
         }}
       />
@@ -362,10 +356,10 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
           "condition",
           "level",
         ]}
-        value={config.pet.mycharacter.list[0].actions.buyLv3}
+        value={config.pet.character.actions.buyLv3}
         template={templates}
         onChange={(data) => {
-          config.pet.mycharacter.list[0].actions.buyLv3 = data;
+          config.pet.character.actions.buyLv3 = data;
           setConfig({ ...config });
         }}
       />
@@ -381,10 +375,10 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
           "condition",
           "level",
         ]}
-        value={config.pet.mycharacter.list[0].actions.buyLv4}
+        value={config.pet.character.actions.buyLv4}
         template={templates}
         onChange={(data) => {
-          config.pet.mycharacter.list[0].actions.buyLv4 = data;
+          config.pet.character.actions.buyLv4 = data;
           setConfig({ ...config });
         }}
       />
@@ -400,10 +394,10 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
           "condition",
           "level",
         ]}
-        value={config.pet.mycharacter.list[0].actions.buyLv5}
+        value={config.pet.character.actions.buyLv5}
         template={templates}
         onChange={(data) => {
-          config.pet.mycharacter.list[0].actions.buyLv5 = data;
+          config.pet.character.actions.buyLv5 = data;
           setConfig({ ...config });
         }}
       />

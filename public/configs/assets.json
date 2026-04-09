@@ -13,5 +13,15 @@
     "atlasId": "pet_character_afk",
     "png": "assets/sprites/pet/character/afk/spritesheet.png",
     "json": "assets/sprites/pet/character/afk/spritesheet.json"
+  },
+  {
+    "atlasId": "ui_dialogue_frame",
+    "png": "assets/sprites/ui/dialogue/frame/spritesheet.png",
+    "json": "assets/sprites/ui/dialogue/frame/spritesheet.json"
+  },
+  {
+    "atlasId": "ui_transition_hi",
+    "png": "assets/sprites/ui/transition/hi/spritesheet.png",
+    "json": "assets/sprites/ui/transition/hi/spritesheet.json"
   }
 ]

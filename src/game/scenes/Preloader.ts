@@ -3,12 +3,11 @@ import { setStaticData } from "../staticData";
 import { initI18n } from "../utils/i18n";
 import { StaticDataSchema } from "../staticData/types";
 
-interface UIConfig {
-  assets?: Array<{ atlasId: string; png: string; json: string }>;
-}
-
 interface PreloadConfig extends Partial<StaticDataSchema> {
-  ui?: UIConfig;
+  assets?: Array<{ atlasId: string; png: string; json: string }>;
+  locales?: {
+    "zh-tw"?: any;
+  };
 }
 
 export class Preloader extends Scene {
@@ -49,26 +48,13 @@ export class Preloader extends Scene {
             (_k: unknown, _t: unknown, fileData: unknown) => {
               num += 1;
 
-              if (key.startsWith(`config_pet_`)) {
-                const subKey = key.replace(`config_pet_`, "");
-                const currentPet = result.pet || {};
-                result.pet = {
-                  ...currentPet,
-                  [subKey]: fileData,
-                } as PreloadConfig["pet"];
-              } else if (key.startsWith(`config_ui_`)) {
-                const subKey = key.replace(`config_ui_`, "");
-                const currentUi = result.ui || {};
-                result.ui = {
-                  ...currentUi,
-                  [subKey]: fileData,
-                } as unknown as PreloadConfig["ui"];
-              } else {
-                result = {
-                  ...result,
-                  [key]: fileData,
-                };
+              const keys = key.split('_');
+              let current: any = result;
+              for(let i=0; i<keys.length-1; i++) {
+                current[keys[i]] = current[keys[i]] || {};
+                current = current[keys[i]];
               }
+              current[keys[keys.length-1]] = fileData;
 
               if (num === data.length) {
                 this.cache.json.add("config", result);
@@ -89,16 +75,7 @@ export class Preloader extends Scene {
   }
 
   _preloadAssetsFromConfig(data: PreloadConfig) {
-    const { ui, pet } = data;
-
-    const allAssets = [
-      ...(ui?.assets || []),
-      ...((pet?.assets as Array<{
-        atlasId: string;
-        png: string;
-        json: string;
-      }>) || []),
-    ];
+    const allAssets = data.assets || [];
 
     for (const { atlasId, png, json } of allAssets) {
       this.load.atlas(atlasId, png, json);
@@ -106,11 +83,13 @@ export class Preloader extends Scene {
   }
 
   create() {
-    const data = this.cache.json.get("config") as StaticDataSchema;
-    setStaticData(data);
-    if (data.pet && (data.pet as any)["zh-tw"]) {
-      initI18n((data.pet as any)["zh-tw"]);
+    const data = this.cache.json.get("config");
+    setStaticData(data as StaticDataSchema);
+    
+    if (data.locales && data.locales["zh-tw"]) {
+      initI18n(data.locales["zh-tw"]);
     }
+    
     this.scene.start("MainScene");
   }
 }
