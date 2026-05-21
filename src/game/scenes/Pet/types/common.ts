@@ -2,6 +2,7 @@ export interface AssetItem {
   atlasId: string;
   png: string;
   json: string;
+  animations?: string;
 }
 
 export interface AnimationItem {
@@ -11,7 +12,7 @@ export interface AnimationItem {
   duration?: number;
   repeat: number;
   repeatDelay?: number;
-  repeat_delay?: number;
+  repeatDelay?: number;
 }
 
 export interface StatItem {

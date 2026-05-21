@@ -1,0 +1,20 @@
+[
+  { "prefix": "face-normal", "qty": 1, "freq": 1, "repeat": 0 },
+  { "prefix": "face-angry", "qty": 1, "freq": 1, "repeat": 0 },
+  { "prefix": "face-sad", "qty": 1, "freq": 1, "repeat": 0 },
+  { "prefix": "revive", "qty": 7, "freq": 8, "repeat": 0 },
+  { "prefix": "egg", "qty": 2, "freq": 1, "repeat": 0 },
+  { "prefix": "walk-left", "qty": 6, "freq": 8, "repeat": 4 },
+  { "prefix": "walk-right", "qty": 6, "freq": 8, "repeat": 4 },
+  { "prefix": "drink", "qty": 7, "freq": 4, "repeat": 0, "repeatDelay": 1000 },
+  { "prefix": "write", "qty": 13, "freq": 8, "repeat": 0, "repeatDelay": 1000 },
+  { "prefix": "lay-down", "qty": 5, "freq": 8, "repeat": 0 },
+  { "prefix": "wake-up", "qty": 5, "freq": 8, "repeat": 0 },
+  { "prefix": "sleep", "qty": 5, "freq": 2, "repeat": 0 },
+  { "prefix": "idle-left", "qty": 2, "freq": 1, "repeat": 1 },
+  { "prefix": "idle-right", "qty": 2, "freq": 1, "repeat": 1 },
+  { "prefix": "stare-left", "qty": 6, "freq": 4, "repeat": 0 },
+  { "prefix": "stare-right", "qty": 6, "freq": 4, "repeat": 0 },
+  { "prefix": "wink-left", "qty": 3, "freq": 4, "repeat": 0 },
+  { "prefix": "wink-right", "qty": 3, "freq": 4, "repeat": 0 }
+]

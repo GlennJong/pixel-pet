@@ -1,5 +1,15 @@
 import Phaser from "phaser";
 import { AnimationItem } from "@/game/scenes/Pet/types/common";
+import { getStaticData } from "@/game/staticData";
+
+/**
+ * Return the per-atlas animations loaded from animations.json (via Preloader),
+ * falling back to any animations array supplied directly in the config.
+ */
+export function resolveAtlasAnimations(atlasId: string, fallback?: AnimationItem[]): AnimationItem[] {
+  const perAtlas = getStaticData<AnimationItem[]>(`assets.animationsByAtlas.${atlasId}`);
+  return perAtlas || fallback || [];
+}
 
 export function createAnimationsFromConfig(
   scene: Phaser.Scene,
@@ -28,7 +38,7 @@ export function createAnimationsFromConfig(
     if (typeof _ani.freq !== "undefined") data.frameRate = _ani.freq;
     if (typeof _ani.duration !== "undefined") data.duration = _ani.duration;
 
-    const repeatDelay = _ani.repeatDelay ?? _ani.repeat_delay;
+    const repeatDelay = _ani.repeatDelay;
     if (typeof repeatDelay !== "undefined") data.repeatDelay = repeatDelay;
 
     scene.anims.create(data);

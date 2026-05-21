@@ -8,8 +8,9 @@ import { runtimeData } from "../runtimeData";
 
 interface PreloadConfig extends Partial<StaticDataSchema> {
   assets?: {
-    atlases?: Array<{ atlasId: string; png: string; json: string }>;
+    atlases?: Array<{ atlasId: string; png: string; json: string; animations?: string }>;
     fonts?: Array<{ key: string; url: string; format: string }>;
+    animationsByAtlas?: Record<string, any>;
   };
   locales?: {
     "zh-tw"?: any;
@@ -86,8 +87,11 @@ export class Preloader extends Scene {
 
   _preloadAssetsFromConfig(data: PreloadConfig) {
     const atlases = data.assets?.atlases || [];
-    for (const { atlasId, png, json } of atlases) {
+    for (const { atlasId, png, json, animations } of atlases) {
       this.load.atlas(atlasId, png, json);
+      if (animations) {
+        this.load.json(`anim_${atlasId}`, animations);
+      }
     }
 
     const fonts = data.assets?.fonts || [];
@@ -101,6 +105,20 @@ export class Preloader extends Scene {
 
   create() {
     const data = this.cache.json.get("config");
+
+    // Merge per-atlas animations.json into staticData under assets.animationsByAtlas
+    const atlases: Array<{ atlasId: string; animations?: string }> = data.assets?.atlases || [];
+    data.assets = data.assets || {};
+    data.assets.animationsByAtlas = {};
+    for (const { atlasId, animations } of atlases) {
+      if (animations) {
+        const animData = this.cache.json.get(`anim_${atlasId}`);
+        if (animData) {
+          data.assets.animationsByAtlas[atlasId] = animData;
+        }
+      }
+    }
+
     setStaticData(data as StaticDataSchema);
 
     // 修正 locales 取得方式，對應 manifest 結構

@@ -4,7 +4,7 @@ import { runtimeData } from "@/game/runtimeData";
 import { runTween } from "../utils/runTween";
 import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
 import { getPetRuntimeDataKey } from "@/game/scenes/Pet/constants";
-import { createAnimationsFromConfig } from "@/game/utils/animation";
+import { createAnimationsFromConfig, resolveAtlasAnimations } from "@/game/utils/animation";
 
 const core = (runtimeData("system.core") as any)?.get() || { canvas: { width: 160, height: 144 } };
 const transitionData = getStaticData<TransitionConfig>("global.transition") || { duration: 1000 };
@@ -65,8 +65,11 @@ function getCurrentStage(config?: TransitionConfig): TransitionStage {
 
 // 根據 config 建立預載動畫
 function processAnimationsConfig(scene: Phaser.Scene, config?: TransitionConfig) {
-  if (!config || !config.animations || !config.atlasId) return;
-  createAnimationsFromConfig(scene, config.atlasId, config.animations);
+  if (!config || !config.atlasId) return;
+  const resolved = resolveAtlasAnimations(config.atlasId, config.animations);
+  if (resolved.length > 0) {
+    createAnimationsFromConfig(scene, config.atlasId, resolved);
+  }
 }
 
 

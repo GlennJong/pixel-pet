@@ -6,7 +6,7 @@ import { HeaderStatIcon } from "./HeaderStatIcon";
 import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
 import { HeaderConfig, RegionLayout } from "./types";
 import { PET_HEADER_HEIGHT, PET_STATIC_KEYS } from "../../constants";
-import { createAnimationsFromConfig } from "@/game/utils/animation";
+import { createAnimationsFromConfig, resolveAtlasAnimations } from "@/game/utils/animation";
 import { runtimeData } from "@/game/runtimeData";
 
 // TODO Constant Naming
@@ -47,8 +47,9 @@ export class Header extends Phaser.GameObjects.Container {
 
   private initAnimations = () => {
     const { atlasId, texture, animations } = this.config;
-    if (animations) {
-      createAnimationsFromConfig(this.scene, atlasId, animations, texture);
+    const resolved = resolveAtlasAnimations(atlasId, animations);
+    if (resolved.length > 0) {
+      createAnimationsFromConfig(this.scene, atlasId, resolved, texture);
     }
   };
 

@@ -4,14 +4,6 @@
   "atlasId": "ui_transition_hi",
   "color": "#000000",
   "duration": 1000,
-  "animations": [
-    {
-      "prefix": "full",
-      "qty": 2,
-      "freq": 2,
-      "repeat": -1
-    }
-  ],
   "stages": [
     {
       "value": 0,

@@ -5,7 +5,7 @@ import Phaser from "phaser";
 import { Character } from "@/game/components/Character";
 
 // utils
-import { createAnimationsFromConfig } from "@/game/utils/animation";
+import { createAnimationsFromConfig, resolveAtlasAnimations } from "@/game/utils/animation";
 import { selectFromPriority } from "@/game/utils/selectFromPriority";
 import { getStaticData } from "@/game/staticData";
 import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
@@ -50,14 +50,18 @@ export class PetCharacter extends Character {
     }
     const settings = config.settings;
     
-    let initialAnimations = config.animations || [];
+    let initialAnimations = resolveAtlasAnimations(config.atlasId, config.animations);
     if (config.watch && config.stages && config.stages.length > 0) {
       const watchKey = getPetRuntimeDataKey(config.watch);
       const level = runtimeData(watchKey as KnownRuntimeDataKey)?.get() || 0;
       const initialConfig =
         config.stages.find((l) => l.value === level) || config.stages[0];
-      if (initialConfig.animations)
+      const stageAtlasId = initialConfig.atlasId || config.atlasId;
+      if (initialConfig.animations) {
         initialAnimations = initialConfig.animations;
+      } else {
+        initialAnimations = resolveAtlasAnimations(stageAtlasId, config.animations);
+      }
     }
 
     super(scene, config.atlasId, {
@@ -103,8 +107,9 @@ export class PetCharacter extends Character {
     // Merge atlasId (Stage overrides Root)
     this.atlasId = current.atlasId || config.atlasId;
 
-    // Merge animations (Stage overrides Root)
-    const mergedAnimations = current.animations || config.animations || [];
+    // Stage-level animations override; otherwise fall back to animations.json then core.json
+    const mergedAnimations = current.animations
+      || resolveAtlasAnimations(this.atlasId, config.animations);
     if (mergedAnimations.length > 0) {
       createAnimationsFromConfig(
         this.scene,

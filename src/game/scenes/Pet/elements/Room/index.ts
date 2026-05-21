@@ -3,7 +3,7 @@ import { runtimeData, ObservableValue } from "@/game/runtimeData";
 import { getPetRuntimeDataKey, PET_STATIC_KEYS } from "../../constants";
 import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
 import { RoomExtraItem } from "./types";
-import { createAnimationsFromConfig } from "@/game/utils/animation";
+import { createAnimationsFromConfig, resolveAtlasAnimations } from "@/game/utils/animation";
 
 const DEFAULT_SPRITE = { key: "", frame: "" };
 
@@ -44,8 +44,9 @@ export class Room {
 
   private initAnimations = () => {
     const { atlasId, texture, animations } = this.config || {};
-    if (animations) {
-      createAnimationsFromConfig(this.scene, atlasId, animations, texture);
+    const resolved = resolveAtlasAnimations(atlasId, animations);
+    if (resolved.length > 0) {
+      createAnimationsFromConfig(this.scene, atlasId, resolved, texture);
     }
   };
 
