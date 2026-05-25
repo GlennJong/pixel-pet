@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
-import { GridSelector, GridCellData } from '../components/GridSelector';
-import { ButtonBar } from '../components/ButtonBar';
+import { GridSelector, GridCellData, ButtonBar, ScreenKeyboard } from '../components';
 import {
   COLORS,
   BUTTON_BAR_HEIGHT,
@@ -24,10 +23,7 @@ export class FrameSelectorScreen extends Phaser.GameObjects.Container {
   private buttonBar!: ButtonBar;
 
   private _buttonBarFocused = false;
-
-  private heldKeys = new Set<string>();
-  private navKeydownHandler!: (e: KeyboardEvent) => void;
-  private navKeyupHandler!: (e: KeyboardEvent) => void;
+  private keyboard!: ScreenKeyboard;
 
   constructor(
     scene: Phaser.Scene,
@@ -80,20 +76,15 @@ export class FrameSelectorScreen extends Phaser.GameObjects.Container {
     });
 
     // ── Keyboard ──────────────────────────────────────────────────────────────
-    this.navKeydownHandler = (e: KeyboardEvent) => {
-      if (this.heldKeys.has(e.code)) return;
-      this.heldKeys.add(e.code);
-      this.handleNavKey(e.code);
-    };
-    this.navKeyupHandler = (e: KeyboardEvent) => this.heldKeys.delete(e.code);
+    this.keyboard = new ScreenKeyboard({
+      scene,
+      canAttach: () => this.active,
+      deferAttach: true,
+      onKeyDown: (code: string) => this.handleNavKey(code),
+    });
 
     scene.add.existing(this);
-    // Defer by one frame to avoid consuming the key-press that opened this screen
-    scene.time.delayedCall(0, () => {
-      if (!this.active) return;
-      scene.input.keyboard!.on('keydown', this.navKeydownHandler);
-      scene.input.keyboard!.on('keyup', this.navKeyupHandler);
-    });
+    this.keyboard.attach();
   }
 
   // ── Navigation ────────────────────────────────────────────────────────────
@@ -145,8 +136,7 @@ export class FrameSelectorScreen extends Phaser.GameObjects.Container {
   update() { /* event-driven */ }
 
   destroy(fromScene?: boolean) {
-    this.scene.input.keyboard!.off('keydown', this.navKeydownHandler);
-    this.scene.input.keyboard!.off('keyup', this.navKeyupHandler);
+    this.keyboard.destroy();
     super.destroy(fromScene);
   }
 }

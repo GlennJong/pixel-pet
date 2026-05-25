@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
-import { TextInput } from '../components/TextInput';
-import { GridSelector } from '../components/GridSelector';
-import { ButtonBar } from '../components/ButtonBar';
+import { TextInput, GridSelector, ButtonBar, ScreenKeyboard } from '../components';
+import { parseSmartFileName } from '../utils/smartInput';
 import {
   COLORS,
   FONT,
@@ -43,10 +42,7 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
   // Hidden file input – the only allowed DOM element
   private fileInput: HTMLInputElement;
 
-  // Keyboard state (track held keys to prevent repeat)
-  private heldKeys = new Set<string>();
-  private navKeydownHandler!: (e: KeyboardEvent) => void;
-  private navKeyupHandler!: (e: KeyboardEvent) => void;
+  private keyboard!: ScreenKeyboard;
 
   constructor(scene: Phaser.Scene, width: number, height: number, initialState?: { projectName: string; images: ImageItem[] }) {
     super(scene, 0, 0);
@@ -127,17 +123,13 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
     this.buttonBar.on('action', (key: string) => this.handleButtonAction(key));
 
     // ── Keyboard ──────────────────────────────────────────────────────────────
-    this.navKeydownHandler = (e: KeyboardEvent) => {
-      if (this.nameInput.isFocused) return; // TextInput handles its own keys
-      if (this.heldKeys.has(e.code)) return; // ignore key-repeat
-      this.heldKeys.add(e.code);
-      this.handleNavKey(e.code);
-    };
-    this.navKeyupHandler = (e: KeyboardEvent) => {
-      this.heldKeys.delete(e.code);
-    };
-    scene.input.keyboard!.on('keydown', this.navKeydownHandler);
-    scene.input.keyboard!.on('keyup', this.navKeyupHandler);
+    this.keyboard = new ScreenKeyboard({
+      scene,
+      canAttach: () => this.active,
+      shouldHandleKeyDown: () => !this.nameInput.isFocused,
+      onKeyDown: (code: string) => this.handleNavKey(code),
+    });
+    this.keyboard.attach();
 
     scene.add.existing(this);
 
@@ -267,6 +259,7 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
           this.grid.removeCellById(id);
           this.images = this.images.filter(img => img.id !== id);
         });
+        this.autoFillProjectNameFromParsedImages();
         this.grid.clearAllSelections();
         this.updateButtonsForSelection(0);
         break;
@@ -327,15 +320,37 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
         height: frame.realHeight,
       };
       this.images.push(item);
+      this.autoFillProjectNameFromParsedImages();
       this.grid.addImageCell({ id, textureKey });
     });
+  }
+
+  private autoFillProjectNameFromParsedImages() {
+    const keyCounts = new Map<string, number>();
+
+    this.images.forEach(image => {
+      const parsed = parseSmartFileName(image.fileName);
+      if (!parsed) return;
+      keyCounts.set(parsed.key, (keyCounts.get(parsed.key) ?? 0) + 1);
+    });
+
+    if (keyCounts.size === 0) return;
+
+    const sorted = Array.from(keyCounts.entries()).sort((a, b) => {
+      if (b[1] !== a[1]) return b[1] - a[1];
+      return a[0].localeCompare(b[0]);
+    });
+
+    const [bestKey] = sorted[0];
+    if (bestKey && this.nameInput.value !== bestKey) {
+      this.nameInput.setValue(bestKey);
+    }
   }
 
   // ── Cleanup ────────────────────────────────────────────────────────────────
 
   destroy(fromScene?: boolean) {
-    this.scene.input.keyboard!.off('keydown', this.navKeydownHandler);
-    this.scene.input.keyboard!.off('keyup', this.navKeyupHandler);
+    this.keyboard.destroy();
     if (this.fileInput.parentNode) {
       this.fileInput.parentNode.removeChild(this.fileInput);
     }

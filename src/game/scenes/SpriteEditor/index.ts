@@ -3,6 +3,8 @@ import { LibraryScreen } from './screens/LibraryScreen';
 import { SpriteEditScreen } from './screens/SpriteEditScreen';
 import { FrameSelectorScreen } from './screens/FrameSelectorScreen';
 import { EditorState, ImageItem, SpriteData } from './types';
+import { buildSpriteEditorExport, downloadSpriteEditorExport } from './utils/export';
+import { buildPresetSpritesFromImages } from './utils/smartInput';
 
 /**
  * EditorScene – Sprite Editor
@@ -90,6 +92,21 @@ export default class EditorScene extends Scene {
       frames: sp.frames.filter(fid => validIds.has(fid)),
     }));
 
+    // Smart preset: create initial sprite configs from imported file names
+    // (e.g. currycat_idle_0.png) only when no sprite config exists yet.
+    if (this.state.sprites.length === 0) {
+      const preset = buildPresetSpritesFromImages(this.state.images);
+      if (preset.sprites.length > 0) {
+        this.state.sprites = preset.sprites;
+        console.log('[SpriteEditor] Smart preset applied', {
+          spriteCount: preset.sprites.length,
+          parsedImageCount: preset.parsedImageCount,
+          skippedImageCount: preset.skippedImageCount,
+          detectedKeys: preset.detectedKeys,
+        });
+      }
+    }
+
     this.spriteEditScreen = new SpriteEditScreen(
       this, w, h, this.state.images, this.state.sprites,
     );
@@ -110,8 +127,7 @@ export default class EditorScene extends Scene {
 
     this.spriteEditScreen.on('export', (sprites: SpriteData[]) => {
       this.state.sprites = sprites;
-      // M4 stub – export not yet implemented
-      console.log('[SpriteEditor] Export requested', this.state);
+      void this.handleExport();
     });
   }
 
@@ -143,5 +159,24 @@ export default class EditorScene extends Scene {
       if (targetId) this.spriteEditScreen?.applyFrames(targetId, payload.frameIds);
       this.spriteEditScreen?.resume();
     });
+  }
+
+  private async handleExport() {
+    try {
+      const artifacts = await buildSpriteEditorExport(this, this.state);
+      downloadSpriteEditorExport(artifacts);
+
+      if (artifacts.renamedPrefixes.length > 0) {
+        console.warn('[SpriteEditor] Duplicate prefixes were renamed for export.', artifacts.renamedPrefixes);
+      }
+
+      console.log('[SpriteEditor] Exported spritesheet.png, spritesheet.json, animations.json');
+    } catch (error) {
+      console.error('[SpriteEditor] Export failed', error);
+      if (typeof window !== 'undefined') {
+        const msg = error instanceof Error ? error.message : 'Unknown export error';
+        window.alert(`Export failed: ${msg}`);
+      }
+    }
   }
 }
