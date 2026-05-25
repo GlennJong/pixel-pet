@@ -117,6 +117,7 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
     this.nameInput.on('confirm', () => this.transitionToGrid());
     this.nameInput.on('cancel', () => this.transitionToGrid());
     this.nameInput.on('nav-down', () => this.transitionToGrid());
+    this.nameInput.on('nav-up', () => this.nameInput.focus());
 
     this.grid.on('add-request', () => this.fileInput.click());
     this.grid.on('selection-change', (selected: any[]) => {

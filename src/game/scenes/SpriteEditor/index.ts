@@ -119,6 +119,7 @@ export default class EditorScene extends Scene {
 
   private showFrameSelectorScreen(w: number, h: number, currentFrames: string[]) {
     this.spriteEditScreen?.setVisible(false);
+    this.spriteEditScreen?.pause(); // mute S2's keyboard while S3 is open
     this.frameSelectorScreen?.destroy();
 
     this.frameSelectorScreen = new FrameSelectorScreen(

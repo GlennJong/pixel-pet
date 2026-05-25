@@ -87,10 +87,13 @@ export class FrameSelectorScreen extends Phaser.GameObjects.Container {
     };
     this.navKeyupHandler = (e: KeyboardEvent) => this.heldKeys.delete(e.code);
 
-    scene.input.keyboard!.on('keydown', this.navKeydownHandler);
-    scene.input.keyboard!.on('keyup', this.navKeyupHandler);
-
     scene.add.existing(this);
+    // Defer by one frame to avoid consuming the key-press that opened this screen
+    scene.time.delayedCall(0, () => {
+      if (!this.active) return;
+      scene.input.keyboard!.on('keydown', this.navKeydownHandler);
+      scene.input.keyboard!.on('keyup', this.navKeyupHandler);
+    });
   }
 
   // ── Navigation ────────────────────────────────────────────────────────────
