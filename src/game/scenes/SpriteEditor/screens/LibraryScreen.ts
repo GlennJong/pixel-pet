@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { TextInput, GridSelector, ButtonBar, ScreenKeyboard } from '../components';
+import { AtlasImportScreen } from './AtlasImportScreen';
+import { importAtlasTrio, ImportAtlasTrioResult } from '../utils/import';
 import { parseSmartFileName } from '../utils/smartInput';
 import {
   COLORS,
@@ -8,13 +10,29 @@ import {
   TEXT_INPUT_HEIGHT,
   GRID_OUTER_PAD,
 } from '../constants';
-import { ImageItem, LibraryFocusSection } from '../types';
+import {
+  ImageItem,
+  LibraryFocusSection,
+  LibraryProceedPayload,
+  SpriteData,
+  WorkspaceAtlasEntry,
+} from '../types';
 
-const BUTTONS_DEFAULT = [{ key: 'next', label: 'Next' }];
+const BUTTONS_DEFAULT = [
+  { key: 'import-local', label: 'import' },
+  { key: 'import-workspace', label: 'atlas' },
+  { key: 'next', label: 'Next' },
+];
 const buttonsWithSelection = (n: number) => [
   { key: 'cancel', label: 'cancel' },
   { key: 'delete', label: n > 0 ? `delete(${n})` : 'delete' },
 ];
+
+interface LocalAtlasTrio {
+  png: File;
+  spritesheetJson: File;
+  animationsJson?: File;
+}
 
 /**
  * S1 – LibraryScreen
@@ -27,16 +45,22 @@ const buttonsWithSelection = (n: number) => [
  * Focus sections: 'text-input' | 'grid' | 'button-bar'
  *
  * Events emitted:
- *   'proceed' ({ projectName, images }) – [Next] validated and passed
+ *   'proceed' ({ projectName, images, sprites? }) – [Next] validated and passed
  */
 export class LibraryScreen extends Phaser.GameObjects.Container {
+  private readonly screenW: number;
+  private readonly screenH: number;
+
   private nameInput: TextInput;
   private grid: GridSelector;
   private buttonBar: ButtonBar;
   private errorText: Phaser.GameObjects.Text;
 
   private focusSection: LibraryFocusSection = 'text-input';
+  private focusBeforeAtlasImport: LibraryFocusSection = 'text-input';
   private images: ImageItem[] = [];
+  private importedSprites: SpriteData[] | undefined;
+  private atlasImportScreen: AtlasImportScreen | undefined;
   private nextImageId = 1;
 
   // Hidden file input – the only allowed DOM element
@@ -46,6 +70,9 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
 
   constructor(scene: Phaser.Scene, width: number, height: number, initialState?: { projectName: string; images: ImageItem[] }) {
     super(scene, 0, 0);
+
+    this.screenW = width;
+    this.screenH = height;
 
     const PAD = 8;
     const inputY = PAD;
@@ -103,11 +130,11 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
     // ── File input (single DOM exception) ────────────────────────────────────
     this.fileInput = document.createElement('input');
     this.fileInput.type = 'file';
-    this.fileInput.accept = 'image/png,image/jpeg,image/gif,image/webp';
+    this.fileInput.accept = 'image/png,image/jpeg,image/gif,image/webp,application/json,.json';
     this.fileInput.multiple = true;
     this.fileInput.style.cssText = 'position:fixed;opacity:0;pointer-events:none;width:0;height:0;';
     document.body.appendChild(this.fileInput);
-    this.fileInput.addEventListener('change', () => this.handleFileSelect());
+    this.fileInput.addEventListener('change', () => { void this.handleFileSelect(); });
 
     // ── Component event wiring ────────────────────────────────────────────────
     this.nameInput.on('confirm', () => this.transitionToGrid());
@@ -246,9 +273,22 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
           return;
         }
         this.errorText.setVisible(false);
-        this.emit('proceed', { projectName: name, images: [...this.images] });
+        const payload: LibraryProceedPayload = {
+          projectName: name,
+          images: [...this.images],
+          sprites: this.importedSprites ? [...this.importedSprites] : undefined,
+        };
+        this.emit('proceed', payload);
         break;
       }
+      case 'import-local':
+        this.clearLibraryForReplace();
+        this.fileInput.click();
+        break;
+      case 'import-workspace':
+        this.clearLibraryForReplace();
+        void this.openAtlasImportScreen();
+        break;
       case 'cancel':
         this.grid.clearAllSelections();
         this.updateButtonsForSelection(0);
@@ -259,6 +299,9 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
           this.grid.removeCellById(id);
           this.images = this.images.filter(img => img.id !== id);
         });
+        if (toDelete.length > 0) {
+          this.importedSprites = undefined;
+        }
         this.autoFillProjectNameFromParsedImages();
         this.grid.clearAllSelections();
         this.updateButtonsForSelection(0);
@@ -284,13 +327,62 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
     });
   }
 
+  private clearLibraryForReplace() {
+    this.images.forEach(image => {
+      if (this.scene.textures.exists(image.textureKey)) {
+        this.scene.textures.remove(image.textureKey);
+      }
+    });
+
+    this.images = [];
+    this.importedSprites = undefined;
+    this.nextImageId = 1;
+
+    this.grid.setCells([{ id: '__add__', type: 'add', selected: false }]);
+    this.grid.setCursor(0);
+    this.updateButtonsForSelection(0);
+    this.errorText.setVisible(false);
+  }
+
   // ── File import ────────────────────────────────────────────────────────────
 
-  private handleFileSelect() {
+  private async handleFileSelect() {
     const files = this.fileInput.files;
     if (!files || files.length === 0) return;
 
-    Array.from(files).forEach(file => {
+    const selectedFiles = Array.from(files);
+    const atlasTrio = this.findLocalAtlasTrio(selectedFiles);
+
+    if (atlasTrio) {
+      try {
+        const result = await importAtlasTrio({
+          scene: this.scene,
+          pngBlob: atlasTrio.png,
+          spritesheetJsonText: await atlasTrio.spritesheetJson.text(),
+          animationsJsonText: atlasTrio.animationsJson ? await atlasTrio.animationsJson.text() : undefined,
+          projectNameHint: this.nameInput.value.trim() || undefined,
+        });
+        this.applyImportedAtlas(result);
+      } catch (error) {
+        this.showError(
+          `Import failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+
+      this.fileInput.value = '';
+      return;
+    }
+
+    const imageFiles = selectedFiles.filter(file => file.type.startsWith('image/'));
+    if (imageFiles.length === 0) {
+      this.showError('Select image files or atlas trio files');
+      this.fileInput.value = '';
+      return;
+    }
+
+    this.importedSprites = undefined;
+
+    imageFiles.forEach(file => {
       const reader = new FileReader();
       reader.onload = (evt) => {
         const dataUrl = evt.target?.result as string | undefined;
@@ -309,6 +401,9 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
     const textureKey = `editor_img_${id}`;
 
     // addBase64 is async; listen for completion before creating the cell
+    if (this.scene.textures.exists(textureKey)) {
+      this.scene.textures.remove(textureKey);
+    }
     this.scene.textures.addBase64(textureKey, dataUrl);
     this.scene.textures.once(`addtexture-${textureKey}`, () => {
       const frame = this.scene.textures.getFrame(textureKey);
@@ -323,6 +418,189 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
       this.autoFillProjectNameFromParsedImages();
       this.grid.addImageCell({ id, textureKey });
     });
+  }
+
+  private findLocalAtlasTrio(files: File[]): LocalAtlasTrio | null {
+    const byName = new Map(files.map(file => [file.name.toLowerCase(), file]));
+    const png = byName.get('spritesheet.png');
+    const spritesheetJson = byName.get('spritesheet.json');
+
+    if (!png || !spritesheetJson) {
+      return null;
+    }
+
+    return {
+      png,
+      spritesheetJson,
+      animationsJson: byName.get('animations.json'),
+    };
+  }
+
+  private async openAtlasImportScreen() {
+    if (this.atlasImportScreen) return;
+
+    try {
+      const configResponse = await fetch('configs/assets.json');
+      if (!configResponse.ok) {
+        throw new Error('Failed to load configs/assets.json');
+      }
+
+      const configData = await configResponse.json() as unknown;
+      const atlasList = this.parseWorkspaceAtlasList(configData);
+
+      if (atlasList.length === 0) {
+        this.showError('No atlas entries found in assets config');
+        return;
+      }
+
+      this.focusBeforeAtlasImport = this.focusSection;
+      this.deactivateCurrentFocus();
+      this.keyboard.pause();
+
+      this.atlasImportScreen = new AtlasImportScreen(this.scene, this.screenW, this.screenH, atlasList);
+      this.atlasImportScreen.once('cancel', () => {
+        this.closeAtlasImportScreen();
+      });
+      this.atlasImportScreen.once('confirm', (payload: { atlas: WorkspaceAtlasEntry }) => {
+        this.closeAtlasImportScreen();
+        void this.importAtlasFromWorkspace(payload.atlas);
+      });
+    } catch (error) {
+      this.showError(
+        `Import failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  private closeAtlasImportScreen() {
+    if (!this.atlasImportScreen) return;
+
+    this.atlasImportScreen.destroy();
+    this.atlasImportScreen = undefined;
+    this.keyboard.resume();
+    this.restoreFocusAfterAtlasImport();
+  }
+
+  private async importAtlasFromWorkspace(atlas: WorkspaceAtlasEntry) {
+    try {
+      const [pngResponse, spritesheetResponse, animationsResponse] = await Promise.all([
+        fetch(atlas.png),
+        fetch(atlas.json),
+        atlas.animations ? fetch(atlas.animations) : Promise.resolve(null),
+      ]);
+
+      if (!pngResponse.ok) {
+        throw new Error(`Failed to load atlas PNG at ${atlas.png}`);
+      }
+      if (!spritesheetResponse.ok) {
+        throw new Error(`Failed to load atlas JSON at ${atlas.json}`);
+      }
+      if (animationsResponse && !animationsResponse.ok) {
+        throw new Error(`Failed to load animations JSON at ${atlas.animations}`);
+      }
+
+      const result = await importAtlasTrio({
+        scene: this.scene,
+        pngBlob: await pngResponse.blob(),
+        spritesheetJsonText: await spritesheetResponse.text(),
+        animationsJsonText: animationsResponse ? await animationsResponse.text() : undefined,
+        projectNameHint: atlas.atlasId,
+      });
+
+      this.applyImportedAtlas(result);
+    } catch (error) {
+      this.showError(
+        `Import failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  private parseWorkspaceAtlasList(configData: unknown): WorkspaceAtlasEntry[] {
+    if (!isRecord(configData)) return [];
+    if (!Array.isArray(configData.atlases)) return [];
+
+    return configData.atlases.reduce<WorkspaceAtlasEntry[]>((list, entry) => {
+      if (!isRecord(entry)) return list;
+
+      const atlasId = typeof entry.atlasId === 'string' ? entry.atlasId.trim() : '';
+      const png = typeof entry.png === 'string' ? entry.png.trim() : '';
+      const json = typeof entry.json === 'string' ? entry.json.trim() : '';
+      const animationsRaw = entry.animations;
+      const animations = typeof animationsRaw === 'string' && animationsRaw.trim()
+        ? animationsRaw.trim()
+        : undefined;
+
+      if (!atlasId || !png || !json) return list;
+
+      list.push({
+        atlasId,
+        png,
+        json,
+        animations,
+      });
+      return list;
+    }, []);
+  }
+
+  private deactivateCurrentFocus() {
+    if (this.focusSection === 'text-input') {
+      this.nameInput.blur();
+      return;
+    }
+    if (this.focusSection === 'grid') {
+      this.grid.deactivate();
+      return;
+    }
+    this.buttonBar.deactivate();
+  }
+
+  private restoreFocusAfterAtlasImport() {
+    if (this.focusBeforeAtlasImport === 'text-input') {
+      this.focusSection = 'text-input';
+      this.nameInput.focus();
+      return;
+    }
+
+    if (this.focusBeforeAtlasImport === 'grid') {
+      this.focusSection = 'grid';
+      this.nameInput.blur();
+      this.grid.activate();
+      return;
+    }
+
+    this.focusSection = 'button-bar';
+    this.nameInput.blur();
+    this.buttonBar.activate();
+  }
+
+  private applyImportedAtlas(result: ImportAtlasTrioResult) {
+    this.images = [...result.images];
+    this.importedSprites = [...result.sprites];
+    this.nextImageId = result.images.length + 1;
+
+    this.grid.setCells([
+      ...result.images.map(img => ({
+        id: img.id,
+        type: 'image' as const,
+        textureKey: img.textureKey,
+        selected: false,
+      })),
+      { id: '__add__', type: 'add' as const, selected: false },
+    ]);
+    this.grid.setCursor(0);
+    this.grid.deactivate();
+    this.focusSection = 'text-input';
+    this.nameInput.focus();
+    this.updateButtonsForSelection(0);
+    this.errorText.setVisible(false);
+
+    if (result.projectName && this.nameInput.value !== result.projectName) {
+      this.nameInput.setValue(result.projectName);
+    }
+
+    if (result.warnings.length > 0) {
+      console.warn('[SpriteEditor][Import] warnings:', result.warnings);
+    }
   }
 
   private autoFillProjectNameFromParsedImages() {
@@ -350,10 +628,16 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
   // ── Cleanup ────────────────────────────────────────────────────────────────
 
   destroy(fromScene?: boolean) {
+    this.atlasImportScreen?.destroy();
+    this.atlasImportScreen = undefined;
     this.keyboard.destroy();
     if (this.fileInput.parentNode) {
       this.fileInput.parentNode.removeChild(this.fileInput);
     }
     super.destroy(fromScene);
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object';
 }

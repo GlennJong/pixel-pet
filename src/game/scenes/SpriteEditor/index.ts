@@ -2,7 +2,7 @@ import { Scene } from 'phaser';
 import { LibraryScreen } from './screens/LibraryScreen';
 import { SpriteEditScreen } from './screens/SpriteEditScreen';
 import { FrameSelectorScreen } from './screens/FrameSelectorScreen';
-import { EditorState, ImageItem, SpriteData } from './types';
+import { EditorState, LibraryProceedPayload, SpriteData } from './types';
 import { buildSpriteEditorExport, downloadSpriteEditorExport } from './utils/export';
 import { buildPresetSpritesFromImages } from './utils/smartInput';
 
@@ -69,9 +69,12 @@ export default class EditorScene extends Scene {
       projectName: this.state.projectName,
       images: this.state.images,
     });
-    this.libraryScreen.on('proceed', (data: { projectName: string; images: ImageItem[] }) => {
+    this.libraryScreen.on('proceed', (data: LibraryProceedPayload) => {
       this.state.projectName = data.projectName;
       this.state.images = data.images;
+      if (typeof data.sprites !== 'undefined') {
+        this.state.sprites = data.sprites;
+      }
       this.showSpriteEditScreen(w, h);
     });
   }

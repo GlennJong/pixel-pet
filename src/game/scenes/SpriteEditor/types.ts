@@ -21,6 +21,19 @@ export interface EditorState {
   sprites: SpriteData[];
 }
 
+export interface LibraryProceedPayload {
+  projectName: string;
+  images: ImageItem[];
+  sprites?: SpriteData[];
+}
+
+export interface WorkspaceAtlasEntry {
+  atlasId: string;
+  png: string;
+  json: string;
+  animations?: string;
+}
+
 export interface AnimationItem {
   prefix: string;
   qty: number;
