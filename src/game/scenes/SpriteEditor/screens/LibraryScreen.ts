@@ -262,25 +262,9 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
 
   private handleButtonAction(key: string) {
     switch (key) {
-      case 'next': {
-        const name = this.nameInput.value.trim();
-        if (!name) {
-          this.showError('Name cannot be empty');
-          return;
-        }
-        if (this.images.length === 0) {
-          this.showError('Add at least one image');
-          return;
-        }
-        this.errorText.setVisible(false);
-        const payload: LibraryProceedPayload = {
-          projectName: name,
-          images: [...this.images],
-          sprites: this.importedSprites ? [...this.importedSprites] : undefined,
-        };
-        this.emit('proceed', payload);
+      case 'next':
+        this.proceedToSpriteEdit();
         break;
-      }
       case 'import-local':
         this.clearLibraryForReplace();
         this.fileInput.click();
@@ -327,6 +311,27 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
     });
   }
 
+  private proceedToSpriteEdit() {
+    const trimmedName = this.nameInput.value.trim();
+    const name = trimmedName || 'project';
+    if (!trimmedName) {
+      this.nameInput.setValue(name);
+    }
+
+    if (this.images.length === 0) {
+      this.showError('Add at least one image');
+      return;
+    }
+
+    this.errorText.setVisible(false);
+    const payload: LibraryProceedPayload = {
+      projectName: name,
+      images: [...this.images],
+      sprites: typeof this.importedSprites !== 'undefined' ? [...this.importedSprites] : undefined,
+    };
+    this.emit('proceed', payload);
+  }
+
   private clearLibraryForReplace() {
     this.images.forEach(image => {
       if (this.scene.textures.exists(image.textureKey)) {
@@ -363,6 +368,7 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
           projectNameHint: this.nameInput.value.trim() || undefined,
         });
         this.applyImportedAtlas(result);
+        this.proceedToSpriteEdit();
       } catch (error) {
         this.showError(
           `Import failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -380,43 +386,94 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
       return;
     }
 
-    this.importedSprites = undefined;
+    this.importedSprites = [];
 
-    imageFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const dataUrl = evt.target?.result as string | undefined;
-        if (!dataUrl) return;
-        this.importImageFromDataUrl(dataUrl, file.name);
-      };
-      reader.readAsDataURL(file);
-    });
+    try {
+      await Promise.all(imageFiles.map(file => this.importImageFile(file)));
+      this.proceedToSpriteEdit();
+    } catch (error) {
+      this.showError(
+        `Import failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
 
     // Reset so the same file can be re-selected
     this.fileInput.value = '';
   }
 
-  private importImageFromDataUrl(dataUrl: string, fileName: string) {
+  private importImageFile(file: File): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onerror = () => {
+        reject(new Error(`Failed to read image file: ${file.name}`));
+      };
+
+      reader.onload = async (evt) => {
+        const dataUrl = evt.target?.result as string | undefined;
+        if (!dataUrl) {
+          reject(new Error(`Failed to decode image file: ${file.name}`));
+          return;
+        }
+
+        try {
+          await this.importImageFromDataUrl(dataUrl, file.name);
+          resolve();
+        } catch (error) {
+          reject(error instanceof Error ? error : new Error(String(error)));
+        }
+      };
+
+      reader.readAsDataURL(file);
+    });
+  }
+
+  private importImageFromDataUrl(dataUrl: string, fileName: string): Promise<void> {
     const id = `img_${this.nextImageId++}`;
     const textureKey = `editor_img_${id}`;
 
-    // addBase64 is async; listen for completion before creating the cell
-    if (this.scene.textures.exists(textureKey)) {
-      this.scene.textures.remove(textureKey);
-    }
-    this.scene.textures.addBase64(textureKey, dataUrl);
-    this.scene.textures.once(`addtexture-${textureKey}`, () => {
-      const frame = this.scene.textures.getFrame(textureKey);
-      const item: ImageItem = {
-        id,
-        fileName,
-        textureKey,
-        width: frame.realWidth,
-        height: frame.realHeight,
+    return new Promise((resolve, reject) => {
+      // addBase64 is async; listen for completion before creating the cell
+      if (this.scene.textures.exists(textureKey)) {
+        this.scene.textures.remove(textureKey);
+      }
+
+      const eventName = `addtexture-${textureKey}`;
+      const timer = window.setTimeout(() => {
+        this.scene.textures.off(eventName, onAdded);
+        reject(new Error(`Timed out while importing image: ${fileName}`));
+      }, 5000);
+
+      const onAdded = () => {
+        window.clearTimeout(timer);
+        const frame = this.scene.textures.getFrame(textureKey);
+        if (!frame) {
+          reject(new Error(`Missing imported texture frame: ${fileName}`));
+          return;
+        }
+
+        const item: ImageItem = {
+          id,
+          fileName,
+          textureKey,
+          width: frame.realWidth,
+          height: frame.realHeight,
+        };
+        this.images.push(item);
+        this.autoFillProjectNameFromParsedImages();
+        this.grid.addImageCell({ id, textureKey });
+        resolve();
       };
-      this.images.push(item);
-      this.autoFillProjectNameFromParsedImages();
-      this.grid.addImageCell({ id, textureKey });
+
+      this.scene.textures.once(eventName, onAdded);
+
+      try {
+        this.scene.textures.addBase64(textureKey, dataUrl);
+      } catch (error) {
+        window.clearTimeout(timer);
+        this.scene.textures.off(eventName, onAdded);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      }
     });
   }
 
@@ -508,6 +565,7 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
       });
 
       this.applyImportedAtlas(result);
+      this.proceedToSpriteEdit();
     } catch (error) {
       this.showError(
         `Import failed: ${error instanceof Error ? error.message : String(error)}`,
