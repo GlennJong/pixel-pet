@@ -9,6 +9,7 @@ import { MainScene } from "@/game/scenes/MainScene";
 import TestScene from "@/game/scenes/Test";
 import Pet from "@/game/scenes/Pet";
 import EditorScene from "@/game/scenes/SpriteEditor";
+import StartScreenScene from "@/game/scenes/Start";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: AUTO,
@@ -18,7 +19,7 @@ const config: Phaser.Types.Core.GameConfig = {
   pixelArt: true,
   backgroundColor: "#000",
   canvasStyle: `display:block; width: 100%; height: 100%; image-rendering: pixelated;`,
-  scene: [Preloader, MainScene, TestScene, Pet, EditorScene],
+  scene: [Preloader, MainScene, StartScreenScene, TestScene, Pet, EditorScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

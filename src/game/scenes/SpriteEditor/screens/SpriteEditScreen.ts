@@ -29,6 +29,7 @@ const BUTTONS_DEFAULT = [
   { key: 'back',   label: '↩'   },
   { key: 'add',    label: '+'  },
   { key: 'select', label: 'Select'   },
+  { key: 'apply',  label: 'Apply' },
   { key: 'export', label: 'Export' },
 ];
 
@@ -483,6 +484,7 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
       case 'back':          this.emit('back');                          break;
       case 'add':           this.addCard();                             break;
       case 'select':        this.enterSelectMode();                     break;
+      case 'apply':         this.emit('apply', this.collectSprites());  break;
       case 'export':        this.emit('export', this.collectSprites()); break;
       case 'select-cancel': this.exitSelectMode();                      break;
       case 'select-delete': this.deleteSelectedCards();                 break;

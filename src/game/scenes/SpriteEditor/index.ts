@@ -5,6 +5,13 @@ import { FrameSelectorScreen } from './screens/FrameSelectorScreen';
 import { EditorState, LibraryProceedPayload, SpriteData } from './types';
 import { buildSpriteEditorExport, downloadSpriteEditorExport } from './utils/export';
 import { buildPresetSpritesFromImages } from './utils/smartInput';
+import { saveAtlasCustomization, setCustomizationActive } from '@/game/customization';
+import { getStaticData } from '@/game/staticData';
+
+interface EditorSceneStartData {
+  returnSceneKey?: string;
+  targetAtlasId?: string;
+}
 
 /**
  * EditorScene – Sprite Editor
@@ -20,6 +27,8 @@ export default class EditorScene extends Scene {
   private libraryScreen?: LibraryScreen;
   private spriteEditScreen?: SpriteEditScreen;
   private frameSelectorScreen?: FrameSelectorScreen;
+  private returnSceneKey?: string;
+  private targetAtlasId?: string;
 
   // Pending frame-selector context (used when returning from S3 → S2)
   private pendingFrameTarget?: string;
@@ -32,6 +41,16 @@ export default class EditorScene extends Scene {
 
   constructor() {
     super('SpriteEditor');
+  }
+
+  init(data: EditorSceneStartData) {
+    this.returnSceneKey = data?.returnSceneKey;
+    this.targetAtlasId = data?.targetAtlasId;
+    this.state = {
+      projectName: this.targetAtlasId || '',
+      images: [],
+      sprites: [],
+    };
   }
 
   create() {
@@ -132,6 +151,11 @@ export default class EditorScene extends Scene {
       this.state.sprites = sprites;
       void this.handleExport();
     });
+
+    this.spriteEditScreen.on('apply', (sprites: SpriteData[]) => {
+      this.state.sprites = sprites;
+      void this.handleApply();
+    });
   }
 
   // ── S3 – Frame Selector ────────────────────────────────────────────────────
@@ -179,6 +203,61 @@ export default class EditorScene extends Scene {
       if (typeof window !== 'undefined') {
         const msg = error instanceof Error ? error.message : 'Unknown export error';
         window.alert(`Export failed: ${msg}`);
+      }
+    }
+  }
+
+  private resolveApplyAtlasId(): string {
+    const projectBasedAtlasId = this.state.projectName.trim();
+    if (projectBasedAtlasId) return projectBasedAtlasId;
+    return (this.targetAtlasId || '').trim();
+  }
+
+  private async handleApply() {
+    try {
+      const atlasId = this.resolveApplyAtlasId();
+      if (!atlasId) {
+        throw new Error('Apply requires atlasId. Set project name to the target atlasId.');
+      }
+
+      const configuredAtlases = getStaticData<Array<{ atlasId?: string }>>('assets.atlases') || [];
+      if (
+        configuredAtlases.length > 0 &&
+        !configuredAtlases.some((item) => item?.atlasId === atlasId)
+      ) {
+        throw new Error(`Unknown atlasId: ${atlasId}. Set project name to a valid assets.atlases atlasId.`);
+      }
+
+      const artifacts = await buildSpriteEditorExport(this, this.state);
+      await saveAtlasCustomization({
+        atlasId,
+        spritesheetPng: artifacts.spritesheetPng,
+        spritesheetJson: artifacts.spritesheetJson as unknown as Record<string, unknown>,
+        animations: artifacts.animations,
+      });
+      setCustomizationActive(true, atlasId);
+
+      if (artifacts.renamedPrefixes.length > 0) {
+        console.warn('[SpriteEditor] Duplicate prefixes were renamed for apply.', artifacts.renamedPrefixes);
+      }
+
+      console.log(`[SpriteEditor] Applied customization for atlas: ${atlasId}`);
+
+      if (this.returnSceneKey) {
+        this.scene.start(this.returnSceneKey, {
+          statusMessage: `Applied: ${atlasId}`,
+        });
+        return;
+      }
+
+      if (typeof window !== 'undefined') {
+        window.alert(`Applied customization for atlas: ${atlasId}`);
+      }
+    } catch (error) {
+      console.error('[SpriteEditor] Apply failed', error);
+      if (typeof window !== 'undefined') {
+        const msg = error instanceof Error ? error.message : 'Unknown apply error';
+        window.alert(`Apply failed: ${msg}`);
       }
     }
   }
