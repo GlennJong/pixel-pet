@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { AnimationItem, ImageItem, SpriteData } from '../types';
+import { ImageItem, SpriteData } from '../types';
 import { parseSmartFileName } from './smartInput';
 
 interface NormalizedAtlasFrame {
@@ -13,6 +13,15 @@ interface NormalizedAtlasFrame {
 interface FrameImageResult {
   image: ImageItem;
   frameName: string;
+}
+
+interface ParsedAnimation {
+  prefix: string;
+  qty: number;
+  freq: number;
+  repeat: number;
+  repeatDelay: number;
+  frameNames?: string[];
 }
 
 export interface ImportAtlasTrioInput {
@@ -43,7 +52,7 @@ export async function importAtlasTrio(input: ImportAtlasTrioInput): Promise<Impo
   validateFrameBounds(atlasFrames, atlasImage.width, atlasImage.height);
 
   const frameImages = await extractFrameImages(input.scene, atlasImage, atlasFrames);
-  const frameIdByName = new Map(frameImages.map(entry => [entry.frameName, entry.image.id]));
+  const frameIdByName = buildFrameIdLookup(frameImages);
 
   const animations = parseAnimations(input.animationsJsonText, warnings);
   let sprites = buildSpritesFromAnimations(animations, frameIdByName, warnings);
@@ -232,7 +241,7 @@ function addTextureFromDataUrl(scene: Phaser.Scene, textureKey: string, dataUrl:
   });
 }
 
-function parseAnimations(text: string | undefined, warnings: string[]): AnimationItem[] {
+function parseAnimations(text: string | undefined, warnings: string[]): ParsedAnimation[] {
   if (!text || !text.trim()) return [];
 
   const raw = safeParseJson(text, 'animations.json');
@@ -240,7 +249,7 @@ function parseAnimations(text: string | undefined, warnings: string[]): Animatio
     throw new Error('animations.json must be an array.');
   }
 
-  const animations: AnimationItem[] = [];
+  const animations: ParsedAnimation[] = [];
 
   raw.forEach((entry, index) => {
     if (!isRecord(entry)) {
@@ -248,20 +257,29 @@ function parseAnimations(text: string | undefined, warnings: string[]): Animatio
       return;
     }
 
-    const prefix = String(entry.prefix ?? '').trim();
-    const qty = toInteger(entry.qty, 0);
+    const prefix = String(entry.prefix ?? entry.key ?? '').trim();
+    const frameNames = parseAnimationFrameNames(entry.frames, prefix);
+
+    let qty = toInteger(entry.qty, 0);
+    if (qty <= 0 && frameNames.length > 0) {
+      qty = frameNames.length;
+    }
+
     if (!prefix || qty <= 0) {
       warnings.push(`animations.json[${index}] has invalid prefix/qty and was ignored.`);
       return;
     }
 
+    const repeat = readRepeat(entry);
+    const repeatDelay = Math.max(0, toInteger(entry.repeatDelay ?? entry.repeat_delay, 0));
+
     animations.push({
-      id: `import_anim_${animations.length + 1}`,
       prefix,
       qty,
       freq: Math.max(1, toInteger(entry.freq, 8)),
-      repeat: toInteger(entry.repeat, -1),
-      repeatDelay: Math.max(0, toInteger(entry.repeatDelay, 0)),
+      repeat,
+      repeatDelay,
+      frameNames: frameNames.length > 0 ? frameNames : undefined,
     });
   });
 
@@ -269,34 +287,24 @@ function parseAnimations(text: string | undefined, warnings: string[]): Animatio
 }
 
 function buildSpritesFromAnimations(
-  animations: AnimationItem[],
+  animations: ParsedAnimation[],
   frameIdByName: Map<string, string>,
   warnings: string[],
 ): SpriteData[] {
   const sprites: SpriteData[] = [];
 
   animations.forEach(anim => {
-    const hasZero = frameIdByName.has(`${anim.prefix}_0`);
-    const hasOne = frameIdByName.has(`${anim.prefix}_1`);
-    const startIndex = hasZero && !hasOne ? 0 : 1;
-
-    const frameIds: string[] = [];
-    for (let offset = 0; offset < anim.qty; offset += 1) {
-      const frameName = `${anim.prefix}_${startIndex + offset}`;
-      const frameId = frameIdByName.get(frameName);
-      if (frameId) {
-        frameIds.push(frameId);
-      }
-    }
+    const expectedFrameCount = anim.frameNames?.length ?? anim.qty;
+    const frameIds = resolveAnimationFrameIds(anim, frameIdByName);
 
     if (frameIds.length === 0) {
       warnings.push(`Animation prefix "${anim.prefix}" has no matching frames and was ignored.`);
       return;
     }
 
-    if (frameIds.length < anim.qty) {
+    if (frameIds.length < expectedFrameCount) {
       warnings.push(
-        `Animation prefix "${anim.prefix}" is missing ${anim.qty - frameIds.length} expected frame(s).`,
+        `Animation prefix "${anim.prefix}" is missing ${expectedFrameCount - frameIds.length} expected frame(s).`,
       );
     }
 
@@ -311,6 +319,137 @@ function buildSpritesFromAnimations(
   });
 
   return sprites;
+}
+
+function resolveAnimationFrameIds(
+  anim: ParsedAnimation,
+  frameIdByName: Map<string, string>,
+): string[] {
+  const frameIds: string[] = [];
+
+  if (anim.frameNames && anim.frameNames.length > 0) {
+    anim.frameNames.forEach(frameName => {
+      const frameId = findFrameId(frameIdByName, frameName);
+      if (frameId) {
+        frameIds.push(frameId);
+      }
+    });
+    return frameIds;
+  }
+
+  const hasZero = findFrameId(frameIdByName, `${anim.prefix}_0`) !== undefined;
+  const hasOne = findFrameId(frameIdByName, `${anim.prefix}_1`) !== undefined;
+  const startIndex = hasZero && !hasOne ? 0 : 1;
+
+  for (let offset = 0; offset < anim.qty; offset += 1) {
+    const frameName = `${anim.prefix}_${startIndex + offset}`;
+    const frameId = findFrameId(frameIdByName, frameName);
+    if (frameId) {
+      frameIds.push(frameId);
+    }
+  }
+
+  return frameIds;
+}
+
+function buildFrameIdLookup(frameImages: FrameImageResult[]): Map<string, string> {
+  const lookup = new Map<string, string>();
+
+  frameImages.forEach(entry => {
+    const frameId = entry.image.id;
+    const frameName = entry.frameName;
+    const baseName = getBaseName(frameName);
+
+    lookup.set(frameName, frameId);
+    lookup.set(stripExtension(frameName), frameId);
+    lookup.set(baseName, frameId);
+    lookup.set(stripExtension(baseName), frameId);
+  });
+
+  return lookup;
+}
+
+function findFrameId(lookup: Map<string, string>, rawName: string): string | undefined {
+  const name = rawName.trim();
+  if (!name) return undefined;
+
+  const direct = lookup.get(name);
+  if (direct) return direct;
+
+  const noExt = stripExtension(name);
+  const byNoExt = lookup.get(noExt);
+  if (byNoExt) return byNoExt;
+
+  const base = getBaseName(name);
+  const byBase = lookup.get(base);
+  if (byBase) return byBase;
+
+  const byBaseNoExt = lookup.get(stripExtension(base));
+  if (byBaseNoExt) return byBaseNoExt;
+
+  return undefined;
+}
+
+function parseAnimationFrameNames(value: unknown, prefix: string): string[] {
+  if (!Array.isArray(value)) return [];
+
+  const frameNames: string[] = [];
+  value.forEach(item => {
+    const parsed = parseAnimationFrameNameItem(item, prefix);
+    if (parsed) frameNames.push(parsed);
+  });
+
+  return frameNames;
+}
+
+function parseAnimationFrameNameItem(item: unknown, prefix: string): string | null {
+  if (typeof item === 'number' && Number.isFinite(item)) {
+    return `${prefix}_${Math.trunc(item)}`;
+  }
+
+  if (typeof item === 'string') {
+    const trimmed = item.trim();
+    return trimmed || null;
+  }
+
+  if (!isRecord(item)) return null;
+
+  const frameValue = item.frame ?? item.key ?? item.filename ?? item.name;
+  if (typeof frameValue === 'number' && Number.isFinite(frameValue)) {
+    return `${prefix}_${Math.trunc(frameValue)}`;
+  }
+
+  if (typeof frameValue === 'string') {
+    const trimmed = frameValue.trim();
+    return trimmed || null;
+  }
+
+  return null;
+}
+
+function readRepeat(entry: Record<string, unknown>): number {
+  if (typeof entry.repeat === 'number' || typeof entry.repeat === 'string') {
+    return toInteger(entry.repeat, -1);
+  }
+
+  if (typeof entry.loop === 'boolean') {
+    return entry.loop ? -1 : 0;
+  }
+
+  if (typeof entry.loops === 'number' || typeof entry.loops === 'string') {
+    return toInteger(entry.loops, -1);
+  }
+
+  return -1;
+}
+
+function stripExtension(name: string): string {
+  return name.replace(/\.[^.\/\\]+$/, '');
+}
+
+function getBaseName(name: string): string {
+  const segments = name.split(/[\\/]/);
+  return segments[segments.length - 1] || name;
 }
 
 function buildFallbackSprites(frameImages: FrameImageResult[]): SpriteData[] {
@@ -349,7 +488,7 @@ function buildFallbackSprites(frameImages: FrameImageResult[]): SpriteData[] {
 
 function inferProjectName(
   projectNameHint: string | undefined,
-  animations: AnimationItem[],
+  animations: ParsedAnimation[],
   frameNames: string[],
 ): string {
   const hint = projectNameHint?.trim();

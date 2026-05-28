@@ -9,6 +9,7 @@ import {
   NUMBER_INPUT_TRACK_WIDTH,
 } from '../constants';
 import { SpriteData, ImageItem } from '../types';
+import { fitContainNoUpscale } from '../utils/sizing';
 
 export type CardField = 'preview' | 'name' | 'freq' | 'repeat' | 'repeatDelay';
 export const CARD_FIELDS: CardField[] = ['preview', 'name', 'freq', 'repeat', 'repeatDelay'];
@@ -53,6 +54,7 @@ export class SpriteCard extends Phaser.GameObjects.Container {
   // State
   private _focusedField: CardField | null = null;
   private _isCardFocused = false;
+  private _previewPlaybackEnabled = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -100,6 +102,13 @@ export class SpriteCard extends Phaser.GameObjects.Container {
     this._focusedField = field;
     this.deactivateNumberEdit();
     this.refreshVisuals();
+  }
+
+  /** Enable/disable preview animation playback for this card. */
+  setPreviewPlayback(enabled: boolean) {
+    if (this._previewPlaybackEnabled === enabled) return;
+    this._previewPlaybackEnabled = enabled;
+    this.applyPreviewPlayback(true);
   }
 
   /** Show/hide the multi-select highlight (select mode). */
@@ -352,18 +361,30 @@ export class SpriteCard extends Phaser.GameObjects.Container {
 
     const cx = CARD_PAD_X + Math.floor(this.previewSize / 2);
     const cy = CARD_PAD_Y + Math.floor(this.previewSize / 2);
-    const displaySize = this.previewSize - 4;
+    const maxPreviewSize = this.previewSize - 4;
+
+    // Use largest frame dimensions so mixed-size animation frames remain
+    // fully visible without cropping or per-frame scale jitter.
+    let sourceW = 1;
+    let sourceH = 1;
+    frames.forEach(imgId => {
+      const image = this._images.find(i => i.id === imgId);
+      if (!image) return;
+      sourceW = Math.max(sourceW, image.width);
+      sourceH = Math.max(sourceH, image.height);
+    });
+    const fitted = fitContainNoUpscale(sourceW, sourceH, maxPreviewSize, maxPreviewSize);
 
     if (!this.previewSprite || !this.previewSprite.active) {
       this.previewSprite = this.scene.add
         .sprite(cx, cy, animFrames[0].key)
         .setOrigin(0.5)
-        .setDisplaySize(displaySize, displaySize);
+        .setDisplaySize(fitted.width, fitted.height);
       this.add(this.previewSprite);
     } else {
       this.previewSprite
         .setTexture(animFrames[0].key)
-        .setDisplaySize(displaySize, displaySize)
+        .setDisplaySize(fitted.width, fitted.height)
         .setVisible(true);
     }
 
@@ -375,8 +396,34 @@ export class SpriteCard extends Phaser.GameObjects.Container {
       repeatDelay: repeatDelay > 0 ? repeatDelay : 0,
     });
 
-    this.previewSprite.play(animKey);
+    this.applyPreviewPlayback();
     this.previewPlaceholder.setVisible(false);
+  }
+
+  private applyPreviewPlayback(restart = false) {
+    if (!this.previewSprite || !this.previewSprite.active) return;
+
+    const animKey = `editor_preview_${this._spriteData.id}`;
+    if (!this.scene.anims.exists(animKey)) return;
+
+    if (this._previewPlaybackEnabled) {
+      const isPlayingCurrent = this.previewSprite.anims.isPlaying
+        && this.previewSprite.anims.currentAnim?.key === animKey;
+      if (restart || !isPlayingCurrent) {
+        this.previewSprite.play(animKey);
+      }
+      return;
+    }
+
+    this.previewSprite.stop();
+
+    const firstFrameImageId = this._spriteData.frames[0];
+    const firstFrameImage = this._images.find(
+      image => image.id === firstFrameImageId && this.scene.textures.exists(image.textureKey),
+    );
+    if (firstFrameImage) {
+      this.previewSprite.setTexture(firstFrameImage.textureKey);
+    }
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────

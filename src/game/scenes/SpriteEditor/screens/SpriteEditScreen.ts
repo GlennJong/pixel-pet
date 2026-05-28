@@ -408,11 +408,23 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
       c.setCardFocus(i === this.cursorIdx && this.mode === 'card');
       if (this.mode !== 'field' || i !== this.cursorIdx) c.setFieldFocus(null);
     });
+    this.syncPreviewPlayback();
   }
 
   private updateFieldFocus() {
     const card = this.cards[this.cursorIdx];
     if (card) { card.setCardFocus(false); card.setFieldFocus(this.focusedField); }
+    this.syncPreviewPlayback();
+  }
+
+  private syncPreviewPlayback() {
+    const activeCardIndex = this.mode === 'card' || this.mode === 'field'
+      ? this.cursorIdx
+      : -1;
+
+    this.cards.forEach((card, index) => {
+      card.setPreviewPlayback(index === activeCardIndex);
+    });
   }
 
   // ── Scroll ───────────────────────────────────────────────────────────────────

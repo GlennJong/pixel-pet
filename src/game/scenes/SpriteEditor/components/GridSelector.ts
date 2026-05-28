@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, FONT, GRID_COLS, GRID_GAP, GRID_OUTER_PAD } from '../constants';
+import { fitContainNoUpscale, resolveTextureSourceSize } from '../utils/sizing';
 
 export interface GridCellData {
   id: string;
@@ -287,10 +288,14 @@ export class GridSelector extends Phaser.GameObjects.Container {
           .setOrigin(0.5);
         container.add(plus);
       } else if (cell.textureKey && this.scene.textures.exists(cell.textureKey)) {
+        const source = resolveTextureSourceSize(this.scene, cell.textureKey);
+        const fitted = source
+          ? fitContainNoUpscale(source.width, source.height, this.cellSize - 4, this.cellSize - 4)
+          : { width: this.cellSize - 4, height: this.cellSize - 4 };
         const img = this.scene.add
           .image(this.cellSize / 2, this.cellSize / 2, cell.textureKey)
           .setOrigin(0.5)
-          .setDisplaySize(this.cellSize - 4, this.cellSize - 4);
+          .setDisplaySize(fitted.width, fitted.height);
         container.add(img);
       }
 
