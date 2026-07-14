@@ -1,12 +1,13 @@
-import { Scene } from 'phaser';
+import Phaser, { Scene } from 'phaser';
 import { LibraryScreen } from './screens/LibraryScreen';
 import { SpriteEditScreen } from './screens/SpriteEditScreen';
 import { FrameSelectorScreen } from './screens/FrameSelectorScreen';
 import { EditorState, LibraryProceedPayload, SpriteData } from './types';
 import { buildSpriteEditorExport, downloadSpriteEditorExport } from './utils/export';
 import { buildPresetSpritesFromImages } from './utils/smartInput';
-import { saveAtlasCustomization, setCustomizationActive } from '@/game/customization';
+import { saveAtlasCustomization, setCustomizationActive, reloadAtlasIntoScene } from '@/game/customization';
 import { getStaticData } from '@/game/staticData';
+import { COLORS, FONT, BANNER_AUTOHIDE_MS, hex } from './constants';
 
 interface EditorSceneStartData {
   returnSceneKey?: string;
@@ -16,8 +17,10 @@ interface EditorSceneStartData {
 /**
  * EditorScene – Sprite Editor
  *
- * Designed for a 320×240 canvas. Use StartEditorGame() from game/index.ts
- * to launch it with the correct resolution.
+ * Renders at the live game canvas size (this.scale.width/height), so the UI
+ * always matches whatever resolution the host game runs at — no canvas resize.
+ * Screens receive that width/height and lay out relative to it; the fixed
+ * element sizes live in constants.ts.
  *
  * Screen flow: S1 LibraryScreen ↔ S2 SpriteEditScreen ↔ S3 FrameSelectorScreen
  *
@@ -29,6 +32,8 @@ export default class EditorScene extends Scene {
   private frameSelectorScreen?: FrameSelectorScreen;
   private returnSceneKey?: string;
   private targetAtlasId?: string;
+
+  private errorBanner?: Phaser.GameObjects.Text;
 
   // Pending frame-selector context (used when returning from S3 → S2)
   private pendingFrameTarget?: string;
@@ -54,10 +59,13 @@ export default class EditorScene extends Scene {
   }
 
   create() {
+    // Match the live canvas size so the editor UI fits the host game exactly.
     const w = this.scale.width;
     const h = this.scale.height;
-    this.add.rectangle(0, 0, w, h, 0xf0f0f0).setOrigin(0, 0);
+    this.add.rectangle(0, 0, w, h, COLORS.BG).setOrigin(0, 0);
     this.showLibraryScreen(w, h);
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
   }
 
   update() {
@@ -66,7 +74,7 @@ export default class EditorScene extends Scene {
     this.frameSelectorScreen?.update();
   }
 
-  shutdown() {
+  private handleShutdown() {
     this.libraryScreen?.destroy();
     this.spriteEditScreen?.destroy();
     this.frameSelectorScreen?.destroy();
@@ -200,17 +208,37 @@ export default class EditorScene extends Scene {
       console.log('[SpriteEditor] Exported spritesheet.png, spritesheet.json, animations.json');
     } catch (error) {
       console.error('[SpriteEditor] Export failed', error);
-      if (typeof window !== 'undefined') {
-        const msg = error instanceof Error ? error.message : 'Unknown export error';
-        window.alert(`Export failed: ${msg}`);
-      }
+      const msg = error instanceof Error ? error.message : 'Unknown export error';
+      this.showBanner(`Export failed: ${msg}`);
     }
   }
 
   private resolveApplyAtlasId(): string {
-    const projectBasedAtlasId = this.state.projectName.trim();
-    if (projectBasedAtlasId) return projectBasedAtlasId;
-    return (this.targetAtlasId || '').trim();
+    // When launched from the Pet the target atlas is authoritative; the free-text
+    // project name is only a display label. Fall back to it for standalone use.
+    const target = (this.targetAtlasId || '').trim();
+    if (target) return target;
+    return this.state.projectName.trim();
+  }
+
+  /** In-canvas banner at the bottom of the screen; auto-hides after a moment. */
+  private showBanner(message: string, isError = true) {
+    if (!this.errorBanner) {
+      this.errorBanner = this.add.text(this.scale.width / 2, this.scale.height - 4, '', {
+        fontFamily: FONT.FAMILY,
+        fontSize: FONT.SIZE,
+        color: hex(COLORS.TEXT),
+        backgroundColor: '#ffffff',
+        padding: { x: 4, y: 2 },
+        align: 'center',
+        wordWrap: { width: this.scale.width - 8 },
+      }).setOrigin(0.5, 1).setDepth(1000);
+    }
+    this.errorBanner
+      .setColor(hex(isError ? COLORS.ERROR : COLORS.TEXT))
+      .setText(message)
+      .setVisible(true);
+    this.time.delayedCall(BANNER_AUTOHIDE_MS, () => this.errorBanner?.setVisible(false));
   }
 
   private async handleApply() {
@@ -244,21 +272,27 @@ export default class EditorScene extends Scene {
       console.log(`[SpriteEditor] Applied customization for atlas: ${atlasId}`);
 
       if (this.returnSceneKey) {
+        // Hot-reload the atlas into the running game so the change is visible
+        // immediately; the localStorage write still covers a manual page reload.
+        try {
+          await reloadAtlasIntoScene(this, atlasId);
+        } catch (reloadError) {
+          console.warn(
+            '[SpriteEditor] Live reload failed; change will apply on next page load.',
+            reloadError,
+          );
+        }
         this.scene.start(this.returnSceneKey, {
           statusMessage: `Applied: ${atlasId}`,
         });
         return;
       }
 
-      if (typeof window !== 'undefined') {
-        window.alert(`Applied customization for atlas: ${atlasId}`);
-      }
+      this.showBanner(`Applied customization for atlas: ${atlasId}`, false);
     } catch (error) {
       console.error('[SpriteEditor] Apply failed', error);
-      if (typeof window !== 'undefined') {
-        const msg = error instanceof Error ? error.message : 'Unknown apply error';
-        window.alert(`Apply failed: ${msg}`);
-      }
+      const msg = error instanceof Error ? error.message : 'Unknown apply error';
+      this.showBanner(`Apply failed: ${msg}`);
     }
   }
 }

@@ -135,7 +135,17 @@ export default class PetScene extends Scene {
     EventBus.on("game-left-keydown", this.handleLeftKeyDown);
     EventBus.on("game-right-keydown", this.handleRightKeyDown);
     EventBus.on("game-select-keydown", this.handleSelectKeyDown);
+
+    // 'E' opens the Sprite Editor targeting the pet's active atlas.
+    this.input.keyboard?.on("keydown-E", this.handleOpenEditor);
   }
+
+  private handleOpenEditor = () => {
+    this.scene.start("SpriteEditor", {
+      returnSceneKey: "Pet",
+      targetAtlasId: this.character?.atlasId,
+    });
+  };
 
   private async startScene() {
     await sceneStarter(this);
@@ -250,5 +260,7 @@ export default class PetScene extends Scene {
     EventBus.off("game-left-keydown", this.handleLeftKeyDown);
     EventBus.off("game-right-keydown", this.handleRightKeyDown);
     EventBus.off("game-select-keydown", this.handleSelectKeyDown);
+
+    this.input.keyboard?.off("keydown-E", this.handleOpenEditor);
   };
 }

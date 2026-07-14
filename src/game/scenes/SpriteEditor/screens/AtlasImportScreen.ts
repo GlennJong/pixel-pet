@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import { ScreenKeyboard } from '../components';
-import { COLORS, FONT } from '../constants';
+import { ScreenKeyboard } from '../elements';
+import { COLORS, FONT, hex } from '../constants';
 import { WorkspaceAtlasEntry } from '../types';
 
 /**
@@ -61,7 +61,7 @@ export class AtlasImportScreen extends Phaser.GameObjects.Container {
   }
 
   private buildUI() {
-    const textColor = '#' + COLORS.TEXT.toString(16).padStart(6, '0');
+    const textColor = hex(COLORS.TEXT);
 
     const blocker = this.scene.add
       .rectangle(0, 0, this.screenW, this.screenH, COLORS.BG, 0.92)
@@ -160,8 +160,8 @@ export class AtlasImportScreen extends Phaser.GameObjects.Container {
   }
 
   private refreshRows() {
-    const focusedTextColor = '#' + COLORS.TEXT_BUTTON.toString(16).padStart(6, '0');
-    const textColor = '#' + COLORS.TEXT.toString(16).padStart(6, '0');
+    const focusedTextColor = hex(COLORS.TEXT_BUTTON);
+    const textColor = hex(COLORS.TEXT);
 
     this.rowBgs.forEach((bg, rowIdx) => {
       const atlasIdx = this.scrollOffset + rowIdx;

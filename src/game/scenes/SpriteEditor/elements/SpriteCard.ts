@@ -3,10 +3,11 @@ import { TextInput } from './TextInput';
 import { NumberInput } from './NumberInput';
 import {
   COLORS, FONT,
-  CARD_HEIGHT, CARD_PAD_X, CARD_PAD_Y,
+  CARD_HEIGHT, CARD_PAD_X, CARD_PAD_Y, PREVIEW_SIZE,
   CARD_FIELD_GAP,
   NUMBER_INPUT_HEIGHT, TEXT_INPUT_HEIGHT,
   NUMBER_INPUT_TRACK_WIDTH,
+  hex,
 } from '../constants';
 import { SpriteData, ImageItem } from '../types';
 import { fitContainNoUpscale } from '../utils/sizing';
@@ -70,8 +71,8 @@ export class SpriteCard extends Phaser.GameObjects.Container {
     this._images = images;
 
     // Compute layout constants
-    this.previewSize = CARD_HEIGHT - CARD_PAD_Y * 2;           // 68 at defaults
-    this.configX = CARD_PAD_X + this.previewSize + CARD_PAD_X; // e.g. 80
+    this.previewSize = PREVIEW_SIZE;
+    this.configX = CARD_PAD_X + this.previewSize + CARD_PAD_X; // e.g. 52
     this.configW = width - CARD_PAD_X - this.configX;
 
     this.buildUI(width);
@@ -207,8 +208,8 @@ export class SpriteCard extends Phaser.GameObjects.Container {
         'preview',
         {
           fontFamily: FONT.FAMILY,
-          fontSize: FONT.SIZE_SM,
-          color: '#' + COLORS.TEXT_LIGHT.toString(16).padStart(6, '0'),
+          fontSize: FONT.SIZE,
+          color: hex(COLORS.TEXT_LIGHT),
         },
       )
       .setOrigin(0.5);
@@ -226,7 +227,7 @@ export class SpriteCard extends Phaser.GameObjects.Container {
       width: this.configW,
       height: TEXT_INPUT_HEIGHT,
       variant: 'labeled',
-      label: 'n',
+      label: 'NAME',
       placeholder: 'sprite name',
       initialValue: this._spriteData.prefix,
     });
@@ -241,7 +242,7 @@ export class SpriteCard extends Phaser.GameObjects.Container {
 
     this.freqInput = new NumberInput(this.scene, {
       x: this.configX, y: freqY,
-      label: 'f', value: this._spriteData.freq,
+      label: 'FREQ', value: this._spriteData.freq,
       min: 1, max: 60, step: 1,
       trackWidth: NUMBER_INPUT_TRACK_WIDTH,
     });
@@ -250,7 +251,7 @@ export class SpriteCard extends Phaser.GameObjects.Container {
 
     this.repeatInput = new NumberInput(this.scene, {
       x: this.configX, y: repeatY,
-      label: 'r', value: this._spriteData.repeat,
+      label: 'REPEAT', value: this._spriteData.repeat,
       min: -1, max: 99, step: 1,
       trackWidth: NUMBER_INPUT_TRACK_WIDTH,
     });
@@ -259,7 +260,7 @@ export class SpriteCard extends Phaser.GameObjects.Container {
 
     this.repeatDelayInput = new NumberInput(this.scene, {
       x: this.configX, y: repeatDelayY,
-      label: 'd', value: this._spriteData.repeatDelay,
+      label: 'DELAY', value: this._spriteData.repeatDelay,
       min: 0, max: 5000, step: 50,
       trackWidth: NUMBER_INPUT_TRACK_WIDTH,
     });

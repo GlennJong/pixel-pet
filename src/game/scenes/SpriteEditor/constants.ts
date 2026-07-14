@@ -1,7 +1,3 @@
-// Editor design resolution (used by StartEditorGame)
-export const EDITOR_WIDTH = 320;
-export const EDITOR_HEIGHT = 240;
-
 // Layout
 export const BUTTON_BAR_HEIGHT = 22;
 export const BUTTON_HEIGHT = 14;
@@ -9,23 +5,25 @@ export const BUTTON_PADDING_X = 6;
 export const BUTTON_GAP = 4;
 export const BUTTON_BAR_PADDING_RIGHT = 6;
 
-export const GRID_COLS = 4;
-export const GRID_GAP = 4;
-export const GRID_OUTER_PAD = 6;
+export const GRID_COLS = 2;
+export const GRID_GAP = 2;
+export const GRID_OUTER_PAD = 3;
 
-export const TEXT_INPUT_HEIGHT = 16;
+export const TEXT_INPUT_HEIGHT = 12;
 
-export const NUMBER_INPUT_HEIGHT = 14;
-export const NUMBER_INPUT_TRACK_WIDTH = 80;
+export const NUMBER_INPUT_HEIGHT = 10;
+export const NUMBER_INPUT_TRACK_WIDTH = 24;
 
 // SpriteCard layout
-export const CARD_HEIGHT = 80;
-export const CARD_PAD_X = 6;
-export const CARD_PAD_Y = 6;
-export const CARD_GAP = 4;
-export const CARD_X_BTN_WIDTH = 20;
-export const CARD_FIELD_GAP = 3;
-export const CARD_AREA_PAD = 4;
+export const CARD_HEIGHT = 56;
+export const CARD_PAD_X = 3;
+export const CARD_PAD_Y = 3;
+export const CARD_GAP = 2;
+export const CARD_X_BTN_WIDTH = 40;
+export const CARD_FIELD_GAP = 1;
+export const CARD_AREA_PAD = 2;
+// Preview thumbnail size (square), independent of CARD_HEIGHT.
+export const PREVIEW_SIZE = 40;
 
 // Color palette
 export const COLORS = {
@@ -62,7 +60,13 @@ export const COLORS = {
 } as const;
 
 export const FONT = {
-  FAMILY: 'monospace',
-  SIZE: '10px',
-  SIZE_SM: '8px',
+  FAMILY: 'Tiny5',
+  SIZE: 8,
 } as const;
+
+/** Convert a 0xRRGGBB color number to a '#rrggbb' CSS string. */
+export const hex = (color: number): string => '#' + color.toString(16).padStart(6, '0');
+
+// Timeouts (ms)
+export const TEXTURE_LOAD_TIMEOUT_MS = 5000;
+export const BANNER_AUTOHIDE_MS = 2500;

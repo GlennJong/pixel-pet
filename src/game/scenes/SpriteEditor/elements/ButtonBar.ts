@@ -7,6 +7,7 @@ import {
   BUTTON_PADDING_X,
   BUTTON_GAP,
   BUTTON_BAR_PADDING_RIGHT,
+  hex,
 } from '../constants';
 
 export interface ButtonConfig {
@@ -109,7 +110,8 @@ export class ButtonBar extends Phaser.GameObjects.Container {
     const textStyle = {
       fontFamily: FONT.FAMILY,
       fontSize: FONT.SIZE,
-      color: '#' + COLORS.TEXT_BUTTON.toString(16).padStart(6, '0'),
+      color: hex(COLORS.TEXT_BUTTON),
+      resolution: 1,
     };
     const midY = Math.floor(BUTTON_BAR_HEIGHT / 2);
 

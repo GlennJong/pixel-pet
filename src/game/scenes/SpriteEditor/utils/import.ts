@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { ImageItem, SpriteData } from '../types';
 import { parseSmartFileName } from './smartInput';
+import { isRecord, toInteger } from './json';
+import { loadTextureFromDataUrl } from './texture';
 
 interface NormalizedAtlasFrame {
   frameName: string;
@@ -199,7 +201,7 @@ async function extractFrameImages(
       scene.textures.remove(textureKey);
     }
 
-    await addTextureFromDataUrl(scene, textureKey, dataUrl);
+    await loadTextureFromDataUrl(scene, textureKey, dataUrl);
 
     results.push({
       frameName: frame.frameName,
@@ -214,31 +216,6 @@ async function extractFrameImages(
   }
 
   return results;
-}
-
-function addTextureFromDataUrl(scene: Phaser.Scene, textureKey: string, dataUrl: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const eventName = `addtexture-${textureKey}`;
-    const timer = setTimeout(() => {
-      scene.textures.off(eventName, onAdded);
-      reject(new Error(`Timed out while adding texture "${textureKey}".`));
-    }, 5000);
-
-    const onAdded = () => {
-      clearTimeout(timer);
-      resolve();
-    };
-
-    scene.textures.once(eventName, onAdded);
-
-    try {
-      scene.textures.addBase64(textureKey, dataUrl);
-    } catch (error) {
-      clearTimeout(timer);
-      scene.textures.off(eventName, onAdded);
-      reject(error instanceof Error ? error : new Error(String(error)));
-    }
-  });
 }
 
 function parseAnimations(text: string | undefined, warnings: string[]): ParsedAnimation[] {
@@ -556,12 +533,3 @@ function safeParseJson(text: string, fileLabel: string): unknown {
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object';
-}
-
-function toInteger(value: unknown, fallback: number): number {
-  const numberValue = typeof value === 'number' ? value : Number(value);
-  if (!Number.isFinite(numberValue)) return fallback;
-  return Math.trunc(numberValue);
-}

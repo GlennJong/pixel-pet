@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, FONT, GRID_COLS, GRID_GAP, GRID_OUTER_PAD } from '../constants';
+import { COLORS, FONT, GRID_COLS, GRID_GAP, GRID_OUTER_PAD, hex } from '../constants';
 import { fitContainNoUpscale, resolveTextureSourceSize } from '../utils/sizing';
 
 export interface GridCellData {
@@ -283,7 +283,7 @@ export class GridSelector extends Phaser.GameObjects.Container {
           .text(this.cellSize / 2, this.cellSize / 2, '+', {
             fontFamily: FONT.FAMILY,
             fontSize: FONT.SIZE,
-            color: '#' + COLORS.TEXT.toString(16).padStart(6, '0'),
+            color: hex(COLORS.TEXT),
           })
           .setOrigin(0.5);
         container.add(plus);
@@ -303,9 +303,9 @@ export class GridSelector extends Phaser.GameObjects.Container {
       const badge = this.scene.add
         .text(this.cellSize - 2, 2, '', {
           fontFamily: FONT.FAMILY,
-          fontSize: FONT.SIZE_SM,
-          color: '#' + COLORS.BADGE_TEXT.toString(16).padStart(6, '0'),
-          backgroundColor: '#' + COLORS.BADGE_BG.toString(16).padStart(6, '0'),
+          fontSize: FONT.SIZE,
+          color: hex(COLORS.BADGE_TEXT),
+          backgroundColor: hex(COLORS.BADGE_BG),
           padding: { x: 2, y: 1 },
         })
         .setOrigin(1, 0)

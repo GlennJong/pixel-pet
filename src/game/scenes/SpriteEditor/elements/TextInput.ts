@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, FONT, TEXT_INPUT_HEIGHT } from '../constants';
+import { COLORS, FONT, TEXT_INPUT_HEIGHT, hex } from '../constants';
 
 export type TextInputVariant = 'standalone' | 'labeled';
 
@@ -68,7 +68,7 @@ export class TextInput extends Phaser.GameObjects.Container {
       this.labelObj = scene.add.text(0, Math.floor(h / 2), label, {
         fontFamily: FONT.FAMILY,
         fontSize: FONT.SIZE,
-        color: this.toHex(COLORS.TEXT),
+        color: hex(COLORS.TEXT),
       }).setOrigin(0, 0.5);
       this.add(this.labelObj);
       labelW = this.labelObj.width + 4;
@@ -94,7 +94,7 @@ export class TextInput extends Phaser.GameObjects.Container {
       this.inputOffsetX + 4,
       Math.floor(h / 2),
       this.placeholder,
-      { fontFamily: FONT.FAMILY, fontSize: FONT.SIZE, color: this.toHex(COLORS.TEXT_PLACEHOLDER) }
+      { fontFamily: FONT.FAMILY, fontSize: FONT.SIZE, color: hex(COLORS.TEXT_PLACEHOLDER) }
     ).setOrigin(0, 0.5);
     this.add(this.placeholderObj);
 
@@ -103,7 +103,7 @@ export class TextInput extends Phaser.GameObjects.Container {
       this.inputOffsetX + 4,
       Math.floor(h / 2),
       '',
-      { fontFamily: FONT.FAMILY, fontSize: FONT.SIZE, color: this.toHex(COLORS.TEXT) }
+      { fontFamily: FONT.FAMILY, fontSize: FONT.SIZE, color: hex(COLORS.TEXT) }
     ).setOrigin(0, 0.5);
     this.add(this.textDisplay);
 
@@ -112,7 +112,7 @@ export class TextInput extends Phaser.GameObjects.Container {
       this.inputOffsetX + 4,
       Math.floor(h / 2),
       '|',
-      { fontFamily: FONT.FAMILY, fontSize: FONT.SIZE, color: this.toHex(COLORS.TEXT) }
+      { fontFamily: FONT.FAMILY, fontSize: FONT.SIZE, color: hex(COLORS.TEXT) }
     ).setOrigin(0, 0.5).setVisible(false);
     this.add(this.cursorObj);
 
@@ -184,10 +184,6 @@ export class TextInput extends Phaser.GameObjects.Container {
   }
 
   // ── Private ────────────────────────────────────────────────────────────────
-
-  private toHex(n: number): string {
-    return '#' + n.toString(16).padStart(6, '0');
-  }
 
   private drawBorder(focused: boolean) {
     this.borderGfx.clear();

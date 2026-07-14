@@ -1,0 +1,11 @@
+/** Narrow an unknown value to a plain object (non-null, typeof 'object'). */
+export function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object';
+}
+
+/** Coerce a value to an integer, returning `fallback` when it isn't finite. */
+export function toInteger(value: unknown, fallback: number): number {
+  const numberValue = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(numberValue)) return fallback;
+  return Math.trunc(numberValue);
+}

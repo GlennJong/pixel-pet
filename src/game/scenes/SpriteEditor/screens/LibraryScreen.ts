@@ -1,14 +1,18 @@
 import Phaser from 'phaser';
-import { TextInput, GridSelector, ButtonBar, ScreenKeyboard } from '../components';
+import { TextInput, GridSelector, ButtonBar, ScreenKeyboard, handleButtonBarKey } from '../elements';
 import { AtlasImportScreen } from './AtlasImportScreen';
 import { importAtlasTrio, ImportAtlasTrioResult } from '../utils/import';
 import { parseSmartFileName } from '../utils/smartInput';
+import { loadTextureFromDataUrl } from '../utils/texture';
+import { isRecord } from '../utils/json';
 import {
   COLORS,
   FONT,
   BUTTON_BAR_HEIGHT,
   TEXT_INPUT_HEIGHT,
   GRID_OUTER_PAD,
+  BANNER_AUTOHIDE_MS,
+  hex,
 } from '../constants';
 import {
   ImageItem,
@@ -122,8 +126,8 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
     // ── Error hint ────────────────────────────────────────────────────────────
     this.errorText = scene.add.text(PAD, buttonBarY - 2, '', {
       fontFamily: FONT.FAMILY,
-      fontSize: FONT.SIZE_SM,
-      color: '#' + COLORS.ERROR.toString(16).padStart(6, '0'),
+      fontSize: FONT.SIZE,
+      color: hex(COLORS.ERROR),
     }).setOrigin(0, 1).setVisible(false);
     this.add(this.errorText);
 
@@ -201,25 +205,14 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
           break;
       }
     } else if (this.focusSection === 'button-bar') {
-      switch (code) {
-        case 'ArrowLeft':
-          this.buttonBar.moveCursor(-1);
-          break;
-        case 'ArrowRight':
-          this.buttonBar.moveCursor(1);
-          break;
-        case 'ArrowUp':
-          this.transitionToGrid(/* lastRow */ true);
-          break;
-        case 'Space':
-          this.buttonBar.executeCursor();
-          break;
-        case 'Escape':
+      handleButtonBarKey(this.buttonBar, code, {
+        onExitUp: () => this.transitionToGrid(/* lastRow */ true),
+        onEscape: () => {
           this.grid.clearAllSelections();
           this.updateButtonsForSelection(0);
           this.transitionToGrid(true);
-          break;
-      }
+        },
+      });
     }
   }
 
@@ -306,7 +299,7 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
 
   private showError(msg: string) {
     this.errorText.setText(msg).setVisible(true);
-    this.scene.time.delayedCall(2500, () => {
+    this.scene.time.delayedCall(BANNER_AUTOHIDE_MS, () => {
       if (this.errorText?.active) this.errorText.setVisible(false);
     });
   }
@@ -428,53 +421,22 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
     });
   }
 
-  private importImageFromDataUrl(dataUrl: string, fileName: string): Promise<void> {
+  private async importImageFromDataUrl(dataUrl: string, fileName: string): Promise<void> {
     const id = `img_${this.nextImageId++}`;
     const textureKey = `editor_img_${id}`;
 
-    return new Promise((resolve, reject) => {
-      // addBase64 is async; listen for completion before creating the cell
-      if (this.scene.textures.exists(textureKey)) {
-        this.scene.textures.remove(textureKey);
-      }
+    const frame = await loadTextureFromDataUrl(this.scene, textureKey, dataUrl);
 
-      const eventName = `addtexture-${textureKey}`;
-      const timer = window.setTimeout(() => {
-        this.scene.textures.off(eventName, onAdded);
-        reject(new Error(`Timed out while importing image: ${fileName}`));
-      }, 5000);
-
-      const onAdded = () => {
-        window.clearTimeout(timer);
-        const frame = this.scene.textures.getFrame(textureKey);
-        if (!frame) {
-          reject(new Error(`Missing imported texture frame: ${fileName}`));
-          return;
-        }
-
-        const item: ImageItem = {
-          id,
-          fileName,
-          textureKey,
-          width: frame.realWidth,
-          height: frame.realHeight,
-        };
-        this.images.push(item);
-        this.autoFillProjectNameFromParsedImages();
-        this.grid.addImageCell({ id, textureKey });
-        resolve();
-      };
-
-      this.scene.textures.once(eventName, onAdded);
-
-      try {
-        this.scene.textures.addBase64(textureKey, dataUrl);
-      } catch (error) {
-        window.clearTimeout(timer);
-        this.scene.textures.off(eventName, onAdded);
-        reject(error instanceof Error ? error : new Error(String(error)));
-      }
-    });
+    const item: ImageItem = {
+      id,
+      fileName,
+      textureKey,
+      width: frame.realWidth,
+      height: frame.realHeight,
+    };
+    this.images.push(item);
+    this.autoFillProjectNameFromParsedImages();
+    this.grid.addImageCell({ id, textureKey });
   }
 
   private findLocalAtlasTrio(files: File[]): LocalAtlasTrio | null {
@@ -694,8 +656,4 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
     }
     super.destroy(fromScene);
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object';
 }

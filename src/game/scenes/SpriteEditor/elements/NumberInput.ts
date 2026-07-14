@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, FONT, NUMBER_INPUT_HEIGHT, NUMBER_INPUT_TRACK_WIDTH } from '../constants';
+import { COLORS, FONT, NUMBER_INPUT_HEIGHT, NUMBER_INPUT_TRACK_WIDTH, hex } from '../constants';
 
 export interface NumberInputConfig {
   x: number;
@@ -14,7 +14,7 @@ export interface NumberInputConfig {
 
 /**
  * Labeled number field with a horizontal slider.
- * Layout: [label]  [value]  [track────thumb────]
+ * Layout: [label]  [track────thumb────]  [value]
  *
  * In focused state Left/Right keys adjust the value directly (handled
  * externally by the parent screen in Field mode).
@@ -24,6 +24,9 @@ export interface NumberInputConfig {
  *   'focus'
  *   'blur'
  */
+
+const MIN_TEXT_WIDTH = 36;
+
 export class NumberInput extends Phaser.GameObjects.Container {
   private labelText!: Phaser.GameObjects.Text;
   private valueText!: Phaser.GameObjects.Text;
@@ -41,6 +44,8 @@ export class NumberInput extends Phaser.GameObjects.Container {
   private readonly trackWidth: number;
   private readonly trackStartX: number;
 
+
+
   constructor(scene: Phaser.Scene, config: NumberInputConfig) {
     super(scene, config.x, config.y);
 
@@ -51,27 +56,20 @@ export class NumberInput extends Phaser.GameObjects.Container {
     this.trackWidth = config.trackWidth ?? NUMBER_INPUT_TRACK_WIDTH;
 
     const midY = Math.floor(NUMBER_INPUT_HEIGHT / 2);
-    const dimColor = '#' + COLORS.TEXT_LIGHT.toString(16).padStart(6, '0');
+    const dimColor = hex(COLORS.TEXT);
 
     // Label
     this.labelText = scene.add.text(0, midY, config.label, {
       fontFamily: FONT.FAMILY,
       fontSize: FONT.SIZE,
       color: dimColor,
-    }).setOrigin(0, 0.5);
+      resolution: 4,
+    })
+    .setOrigin(0, 0.5)
     this.add(this.labelText);
 
-    // Value text (fixed-width column: right of label)
-    const valX = this.labelText.width + 8;
-    this.valueText = scene.add.text(valX, midY, this.formatValue(), {
-      fontFamily: FONT.FAMILY,
-      fontSize: FONT.SIZE,
-      color: dimColor,
-    }).setOrigin(0, 0.5);
-    this.add(this.valueText);
-
-    // Slider track
-    this.trackStartX = valX + 30;
+    // Slider track (after the label)
+    this.trackStartX = Math.max(MIN_TEXT_WIDTH, this.labelText.width + 6);
     this.track = scene.add
       .rectangle(this.trackStartX, midY, this.trackWidth, 3, COLORS.SLIDER_TRACK)
       .setOrigin(0, 0.5);
@@ -79,9 +77,19 @@ export class NumberInput extends Phaser.GameObjects.Container {
 
     // Slider thumb
     this.thumb = scene.add
-      .rectangle(this.trackStartX, midY, 4, 10, COLORS.SLIDER_THUMB)
+      .rectangle(this.trackStartX, midY, 4, 7, COLORS.SLIDER_THUMB)
       .setOrigin(0.5, 0.5);
     this.add(this.thumb);
+
+    // Value text (after the track; its width affects no other element)
+    this.valueText = scene.add.text(Math.max(MIN_TEXT_WIDTH, this.trackStartX + this.trackWidth + 6), midY, this.formatValue(), {
+      fontFamily: FONT.FAMILY,
+      fontSize: FONT.SIZE,
+      color: dimColor,
+      resolution: 4,
+    })
+    .setOrigin(0, 0.5)
+    this.add(this.valueText);
 
     // Focus border
     this.borderGfx = scene.add.graphics();
@@ -163,8 +171,8 @@ export class NumberInput extends Phaser.GameObjects.Container {
   }
 
   private refreshVisuals() {
-    const bright = '#' + COLORS.TEXT.toString(16).padStart(6, '0');
-    const dim = '#' + COLORS.TEXT_LIGHT.toString(16).padStart(6, '0');
+    const bright = hex(COLORS.TEXT);
+    const dim = hex(COLORS.TEXT_LIGHT);
     const color = this._isFocused ? bright : dim;
     this.labelText.setStyle({ color });
     this.valueText.setStyle({ color });
@@ -172,7 +180,8 @@ export class NumberInput extends Phaser.GameObjects.Container {
     this.borderGfx.clear();
     if (this._isFocused) {
       this.borderGfx.lineStyle(this._isEditActive ? 2 : 1, COLORS.INPUT_BORDER_FOCUSED, 1);
-      this.borderGfx.strokeRect(0, 0, this.trackStartX + this.trackWidth, NUMBER_INPUT_HEIGHT);
+      const width = this.valueText.x + this.valueText.width;
+      this.borderGfx.strokeRect(0, 0, width, NUMBER_INPUT_HEIGHT);
     }
   }
 }

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GridSelector, GridCellData, ButtonBar, ScreenKeyboard } from '../components';
+import { GridSelector, GridCellData, ButtonBar, ScreenKeyboard, handleButtonBarKey } from '../elements';
 import {
   COLORS,
   BUTTON_BAR_HEIGHT,
@@ -91,17 +91,14 @@ export class FrameSelectorScreen extends Phaser.GameObjects.Container {
 
   private handleNavKey(code: string) {
     if (this._buttonBarFocused) {
-      switch (code) {
-        case 'ArrowLeft':  this.buttonBar.moveCursor(-1); break;
-        case 'ArrowRight': this.buttonBar.moveCursor(1);  break;
-        case 'Space':      this.buttonBar.executeCursor(); break;
-        case 'ArrowUp':
+      handleButtonBarKey(this.buttonBar, code, {
+        onExitUp: () => {
           this._buttonBarFocused = false;
           this.buttonBar.deactivate();
           this.grid.activate();
-          break;
-        case 'Escape': this.emit('cancel'); break;
-      }
+        },
+        onEscape: () => this.emit('cancel'),
+      });
       return;
     }
 
