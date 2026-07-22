@@ -1,32 +1,35 @@
 import Phaser from 'phaser';
-import { TextInput } from './TextInput';
 import { NumberInput } from './NumberInput';
 import {
   COLORS, FONT,
   CARD_HEIGHT, CARD_PAD_X, CARD_PAD_Y, PREVIEW_SIZE,
   CARD_FIELD_GAP,
-  NUMBER_INPUT_HEIGHT, TEXT_INPUT_HEIGHT,
+  NUMBER_INPUT_HEIGHT,
   NUMBER_INPUT_TRACK_WIDTH,
   hex,
 } from '../constants';
 import { SpriteData, ImageItem } from '../types';
 import { fitContainNoUpscale } from '../utils/sizing';
 
-export type CardField = 'preview' | 'name' | 'freq' | 'repeat' | 'repeatDelay';
-export const CARD_FIELDS: CardField[] = ['preview', 'name', 'freq', 'repeat', 'repeatDelay'];
+export type CardField = 'selectFrames' | 'freq' | 'repeat' | 'repeatDelay' | 'copy' | 'delete';
+export const CARD_FIELDS: CardField[] = ['selectFrames', 'freq', 'repeat', 'repeatDelay', 'copy', 'delete'];
 
 /**
  * A sprite configuration card for S2 (SpriteEditScreen).
  *
- * Layout (within a card of `width` × CARD_HEIGHT):
- *   [preview area] [name TextInput] [freq/repeat/repeatDelay NumberInput×3] [X btn]
+ * The sprite name (prefix) is auto-assigned (a number string) and shown as a
+ * read-only label — there is no name input, so it isn't a navigable field.
+ *
+ * Layout (within a card of `width` × CARD_HEIGHT), config column top → bottom:
+ *   FRAMES, FPS, REPEAT, DELAY, COPY, DELETE (preview thumbnail to the left).
  *
  * Events emitted:
  *   'hover'             – mouse entered card body (card-mode cursor)
  *   'hover-field' (CardField) – mouse entered a specific field
  *   'activate' (CardField)    – mouse clicked a specific field
- *   'go-to-frames'      – preview was activated (go to S3)
- *   'delete'            – X button was activated
+ *   'go-to-frames'      – SELECT FRAMES was activated (go to S3)
+ *   'copy'              – COPY was activated (duplicate this sprite)
+ *   'delete'            – DELETE was activated
  *   'change' (SpriteData)     – any config value changed
  */
 export class SpriteCard extends Phaser.GameObjects.Container {
@@ -43,13 +46,17 @@ export class SpriteCard extends Phaser.GameObjects.Container {
   private cardBg!: Phaser.GameObjects.Rectangle;
   private cardBorder!: Phaser.GameObjects.Graphics;
   private previewBg!: Phaser.GameObjects.Rectangle;
-  private previewFocusOverlay!: Phaser.GameObjects.Graphics;
   private previewPlaceholder!: Phaser.GameObjects.Text;
   private previewSprite?: Phaser.GameObjects.Sprite;
-  private nameInput!: TextInput;
   private freqInput!: NumberInput;
   private repeatInput!: NumberInput;
   private repeatDelayInput!: NumberInput;
+  private selectFramesBtnBg!: Phaser.GameObjects.Rectangle;
+  private selectFramesBtnText!: Phaser.GameObjects.Text;
+  private copyBtnBg!: Phaser.GameObjects.Rectangle;
+  private copyBtnText!: Phaser.GameObjects.Text;
+  private deleteBtnBg!: Phaser.GameObjects.Rectangle;
+  private deleteBtnText!: Phaser.GameObjects.Text;
   private selectOverlay!: Phaser.GameObjects.Graphics;
 
   // State
@@ -87,7 +94,8 @@ export class SpriteCard extends Phaser.GameObjects.Container {
   }
 
   get isTextInputActive(): boolean {
-    return this.nameInput.isFocused;
+    // No editable text on the card anymore (name is an auto-assigned label).
+    return false;
   }
 
   get focusedField(): CardField | null {
@@ -126,8 +134,9 @@ export class SpriteCard extends Phaser.GameObjects.Container {
   /** Space handler for the currently focused field. */
   activateCurrentField() {
     switch (this._focusedField) {
-      case 'preview': this.emit('go-to-frames'); break;
-      case 'name':    this.nameInput.focus();    break;
+      case 'selectFrames': this.emit('go-to-frames'); break;
+      case 'copy':    this.emit('copy');         break;
+      case 'delete':  this.emit('delete');       break;
       // NumberInput fields: Left/Right handled externally
     }
   }
@@ -165,8 +174,14 @@ export class SpriteCard extends Phaser.GameObjects.Container {
   /** Apply confirmed frame IDs from S3. */
   setFrames(frameIds: string[]) {
     this._spriteData = { ...this._spriteData, frames: frameIds };
+    this.selectFramesBtnText.setText(this.framesLabel());
     this.rebuildAnimation();
     this.emit('change', this.collectData());
+  }
+
+  /** Button label showing the current frame count, e.g. "FRAMES:5". */
+  private framesLabel(): string {
+    return `FRAMES:${this._spriteData.frames.length}`;
   }
 
   /** Update the image pool (e.g. after returning from S1 with purged images). */
@@ -183,23 +198,18 @@ export class SpriteCard extends Phaser.GameObjects.Container {
       .setOrigin(0, 0)
       .setInteractive({ cursor: 'pointer' });
     this.cardBg.on('pointerover', () => this.emit('hover'));
-    this.cardBg.on('pointerdown', () => this.emit('activate', 'name'));
+    this.cardBg.on('pointerdown', () => this.emit('activate', CARD_FIELDS[0]));
     this.add(this.cardBg);
 
     this.cardBorder = this.scene.add.graphics();
     this.add(this.cardBorder);
 
-    // ── Preview area ──────────────────────────────────────────────────────────
+    // ── Preview area (non-interactive thumbnail; frames are chosen via the
+    // SELECT FRAMES button below) ────────────────────────────────────────────
     this.previewBg = this.scene.add
       .rectangle(CARD_PAD_X, CARD_PAD_Y, this.previewSize, this.previewSize, COLORS.PREVIEW_BG)
-      .setOrigin(0, 0)
-      .setInteractive({ cursor: 'pointer' });
-    this.previewBg.on('pointerover', () => this.emit('hover-field', 'preview'));
-    this.previewBg.on('pointerdown', () => this.emit('activate', 'preview'));
+      .setOrigin(0, 0);
     this.add(this.previewBg);
-
-    this.previewFocusOverlay = this.scene.add.graphics();
-    this.add(this.previewFocusOverlay);
 
     this.previewPlaceholder = this.scene.add
       .text(
@@ -215,34 +225,42 @@ export class SpriteCard extends Phaser.GameObjects.Container {
       .setOrigin(0.5);
     this.add(this.previewPlaceholder);
 
-    // ── Config fields ─────────────────────────────────────────────────────────
-    const nameY       = CARD_PAD_Y;
-    const freqY       = nameY + TEXT_INPUT_HEIGHT + CARD_FIELD_GAP;
-    const repeatY     = freqY + NUMBER_INPUT_HEIGHT + CARD_FIELD_GAP;
-    const repeatDelayY = repeatY + NUMBER_INPUT_HEIGHT + CARD_FIELD_GAP;
+    // ── Config fields (top → bottom): frames, FPS, repeat, delay, copy, delete ──
+    const rowH = NUMBER_INPUT_HEIGHT;
+    const selectFramesY = CARD_PAD_Y;
+    const freqY         = selectFramesY + rowH + CARD_FIELD_GAP;
+    const repeatY       = freqY + rowH + CARD_FIELD_GAP;
+    const repeatDelayY  = repeatY + rowH + CARD_FIELD_GAP;
+    const copyY         = repeatDelayY + rowH + CARD_FIELD_GAP;
+    const deleteY       = copyY + rowH + CARD_FIELD_GAP;
 
-    this.nameInput = new TextInput(this.scene, {
-      x: this.configX,
-      y: nameY,
-      width: this.configW,
-      height: TEXT_INPUT_HEIGHT,
-      variant: 'labeled',
-      label: 'NAME',
-      placeholder: 'sprite name',
-      initialValue: this._spriteData.prefix,
-    });
-    this.nameInput.on('confirm', () => {
-      this._spriteData = { ...this._spriteData, prefix: this.nameInput.value };
-      this.emit('change', this.collectData());
-      this.emit('field-committed');
-    });
-    this.nameInput.on('cancel', () => this.emit('field-committed'));
-    this.nameInput.on('blur', () => this.refreshVisuals());
-    this.add(this.nameInput);
+    // ── Select-frames button ────────────────────────────────────────────────────
+    this.selectFramesBtnBg = this.scene.add
+      .rectangle(this.configX, selectFramesY, this.configW, NUMBER_INPUT_HEIGHT, COLORS.X_BTN_BG)
+      .setOrigin(0, 0)
+      .setInteractive({ cursor: 'pointer' });
+    this.selectFramesBtnBg.on('pointerover', () => this.emit('hover-field', 'selectFrames'));
+    this.selectFramesBtnBg.on('pointerdown', () => this.emit('activate', 'selectFrames'));
+    this.add(this.selectFramesBtnBg);
+
+    this.selectFramesBtnText = this.scene.add
+      .text(
+        this.configX,
+        selectFramesY,
+        this.framesLabel(),
+        {
+          fontFamily: FONT.FAMILY,
+          fontSize: FONT.SIZE,
+          color: hex(COLORS.X_BTN_TEXT),
+          resolution: 1,
+        },
+      )
+      .setOrigin(0, 0);
+    this.add(this.selectFramesBtnText);
 
     this.freqInput = new NumberInput(this.scene, {
       x: this.configX, y: freqY,
-      label: 'FREQ', value: this._spriteData.freq,
+      label: 'FPS', value: this._spriteData.freq,
       min: 1, max: 60, step: 1,
       trackWidth: NUMBER_INPUT_TRACK_WIDTH,
     });
@@ -252,7 +270,7 @@ export class SpriteCard extends Phaser.GameObjects.Container {
     this.repeatInput = new NumberInput(this.scene, {
       x: this.configX, y: repeatY,
       label: 'REPEAT', value: this._spriteData.repeat,
-      min: -1, max: 99, step: 1,
+      min: -1, max: 5, step: 1,
       trackWidth: NUMBER_INPUT_TRACK_WIDTH,
     });
     this.repeatInput.on('change', () => this.syncDataAndAnimation());
@@ -267,7 +285,50 @@ export class SpriteCard extends Phaser.GameObjects.Container {
     this.repeatDelayInput.on('change', () => this.syncDataAndAnimation());
     this.add(this.repeatDelayInput);
 
-    // Mouse overlays for NumberInput and name rows (allow hover/click without blocking TextInput)
+    // ── Copy button ─────────────────────────────────────────────────────────────
+    this.copyBtnBg = this.scene.add
+      .rectangle(this.configX, copyY, this.configW, NUMBER_INPUT_HEIGHT, COLORS.X_BTN_BG)
+      .setOrigin(0, 0)
+      .setInteractive({ cursor: 'pointer' });
+    this.copyBtnBg.on('pointerover', () => this.emit('hover-field', 'copy'));
+    this.copyBtnBg.on('pointerdown', () => this.emit('activate', 'copy'));
+    this.add(this.copyBtnBg);
+
+    this.copyBtnText = this.scene.add
+      .text(this.configX, copyY, 'COPY', {
+        fontFamily: FONT.FAMILY,
+        fontSize: FONT.SIZE,
+        color: hex(COLORS.X_BTN_TEXT),
+        resolution: 1,
+      })
+      .setOrigin(0, 0);
+    this.add(this.copyBtnText);
+
+    // ── Delete button ─────────────────────────────────────────────────────────
+    this.deleteBtnBg = this.scene.add
+      .rectangle(this.configX, deleteY, this.configW, NUMBER_INPUT_HEIGHT, COLORS.X_BTN_BG)
+      .setOrigin(0, 0)
+      .setInteractive({ cursor: 'pointer' });
+    this.deleteBtnBg.on('pointerover', () => this.emit('hover-field', 'delete'));
+    this.deleteBtnBg.on('pointerdown', () => this.emit('activate', 'delete'));
+    this.add(this.deleteBtnBg);
+
+    this.deleteBtnText = this.scene.add
+      .text(
+        this.configX,
+        deleteY,
+        'DELETE',
+        {
+          fontFamily: FONT.FAMILY,
+          fontSize: FONT.SIZE,
+          color: hex(COLORS.X_BTN_TEXT),
+          resolution: 1,
+        },
+      )
+      .setOrigin(0, 0);
+    this.add(this.deleteBtnText);
+
+    // Mouse overlays for the NumberInput rows (hover/click without blocking them).
     [
       { y: freqY, h: NUMBER_INPUT_HEIGHT, field: 'freq' as CardField },
       { y: repeatY, h: NUMBER_INPUT_HEIGHT, field: 'repeat' as CardField },
@@ -281,14 +342,6 @@ export class SpriteCard extends Phaser.GameObjects.Container {
       ov.on('pointerdown', () => this.emit('activate', field));
       this.add(ov);
     });
-
-    const nameOv = this.scene.add
-      .rectangle(this.configX, nameY, this.configW, TEXT_INPUT_HEIGHT, 0, 0)
-      .setOrigin(0, 0)
-      .setInteractive({ cursor: 'pointer' });
-    nameOv.on('pointerover', () => this.emit('hover-field', 'name'));
-    nameOv.on('pointerdown', () => this.emit('activate', 'name'));
-    this.add(nameOv);
 
     // Select-mode overlay (drawn on top of everything)
     this.selectOverlay = this.scene.add.graphics();
@@ -305,20 +358,25 @@ export class SpriteCard extends Phaser.GameObjects.Container {
       this.cardBorder.strokeRect(0, 0, this.cardBg.width, CARD_HEIGHT);
     }
 
-    // Preview focus border
-    this.previewFocusOverlay.clear();
-    if (this._focusedField === 'preview') {
-      this.previewFocusOverlay.lineStyle(2, COLORS.PREVIEW_FOCUSED_BORDER, 1);
-      this.previewFocusOverlay.strokeRect(CARD_PAD_X, CARD_PAD_Y, this.previewSize, this.previewSize);
-    }
-
-    // Name field highlight (field cursor without active typing)
-    this.nameInput.setFieldHighlight(this._focusedField === 'name');
-
     // NumberInput visual focus
     this._focusedField === 'freq'        ? this.freqInput.focus()        : this.freqInput.blur();
     this._focusedField === 'repeat'      ? this.repeatInput.focus()      : this.repeatInput.blur();
     this._focusedField === 'repeatDelay' ? this.repeatDelayInput.focus() : this.repeatDelayInput.blur();
+
+    // Select-frames button focus highlight
+    const selectFramesFocused = this._focusedField === 'selectFrames';
+    this.selectFramesBtnBg.setFillStyle(selectFramesFocused ? COLORS.X_BTN_FOCUSED_BG : COLORS.X_BTN_BG);
+    this.selectFramesBtnText.setColor(hex(selectFramesFocused ? COLORS.X_BTN_TEXT_FOCUSED : COLORS.X_BTN_TEXT));
+
+    // Copy button focus highlight
+    const copyFocused = this._focusedField === 'copy';
+    this.copyBtnBg.setFillStyle(copyFocused ? COLORS.X_BTN_FOCUSED_BG : COLORS.X_BTN_BG);
+    this.copyBtnText.setColor(hex(copyFocused ? COLORS.X_BTN_TEXT_FOCUSED : COLORS.X_BTN_TEXT));
+
+    // Delete button focus highlight
+    const deleteFocused = this._focusedField === 'delete';
+    this.deleteBtnBg.setFillStyle(deleteFocused ? COLORS.X_BTN_FOCUSED_BG : COLORS.X_BTN_BG);
+    this.deleteBtnText.setColor(hex(deleteFocused ? COLORS.X_BTN_TEXT_FOCUSED : COLORS.X_BTN_TEXT));
   }
 
   // ── Animation preview ───────────────────────────────────────────────────────
@@ -432,7 +490,6 @@ export class SpriteCard extends Phaser.GameObjects.Container {
   private collectData(): SpriteData {
     return {
       ...this._spriteData,
-      prefix: this.nameInput.value,
       freq: this.freqInput.value,
       repeat: this.repeatInput.value,
       repeatDelay: this.repeatDelayInput.value,

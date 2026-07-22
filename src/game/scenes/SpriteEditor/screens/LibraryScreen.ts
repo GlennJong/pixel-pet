@@ -1,5 +1,14 @@
 import Phaser from 'phaser';
-import { TextInput, GridSelector, ButtonBar, ScreenKeyboard, handleButtonBarKey } from '../elements';
+import {
+  TextInput,
+  GridSelector,
+  ButtonBar,
+  ConfirmDialog,
+  ScreenKeyboard,
+  handleButtonBarKey,
+  OptionMenu,
+  OptionMenuItem,
+} from '../elements';
 import { AtlasImportScreen } from './AtlasImportScreen';
 import { importAtlasTrio, ImportAtlasTrioResult } from '../utils/import';
 import { parseSmartFileName } from '../utils/smartInput';
@@ -22,16 +31,13 @@ import {
   WorkspaceAtlasEntry,
 } from '../types';
 
-const BUTTONS_DEFAULT = [
-  { key: 'import-local', label: 'import' },
-  { key: 'import-workspace', label: 'atlas' },
-  { key: 'next', label: 'Next' },
-];
+// Screen navigation (LIBRARY / SPRITES / EXIT) is owned by the scene
+// (SpriteEditor/index) now. This screen's own bottom bar only carries the
+// contextual multi-select actions, shown while grid cells are selected.
 const buttonsWithSelection = (n: number) => [
-  { key: 'cancel', label: 'cancel' },
-  { key: 'delete', label: n > 0 ? `delete(${n})` : 'delete' },
+  { key: 'delete', label: n > 0 ? `DELETE(${n})` : 'DELETE' },
+  { key: 'cancel', label: 'CANCEL' },
 ];
-
 interface LocalAtlasTrio {
   png: File;
   spritesheetJson: File;
@@ -58,12 +64,23 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
   private nameInput: TextInput;
   private grid: GridSelector;
   private buttonBar: ButtonBar;
+  private optionMenu: OptionMenu;
+  private confirmDialog: ConfirmDialog;
   private errorText: Phaser.GameObjects.Text;
 
-  private focusSection: LibraryFocusSection = 'text-input';
-  private focusBeforeAtlasImport: LibraryFocusSection = 'text-input';
+  /** 'menu' = entry menu (LOAD DATA / CREATE NEW); 'edit' = name input + grid. */
+  private mode: 'menu' | 'edit' = 'menu';
+  /** Action awaiting confirmation when it would deposit the current project. */
+  private pendingMenuAction?: 'load' | 'create';
+  /** True while grid cells are multi-selected (own contextual bar is shown). */
+  private selectionActive = false;
+
+  private focusSection: LibraryFocusSection = 'menu';
+  private focusBeforeAtlasImport: LibraryFocusSection = 'menu';
   private images: ImageItem[] = [];
   private importedSprites: SpriteData[] | undefined;
+  /** True once CREATE NEW starts a fresh project: proceed must reset sprites. */
+  private isNewProject = false;
   private atlasImportScreen: AtlasImportScreen | undefined;
   private nextImageId = 1;
 
@@ -119,9 +136,27 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
       }, 1);
       this.grid.prependImageCells(initialState.images.map(img => ({ id: img.id, textureKey: img.textureKey })));
     }
-    // ── Button bar ────────────────────────────────────────────────────────────
-    this.buttonBar = new ButtonBar(scene, buttonBarY, width, BUTTONS_DEFAULT);
+    // ── Selection action bar (DELETE/CANCEL) — shown only during multi-select;
+    // screen navigation lives in the scene-owned nav bar at this same y. ───────
+    this.buttonBar = new ButtonBar(scene, buttonBarY, width, buttonsWithSelection(0), 'left');
+    this.buttonBar.setVisible(false);
     this.add(this.buttonBar);
+
+    // ── Entry menu (LOAD DATA / CREATE NEW / {current}) ───────────────────────
+    // Framed panel; auto-sizes to its rows (a small box for 2–3 options).
+    this.optionMenu = new OptionMenu(
+      scene,
+      PAD,
+      inputY,
+      width - PAD * 2,
+      buttonBarY - inputY - GRID_OUTER_PAD,
+      [],
+    );
+    this.add(this.optionMenu);
+
+    // ── Depose-confirm dialog (shared modal; drawn on top, hidden until asked) ─
+    this.confirmDialog = new ConfirmDialog(scene, { width, height });
+    this.add(this.confirmDialog);
 
     // ── Error hint ────────────────────────────────────────────────────────────
     this.errorText = scene.add.text(PAD, buttonBarY - 2, '', {
@@ -152,6 +187,9 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
     });
 
     this.buttonBar.on('action', (key: string) => this.handleButtonAction(key));
+    this.optionMenu.on('select', (key: string) => this.handleMenuSelect(key));
+    this.confirmDialog.on('confirm', () => { this.confirmDialog.close(); this.confirmDepose(); });
+    this.confirmDialog.on('cancel', () => this.cancelDepose());
 
     // ── Keyboard ──────────────────────────────────────────────────────────────
     this.keyboard = new ScreenKeyboard({
@@ -164,8 +202,8 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
 
     scene.add.existing(this);
 
-    // Start with name input focused
-    this.nameInput.focus();
+    // Start on the entry menu (shows {name}(current) when returning with a project).
+    this.showMenu();
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────
@@ -175,10 +213,46 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
     // Currently keyboard-event driven; placeholder for future use
   }
 
+  // ── Shared-nav contract (driven by SpriteEditor/index) ──────────────────────
+
+  /** Pause/resume this screen's keyboard while the scene nav owns focus. */
+  pause() { this.keyboard.pause(); }
+  resume() { this.keyboard.resume(); }
+
+  /** Re-take focus from the scene nav, landing on this screen's bottom content. */
+  focusFromNav() {
+    if (this.mode === 'menu') this.transitionToMenuFocus('last');
+    else this.transitionToGrid(/* lastRow */ true);
+  }
+
+  /** Build + emit the proceed payload (invoked by the scene's SPRITES nav). */
+  requestProceed() { this.proceedToSpriteEdit(); }
+
   // ── Navigation ─────────────────────────────────────────────────────────────
 
   private handleNavKey(code: string) {
-    if (this.focusSection === 'grid') {
+    if (this.confirmDialog.isOpen) {
+      this.confirmDialog.handleKey(code);
+      return;
+    }
+    if (this.focusSection === 'menu') {
+      switch (code) {
+        case 'ArrowUp':
+          this.optionMenu.moveCursor(-1);
+          break;
+        case 'ArrowDown':
+          if (this.optionMenu.cursorIndex >= this.optionMenu.itemCount - 1) {
+            this.leaveToNav();
+          } else {
+            this.optionMenu.moveCursor(1);
+          }
+          break;
+        case 'Space':
+        case 'Enter':
+          this.optionMenu.selectCurrent();
+          break;
+      }
+    } else if (this.focusSection === 'grid') {
       switch (code) {
         case 'ArrowLeft':
           this.grid.moveCursorLeft();
@@ -193,7 +267,12 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
         }
         case 'ArrowDown': {
           const moved = this.grid.moveCursorDown();
-          if (!moved) this.transitionToButtonBar();
+          // With a selection, the own DELETE/CANCEL bar owns the bottom; else
+          // hand focus down to the scene nav.
+          if (!moved) {
+            if (this.selectionActive) this.transitionToButtonBar();
+            else this.leaveToNav();
+          }
           break;
         }
         case 'Space':
@@ -206,17 +285,153 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
       }
     } else if (this.focusSection === 'button-bar') {
       handleButtonBarKey(this.buttonBar, code, {
-        onExitUp: () => this.transitionToGrid(/* lastRow */ true),
+        onExitUp: () => this.exitButtonBarUp(),
         onEscape: () => {
-          this.grid.clearAllSelections();
-          this.updateButtonsForSelection(0);
-          this.transitionToGrid(true);
+          if (this.mode === 'edit') {
+            this.grid.clearAllSelections();
+            this.updateButtonsForSelection(0);
+            this.transitionToGrid(true);
+          } else {
+            this.transitionToMenuFocus();
+          }
         },
       });
     }
   }
 
+  // ── Mode switching ───────────────────────────────────────────────────────
+
+  private buildMenuItems(): OptionMenuItem[] {
+    const items: OptionMenuItem[] = [];
+    if (this.images.length > 0) {
+      const name = this.nameInput.value.trim() || 'project';
+      items.push({ key: 'current', label: `${name}(current)` });
+    }
+    items.push({ key: 'load', label: 'LOAD DATA' });
+    items.push({ key: 'create', label: 'CREATE NEW' });
+    return items;
+  }
+
+  /** Show the entry menu (LOAD DATA / CREATE NEW / {current}); hide the editor. */
+  showMenu() {
+    this.mode = 'menu';
+    this.pendingMenuAction = undefined;
+    this.confirmDialog.close();
+    this.nameInput.blur();
+    this.nameInput.setVisible(false);
+    this.grid.deactivate();
+    this.grid.setVisible(false);
+    this.optionMenu.setItems(this.buildMenuItems());
+    this.optionMenu.setVisible(true);
+    this.updateButtonsForSelection(0);
+    this.errorText.setVisible(false);
+    this.transitionToMenuFocus();
+  }
+
+  /** Show the editor (name input + grid); hide the entry menu. */
+  private showEdit() {
+    this.mode = 'edit';
+    this.pendingMenuAction = undefined;
+    this.confirmDialog.close();
+    this.optionMenu.deactivate();
+    this.optionMenu.setVisible(false);
+    this.nameInput.setVisible(true);
+    this.grid.setVisible(true);
+    this.updateButtonsForSelection(0);
+    this.errorText.setVisible(false);
+    this.focusSection = 'text-input';
+    this.nameInput.focus();
+  }
+
+  private enterCreateNew() {
+    this.clearLibraryForReplace();
+    this.nameInput.setValue('');
+    // Fresh project — its sprite configs start empty (drop any prior project's).
+    this.isNewProject = true;
+    this.showEdit();
+  }
+
+  private handleMenuSelect(key: string) {
+    switch (key) {
+      case 'current':
+        // Resuming the existing project — keep its sprite configs.
+        this.isNewProject = false;
+        this.showEdit();
+        break;
+      case 'load':
+        if (this.hasProject()) this.askDeposeConfirm('load');
+        else void this.openAtlasImportScreen();
+        break;
+      case 'create':
+        if (this.hasProject()) this.askDeposeConfirm('create');
+        else this.enterCreateNew();
+        break;
+    }
+  }
+
+  private hasProject() {
+    return this.images.length > 0;
+  }
+
+  // ── Depose confirmation (shared modal dialog: message + CONFIRM/CANCEL nav) ──
+
+  private askDeposeConfirm(action: 'load' | 'create') {
+    this.pendingMenuAction = action;
+    this.deactivateCurrentFocus();
+    this.errorText.setVisible(false);
+
+    const name = this.nameInput.value.trim() || 'project';
+    this.confirmDialog.open(
+      `Are you sure?\nIf you LOAD DATA or CREATE NEW,\n${name} would be deposed?`,
+    );
+    this.emitNavSuppress();
+  }
+
+  private confirmDepose() {
+    const action = this.pendingMenuAction;
+    if (action === 'load') {
+      this.showMenu();
+      void this.openAtlasImportScreen();
+    } else if (action === 'create') {
+      this.enterCreateNew();
+    }
+    this.emitNavSuppress();
+  }
+
+  private cancelDepose() {
+    this.confirmDialog.close();
+    this.showMenu();
+    this.emitNavSuppress();
+  }
+
   // ── Section transitions ────────────────────────────────────────────────────
+
+  private transitionToMenuFocus(cursor: 'first' | 'last' = 'first') {
+    if (this.focusSection === 'button-bar') this.buttonBar.deactivate();
+    this.focusSection = 'menu';
+    this.optionMenu.activate();
+    this.optionMenu.setCursor(cursor === 'last' ? this.optionMenu.itemCount - 1 : 0);
+  }
+
+  private exitButtonBarUp() {
+    if (this.mode === 'edit') this.transitionToGrid(/* lastRow */ true);
+    // Coming up from the nav lands on the last option (symmetric with ArrowDown).
+    else this.transitionToMenuFocus('last');
+  }
+
+  /** Hand focus down to the scene-owned navigation bar. */
+  private leaveToNav() {
+    this.deactivateCurrentFocus();
+    this.emit('nav-down');
+  }
+
+  /** Emit the combined nav-suppress signal (modal or contextual bar is up). */
+  private emitNavSuppress() {
+    const suppressed = this.selectionActive
+      || this.confirmDialog.isOpen
+      || this.atlasImportScreen !== undefined;
+    this.emit('nav-suppress', suppressed);
+  }
 
   private transitionToTextInput() {
     this.grid.deactivate();
@@ -245,7 +460,8 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
   }
 
   private transitionToButtonBar() {
-    this.grid.deactivate();
+    if (this.mode === 'menu') this.optionMenu.deactivate();
+    else this.grid.deactivate();
     this.focusSection = 'button-bar';
     this.buttonBar.activate();
     this.buttonBar.setCursorToFirst();
@@ -253,22 +469,14 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
 
   // ── Button actions ─────────────────────────────────────────────────────────
 
+  // Only the contextual multi-select actions live here now — LIBRARY / SPRITES /
+  // EXIT moved to the scene-owned nav (SpriteEditor/index).
   private handleButtonAction(key: string) {
     switch (key) {
-      case 'next':
-        this.proceedToSpriteEdit();
-        break;
-      case 'import-local':
-        this.clearLibraryForReplace();
-        this.fileInput.click();
-        break;
-      case 'import-workspace':
-        this.clearLibraryForReplace();
-        void this.openAtlasImportScreen();
-        break;
       case 'cancel':
         this.grid.clearAllSelections();
         this.updateButtonsForSelection(0);
+        this.transitionToGrid(/* lastRow */ true);
         break;
       case 'delete': {
         const toDelete = this.grid.selectedIds;
@@ -282,6 +490,7 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
         this.autoFillProjectNameFromParsedImages();
         this.grid.clearAllSelections();
         this.updateButtonsForSelection(0);
+        this.transitionToGrid(/* lastRow */ true);
         break;
       }
     }
@@ -290,11 +499,16 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   private updateButtonsForSelection(count: number) {
+    this.selectionActive = count > 0;
     if (count > 0) {
       this.buttonBar.setButtons(buttonsWithSelection(count));
+      this.buttonBar.setAlign('right');
+      this.buttonBar.setVisible(true);
     } else {
-      this.buttonBar.setButtons(BUTTONS_DEFAULT);
+      this.buttonBar.setVisible(false);
     }
+    // Hide the scene nav while our own contextual bar occupies the bottom.
+    this.emitNavSuppress();
   }
 
   private showError(msg: string) {
@@ -311,16 +525,17 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
       this.nameInput.setValue(name);
     }
 
-    if (this.images.length === 0) {
-      this.showError('Add at least one image');
-      return;
-    }
-
     this.errorText.setVisible(false);
+    // sprites: imported atlas configs take precedence; a freshly-created project
+    // resets to []; otherwise undefined keeps the editor's existing configs
+    // (the S2 ↔ Library round-trip).
+    const sprites = this.importedSprites !== undefined
+      ? [...this.importedSprites]
+      : this.isNewProject ? [] : undefined;
     const payload: LibraryProceedPayload = {
       projectName: name,
       images: [...this.images],
-      sprites: typeof this.importedSprites !== 'undefined' ? [...this.importedSprites] : undefined,
+      sprites,
     };
     this.emit('proceed', payload);
   }
@@ -383,7 +598,9 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
 
     try {
       await Promise.all(imageFiles.map(file => this.importImageFile(file)));
-      this.proceedToSpriteEdit();
+      // Stay on the Library so the imported thumbnails show in the grid; the user
+      // advances to the sprite editor via the SPRITES nav when ready.
+      this.errorText.setVisible(false);
     } catch (error) {
       this.showError(
         `Import failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -477,6 +694,7 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
       this.keyboard.pause();
 
       this.atlasImportScreen = new AtlasImportScreen(this.scene, this.screenW, this.screenH, atlasList);
+      this.emitNavSuppress();
       this.atlasImportScreen.once('cancel', () => {
         this.closeAtlasImportScreen();
       });
@@ -498,6 +716,7 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
     this.atlasImportScreen = undefined;
     this.keyboard.resume();
     this.restoreFocusAfterAtlasImport();
+    this.emitNavSuppress();
   }
 
   private async importAtlasFromWorkspace(atlas: WorkspaceAtlasEntry) {
@@ -563,6 +782,10 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
   }
 
   private deactivateCurrentFocus() {
+    if (this.focusSection === 'menu') {
+      this.optionMenu.deactivate();
+      return;
+    }
     if (this.focusSection === 'text-input') {
       this.nameInput.blur();
       return;
@@ -575,6 +798,11 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
   }
 
   private restoreFocusAfterAtlasImport() {
+    if (this.focusBeforeAtlasImport === 'menu') {
+      this.transitionToMenuFocus();
+      return;
+    }
+
     if (this.focusBeforeAtlasImport === 'text-input') {
       this.focusSection = 'text-input';
       this.nameInput.focus();
@@ -596,6 +824,7 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
   private applyImportedAtlas(result: ImportAtlasTrioResult) {
     this.images = [...result.images];
     this.importedSprites = [...result.sprites];
+    this.isNewProject = false;
     this.nextImageId = result.images.length + 1;
 
     this.grid.setCells([
@@ -608,11 +837,8 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
       { id: '__add__', type: 'add' as const, selected: false },
     ]);
     this.grid.setCursor(0);
-    this.grid.deactivate();
-    this.focusSection = 'text-input';
-    this.nameInput.focus();
-    this.updateButtonsForSelection(0);
-    this.errorText.setVisible(false);
+    // Loaded data becomes the working project; show the editor view.
+    this.showEdit();
 
     if (result.projectName && this.nameInput.value !== result.projectName) {
       this.nameInput.setValue(result.projectName);

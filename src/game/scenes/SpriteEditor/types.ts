@@ -43,4 +43,4 @@ export interface AnimationItem {
   duration?: number;
 }
 
-export type LibraryFocusSection = 'text-input' | 'grid' | 'button-bar';
+export type LibraryFocusSection = 'menu' | 'text-input' | 'grid' | 'button-bar';

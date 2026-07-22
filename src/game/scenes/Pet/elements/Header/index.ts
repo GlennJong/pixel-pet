@@ -2,12 +2,13 @@ import Phaser from "phaser";
 
 // elements
 import { getStaticData } from "@/game/staticData";
-import { HeaderStatIcon } from "./HeaderStatIcon";
 import { getValueFromColonRuntimeData } from "@/game/runtimeData/helper";
-import { HeaderConfig, RegionLayout } from "./types";
-import { PET_HEADER_HEIGHT, PET_STATIC_KEYS } from "../../constants";
-import { createAnimationsFromConfig, resolveAtlasAnimations } from "@/game/utils/animation";
+import { PET_HEADER_HEIGHT, PET_STATIC_KEYS } from "@/game/scenes/Pet/constants";
 import { runtimeData } from "@/game/runtimeData";
+import { createAnimationsFromConfig, resolveAtlasAnimations } from "@/game/utils/animation";
+
+import { HeaderStatIcon } from "./HeaderStatIcon";
+import { HeaderConfig, RegionLayout } from "./types";
 
 // TODO Constant Naming
 export class Header extends Phaser.GameObjects.Container {

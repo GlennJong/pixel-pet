@@ -53,14 +53,3 @@ export interface HeaderConfig {
   menu: MenuItem[];
   stats: StatItemConfig[];
 }
-
-export interface HeaderSelectorOption {
-  x: number;
-  y: number;
-  start: number;
-  end: number;
-  freq: number;
-  id: string;
-  atlasId: string;
-  frame: string;
-}

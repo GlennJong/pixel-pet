@@ -2,17 +2,37 @@ import Phaser, { Scene } from 'phaser';
 import { LibraryScreen } from './screens/LibraryScreen';
 import { SpriteEditScreen } from './screens/SpriteEditScreen';
 import { FrameSelectorScreen } from './screens/FrameSelectorScreen';
-import { EditorState, LibraryProceedPayload, SpriteData } from './types';
+import { ButtonBar, ScreenKeyboard, handleButtonBarKey } from './elements';
+import { EditorState, LibraryProceedPayload } from './types';
 import { buildSpriteEditorExport, downloadSpriteEditorExport } from './utils/export';
 import { buildPresetSpritesFromImages } from './utils/smartInput';
 import { saveAtlasCustomization, setCustomizationActive, reloadAtlasIntoScene } from '@/game/customization';
 import { getStaticData } from '@/game/staticData';
-import { COLORS, FONT, BANNER_AUTOHIDE_MS, hex } from './constants';
+import { COLORS, FONT, BUTTON_BAR_HEIGHT, BANNER_AUTOHIDE_MS, hex } from './constants';
 
 interface EditorSceneStartData {
   returnSceneKey?: string;
   targetAtlasId?: string;
 }
+
+// Persistent bottom navigation shared by the Library (S1) and Sprite Edit (S2)
+// screens. This scene owns it so screen-switching is centralized here; the
+// keyboard reaches it by arrowing down past a screen's content ('nav-down').
+const NAV_BUTTONS = [
+  { key: 'library', label: 'LIBRARY' },
+  { key: 'sprites', label: 'SPRITES' },
+  { key: 'save', label: 'SAVE' },
+  { key: 'exit', label: 'EXIT' },
+];
+
+// Sub-menu shown in place of NAV_BUTTONS after SAVE is chosen. APPLY writes the
+// customization into the running game; EXPORT downloads the artifacts; CANCEL
+// returns to the default nav.
+const SAVE_BUTTONS = [
+  { key: 'apply', label: 'APPLY' },
+  { key: 'export', label: 'EXPORT' },
+  { key: 'cancel', label: 'CANCEL' },
+];
 
 /**
  * EditorScene – Sprite Editor
@@ -34,6 +54,14 @@ export default class EditorScene extends Scene {
   private targetAtlasId?: string;
 
   private errorBanner?: Phaser.GameObjects.Text;
+
+  // Persistent bottom navigation (owned here, shared by S1/S2).
+  private navBar?: ButtonBar;
+  private navKeyboard?: ScreenKeyboard;
+  private navFocused = false;
+  private navSuppressed = false; // a screen has a modal/contextual bar up
+  private navSaveMode = false; // nav is showing the SAVE sub-menu (APPLY/EXPORT/CANCEL)
+  private currentScreen: 'library' | 'sprites' | 'frames' | 'none' = 'none';
 
   // Pending frame-selector context (used when returning from S3 → S2)
   private pendingFrameTarget?: string;
@@ -63,9 +91,163 @@ export default class EditorScene extends Scene {
     const w = this.scale.width;
     const h = this.scale.height;
     this.add.rectangle(0, 0, w, h, COLORS.BG).setOrigin(0, 0);
+    this.buildNavBar(w, h);
     this.showLibraryScreen(w, h);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
+  }
+
+  // ── Shared navigation (bottom bar) ───────────────────────────────────────────
+
+  private buildNavBar(w: number, h: number) {
+    // Rendered above the screen containers (they're recreated on every switch,
+    // so a high depth keeps the nav on top). Hidden while a screen shows a modal
+    // (its own bar sits at the same y) and on the frame-selector sub-screen.
+    this.navBar = new ButtonBar(this, h - BUTTON_BAR_HEIGHT, w, NAV_BUTTONS, 'left');
+    this.navBar.setDepth(500);
+    this.navBar.on('action', (key: string) => this.handleNavAction(key));
+
+    this.navKeyboard = new ScreenKeyboard({
+      scene: this,
+      canAttach: () => true,
+      shouldHandleKeyDown: () => this.navFocused,
+      onKeyDown: (code) => this.handleNavKey(code),
+    });
+    this.navKeyboard.attach();
+  }
+
+  private handleNavKey(code: string) {
+    if (!this.navBar) return;
+    // In the SAVE sub-menu, backing out returns to the default nav (not the
+    // screen); at the top level it hands focus back to the screen content.
+    handleButtonBarKey(this.navBar, code, {
+      onExitUp: () => (this.navSaveMode ? this.exitSaveMenu() : this.returnFocusToScreen()),
+      onEscape: () => (this.navSaveMode ? this.exitSaveMenu() : this.returnFocusToScreen()),
+    });
+  }
+
+  private handleNavAction(key: string) {
+    const w = this.scale.width;
+    const h = this.scale.height;
+
+    // SAVE sub-menu actions keep focus on the nav — handle before the shared
+    // "leaving the nav" teardown below.
+    switch (key) {
+      case 'save':
+        this.enterSaveMenu();
+        return;
+      case 'apply':
+        this.commitSpritesFromScreen();
+        void this.handleApply();
+        return;
+      case 'export':
+        this.commitSpritesFromScreen();
+        void this.handleExport();
+        return;
+      case 'cancel':
+        this.exitSaveMenu();
+        return;
+    }
+
+    // Leaving the nav — drop its focus highlight (screen switches recreate the
+    // target screen fresh; same-screen actions resume the paused keyboard).
+    this.navFocused = false;
+    this.navBar?.deactivate();
+
+    switch (key) {
+      case 'library':
+        if (this.currentScreen === 'library') {
+          this.libraryScreen?.resume();
+          this.libraryScreen?.showMenu();
+        } else {
+          if (this.spriteEditScreen) this.state.sprites = this.spriteEditScreen.collectSprites();
+          this.showLibraryScreen(w, h);
+        }
+        break;
+      case 'sprites':
+        if (this.currentScreen === 'library') {
+          // Emits 'proceed' with the library payload → showSpriteEditScreen.
+          this.libraryScreen?.requestProceed();
+        } else {
+          this.spriteEditScreen?.resume();
+          this.spriteEditScreen?.focusFromNav();
+        }
+        break;
+      case 'exit':
+        this.exitEditor();
+        break;
+    }
+  }
+
+  /** Swap the nav to the SAVE sub-menu (APPLY / EXPORT / CANCEL). */
+  private enterSaveMenu() {
+    this.navSaveMode = true;
+    this.navFocused = true;
+    this.navBar?.setButtons(SAVE_BUTTONS);
+    this.navBar?.activate();
+    this.navBar?.setCursorToFirst();
+  }
+
+  /** Restore the default nav buttons after the SAVE sub-menu. */
+  private exitSaveMenu() {
+    this.navSaveMode = false;
+    this.navFocused = true;
+    this.navBar?.setButtons(NAV_BUTTONS);
+    this.navBar?.activate();
+    this.navBar?.setCursorToFirst();
+  }
+
+  /** Snapshot the live sprite configs before a SAVE action, when on S2. */
+  private commitSpritesFromScreen() {
+    if (this.spriteEditScreen) this.state.sprites = this.spriteEditScreen.collectSprites();
+  }
+
+  /** The screen that currently owns the nav (S1 or S2). */
+  private activeScreen(): { pause(): void; resume(): void; focusFromNav(): void } | undefined {
+    if (this.currentScreen === 'library') return this.libraryScreen;
+    if (this.currentScreen === 'sprites') return this.spriteEditScreen;
+    return undefined;
+  }
+
+  /** Move keyboard focus from the active screen down into the nav bar. */
+  private focusNav() {
+    if (!this.navBar || this.navFocused) return;
+    if (!this.navBar.visible) {
+      // Nav is suppressed/hidden — the screen already blurred to leave, so give
+      // its focus back rather than stranding it.
+      this.activeScreen()?.focusFromNav();
+      return;
+    }
+    this.navFocused = true;
+    this.activeScreen()?.pause();
+    this.navBar.activate();
+    this.navBar.setCursorToFirst();
+  }
+
+  /** Hand focus back from the nav to the active screen's bottom content. */
+  private returnFocusToScreen() {
+    this.navFocused = false;
+    this.navBar?.deactivate();
+    const screen = this.activeScreen();
+    screen?.resume();
+    screen?.focusFromNav();
+  }
+
+  /** Recompute nav visibility from the current screen + suppression state. */
+  private refreshNav() {
+    const showable = this.currentScreen === 'library' || this.currentScreen === 'sprites';
+    const visible = showable && !this.navSuppressed;
+    this.navBar?.setVisible(visible);
+    if (!visible && this.navFocused) this.returnFocusToScreen();
+  }
+
+  /** Wire the shared nav events every screen exposes (S1/S2). */
+  private wireScreenNav(screen: Phaser.GameObjects.Container) {
+    screen.on('nav-down', () => this.focusNav());
+    screen.on('nav-suppress', (suppressed: boolean) => {
+      this.navSuppressed = suppressed;
+      this.refreshNav();
+    });
   }
 
   update() {
@@ -78,9 +260,18 @@ export default class EditorScene extends Scene {
     this.libraryScreen?.destroy();
     this.spriteEditScreen?.destroy();
     this.frameSelectorScreen?.destroy();
+    this.navKeyboard?.destroy();
+    this.navBar?.destroy();
     this.libraryScreen = undefined;
     this.spriteEditScreen = undefined;
     this.frameSelectorScreen = undefined;
+    this.navKeyboard = undefined;
+    this.navBar = undefined;
+  }
+
+  /** Leave the editor, returning to the scene that launched it. */
+  private exitEditor() {
+    this.scene.start(this.returnSceneKey || 'MainScene');
   }
 
   // ── S1 – Library ───────────────────────────────────────────────────────────
@@ -96,6 +287,7 @@ export default class EditorScene extends Scene {
       projectName: this.state.projectName,
       images: this.state.images,
     });
+    this.libraryScreen.on('exit', () => this.exitEditor());
     this.libraryScreen.on('proceed', (data: LibraryProceedPayload) => {
       this.state.projectName = data.projectName;
       this.state.images = data.images;
@@ -104,6 +296,12 @@ export default class EditorScene extends Scene {
       }
       this.showSpriteEditScreen(w, h);
     });
+    this.wireScreenNav(this.libraryScreen);
+
+    this.currentScreen = 'library';
+    this.navFocused = false;
+    this.navSuppressed = false;
+    this.refreshNav();
   }
 
   // ── S2 – Sprite Edit ───────────────────────────────────────────────────────
@@ -140,6 +338,12 @@ export default class EditorScene extends Scene {
     this.spriteEditScreen = new SpriteEditScreen(
       this, w, h, this.state.images, this.state.sprites,
     );
+    this.wireScreenNav(this.spriteEditScreen);
+
+    this.currentScreen = 'sprites';
+    this.navFocused = false;
+    this.navSuppressed = false;
+    this.refreshNav();
 
     this.spriteEditScreen.on('back', () => {
       this.state.sprites = this.spriteEditScreen!.collectSprites();
@@ -154,16 +358,6 @@ export default class EditorScene extends Scene {
         this.showFrameSelectorScreen(w, h, payload.currentFrames);
       },
     );
-
-    this.spriteEditScreen.on('export', (sprites: SpriteData[]) => {
-      this.state.sprites = sprites;
-      void this.handleExport();
-    });
-
-    this.spriteEditScreen.on('apply', (sprites: SpriteData[]) => {
-      this.state.sprites = sprites;
-      void this.handleApply();
-    });
   }
 
   // ── S3 – Frame Selector ────────────────────────────────────────────────────
@@ -173,9 +367,19 @@ export default class EditorScene extends Scene {
     this.spriteEditScreen?.pause(); // mute S2's keyboard while S3 is open
     this.frameSelectorScreen?.destroy();
 
+    // S3 is a modal sub-screen with its own nav; hide the shared bottom nav.
+    this.currentScreen = 'frames';
+    this.navFocused = false;
+    this.refreshNav();
+
     this.frameSelectorScreen = new FrameSelectorScreen(
       this, w, h, this.state.images, currentFrames,
     );
+
+    const returnToSpriteEdit = () => {
+      this.currentScreen = 'sprites';
+      this.refreshNav();
+    };
 
     this.frameSelectorScreen.on('cancel', () => {
       this.frameSelectorScreen?.destroy();
@@ -183,6 +387,7 @@ export default class EditorScene extends Scene {
       this.pendingFrameTarget = undefined;
       this.spriteEditScreen?.setVisible(true);
       this.spriteEditScreen?.resume();
+      returnToSpriteEdit();
     });
 
     this.frameSelectorScreen.on('confirm', (payload: { frameIds: string[] }) => {
@@ -193,6 +398,7 @@ export default class EditorScene extends Scene {
       this.spriteEditScreen?.setVisible(true);
       if (targetId) this.spriteEditScreen?.applyFrames(targetId, payload.frameIds);
       this.spriteEditScreen?.resume();
+      returnToSpriteEdit();
     });
   }
 

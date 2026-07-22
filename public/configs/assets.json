@@ -29,6 +29,12 @@
       "png": "assets/sprites/ui/transition/hi/spritesheet.png",
       "json": "assets/sprites/ui/transition/hi/spritesheet.json",
       "animations": "assets/sprites/ui/transition/hi/animations.json"
+    },
+    {
+      "atlasId": "sprite_editor",
+      "png": "assets/sprites/sprite_editor/spritesheet.png",
+      "json": "assets/sprites/sprite_editor/spritesheet.json",
+      "animations": "assets/sprites/sprite_editor/animations.json"
     }
   ],
   "fonts": [

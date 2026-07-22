@@ -32,6 +32,7 @@ export interface GridSelectorConfig {
 export class GridSelector extends Phaser.GameObjects.Container {
   private areaBg!: Phaser.GameObjects.Rectangle;
   private contentContainer!: Phaser.GameObjects.Container;
+  private viewportMask!: Phaser.GameObjects.Graphics;
 
   private cells: GridCellData[] = [];
   private cellContainers: Phaser.GameObjects.Container[] = [];
@@ -60,6 +61,15 @@ export class GridSelector extends Phaser.GameObjects.Container {
     // Content container – scrolls vertically
     this.contentContainer = scene.add.container(GRID_OUTER_PAD, GRID_OUTER_PAD);
     this.add(this.contentContainer);
+
+    // Clip scrolling content to the grid area so partially-scrolled rows don't
+    // bleed over neighbouring UI (e.g. the name input above). The mask lives in
+    // world space; the grid sits at (config.x, config.y) under a screen container
+    // anchored at the origin.
+    this.viewportMask = scene.make.graphics({}, false);
+    this.viewportMask.fillStyle(0xffffff);
+    this.viewportMask.fillRect(config.x, config.y, config.width, config.height);
+    this.contentContainer.setMask(this.viewportMask.createGeometryMask());
 
     scene.add.existing(this);
   }
@@ -380,5 +390,11 @@ export class GridSelector extends Phaser.GameObjects.Container {
       const localBottom = localTop + this.cellSize;
       container.setVisible(localBottom > 0 && localTop < this.visibleH);
     });
+  }
+
+  destroy(fromScene?: boolean) {
+    this.contentContainer?.clearMask(true);
+    this.viewportMask?.destroy();
+    super.destroy(fromScene);
   }
 }

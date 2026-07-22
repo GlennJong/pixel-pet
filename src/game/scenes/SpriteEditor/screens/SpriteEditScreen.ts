@@ -3,52 +3,59 @@ import {
   SpriteCard,
   CardField,
   CARD_FIELDS,
-  ButtonBar,
+  ConfirmDialog,
   ScreenKeyboard,
-  handleButtonBarKey,
 } from '../elements';
 import {
   COLORS,
+  FONT,
   BUTTON_BAR_HEIGHT,
   CARD_HEIGHT, CARD_GAP, CARD_AREA_PAD,
+  hex,
 } from '../constants';
 import { SpriteData, ImageItem } from '../types';
 
 let _spriteIdCounter = 1;
-const newSpriteId = () => `sprite_${_spriteIdCounter++}`;
 
-const DEFAULT_SPRITE = (): SpriteData => ({
-  id: newSpriteId(),
-  prefix: '',
-  frames: [],
-  freq: 8,
-  repeat: -1,
-  repeatDelay: 0,
-});
+// New sprites get an auto-assigned number string as their name (prefix); there
+// is no name input. Import/preset sprites keep their own prefix.
+const DEFAULT_SPRITE = (): SpriteData => {
+  const n = _spriteIdCounter++;
+  return {
+    id: `sprite_${n}`,
+    prefix: String(n),
+    frames: [],
+    freq: 8,
+    repeat: -1,
+    repeatDelay: 0,
+  };
+};
 
-const BUTTONS_DEFAULT = [
-  { key: 'back',   label: '↩'   },
-  { key: 'add',    label: '+'  },
-  { key: 'select', label: 'Select'   },
-  { key: 'apply',  label: 'Apply' },
-  { key: 'export', label: 'Export' },
-];
+// 'add' focuses the "ADD SPRITE" row pinned after the last card. ADD/SELECT/
+// APPLY/EXPORT used to live in a top operation bar; that bar was removed —
+// adding is the ADD row, apply/export live in the scene nav's SAVE menu, and
+// bulk select was dropped (delete is per-card).
+type EditMode = 'card' | 'field' | 'add';
 
-const BUTTONS_SELECT = (n: number) => [
-  { key: 'select-cancel', label: 'cancel' },
-  { key: 'select-delete', label: n > 0 ? `delete(${n})` : 'delete' },
-];
-
-type EditMode = 'card' | 'field' | 'button-bar';
+// "ADD SPRITE" row: a full-width button that rides at the bottom of the
+// scrolling column, in the slot where the next card would appear.
+const ADD_ROW_HEIGHT = BUTTON_BAR_HEIGHT;
 
 export class SpriteEditScreen extends Phaser.GameObjects.Container {
   private readonly screenW: number;
   private readonly screenH: number;
   private readonly cardsAreaH: number;
-  private readonly buttonBarY: number;
 
   private cardsContainer!: Phaser.GameObjects.Container;
-  private buttonBar!: ButtonBar;
+  private confirmDialog!: ConfirmDialog;
+
+  // "ADD SPRITE" row pinned after the last card (lives in the scroll column).
+  private addSpriteRow!: Phaser.GameObjects.Container;
+  private addSpriteBg!: Phaser.GameObjects.Rectangle;
+  private addSpriteBorder!: Phaser.GameObjects.Graphics;
+
+  // Card awaiting delete confirmation (set while the confirm dialog is open).
+  private pendingDeleteCard?: SpriteCard;
 
   private images: ImageItem[];
   // `cards` is the single source of truth for sprite data (each SpriteCard owns
@@ -57,11 +64,8 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
 
   private mode: EditMode = 'card';
   private cursorIdx = 0;
-  private focusedField: CardField = 'name';
+  private focusedField: CardField = 'freq';
   private viewportY = 0;
-
-  private selectMode = false;
-  private selectedCardIds = new Set<string>();
 
   private keyboard!: ScreenKeyboard;
 
@@ -75,15 +79,14 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
     super(scene, 0, 0);
     this.screenW = width;
     this.screenH = height;
-    this.buttonBarY = height - BUTTON_BAR_HEIGHT;
-    this.cardsAreaH = this.buttonBarY - CARD_AREA_PAD;
+    // Leave room at the bottom for the scene-owned navigation bar.
+    this.cardsAreaH = height - CARD_AREA_PAD * 2 - BUTTON_BAR_HEIGHT;
     this.images = images;
 
     this.buildUI(sprites);
     this.installKeyboard();
     scene.add.existing(this);
     if (this.cards.length === 0) {
-      this.focusButtonBar(true);
       this.addCard();
     } else {
       this.updateCardFocus();
@@ -106,6 +109,14 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
     this.keyboard.resume();
   }
 
+  /** Re-take focus from the shared nav (lands on the last card). */
+  focusFromNav() {
+    this.mode = 'card';
+    this.cursorIdx = Math.max(0, this.cards.length - 1);
+    this.updateCardFocus();
+    this.scrollToCard(this.cursorIdx);
+  }
+
   collectSprites(): SpriteData[] { return this.cards.map(c => c.spriteData); }
 
   update() { /* event-driven */ }
@@ -123,11 +134,17 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
     this.cardsContainer = this.scene.add.container(0, CARD_AREA_PAD);
     this.add(this.cardsContainer);
 
-    initialSprites.forEach((sd, i) => this.createCard(sd, i));
+    this.buildAddSpriteRow();
 
-    this.buttonBar = new ButtonBar(this.scene, this.buttonBarY, this.screenW, BUTTONS_DEFAULT);
-    this.buttonBar.on('action', (key: string) => this.handleButtonAction(key));
-    this.add(this.buttonBar);
+    initialSprites.forEach((sd, i) => this.createCard(sd, i));
+    this.repositionAddButton();
+
+    // Shared modal confirm dialog (delete confirmation); drawn on top, hidden
+    // until a delete is requested.
+    this.confirmDialog = new ConfirmDialog(this.scene, { width: this.screenW, height: this.screenH });
+    this.confirmDialog.on('confirm', () => this.confirmDelete());
+    this.confirmDialog.on('cancel', () => this.hideDeleteConfirm());
+    this.add(this.confirmDialog);
   }
 
   private createCard(spriteData: SpriteData, index: number): SpriteCard {
@@ -136,14 +153,17 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
     this.cardsContainer.add(card);
     this.cards.push(card);
     this.wireCardEvents(card);
+    this.repositionAddButton();
     return card;
   }
 
   private wireCardEvents(card: SpriteCard) {
     card.on('hover', () => {
-      if (this.selectMode || this.mode === 'field') return;
+      if (this.mode === 'field') return;
       const idx = this.cards.indexOf(card);
-      if (idx >= 0 && idx !== this.cursorIdx) {
+      // Hovering a card while the ADD row is focused hands focus back to cards.
+      if (this.mode === 'add') this.mode = 'card';
+      if (idx >= 0 && (idx !== this.cursorIdx || this.mode === 'card')) {
         this.cursorIdx = idx;
         this.updateCardFocus();
       }
@@ -157,8 +177,6 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
     });
 
     card.on('activate', (field: CardField) => {
-      if (this.selectMode) { this.toggleCardSelection(card); return; }
-
       const idx = this.cards.indexOf(card);
       if (idx < 0) return;
 
@@ -168,15 +186,18 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
         this.cards[this.cursorIdx]?.setCardFocus(false);
       }
 
-      // Mouse click: enter field mode at preview by default
+      // Mouse click: enter field mode on the clicked field
       this.cursorIdx = idx;
       this.mode = 'field';
       this.focusedField = field;
-      this.buttonBar.deactivate();
       this.updateCardFocus();
       this.updateFieldFocus();
-      if (field === 'preview') card.activateCurrentField();
+      if (field === 'selectFrames' || field === 'copy' || field === 'delete') card.activateCurrentField();
     });
+
+    card.on('delete', () => this.showDeleteConfirm(card));
+
+    card.on('copy', () => this.duplicateCard(card));
 
     card.on('go-to-frames', () => {
       this.emit('go-to-frames', { spriteId: card.spriteId, currentFrames: card.spriteData.frames });
@@ -192,93 +213,92 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
       deferAttach: true,
       shouldHandleKeyDown: () => !(this.mode === 'field' && this.cards[this.cursorIdx]?.isTextInputActive),
       onKeyDown: (code: string) => {
-        if (this.selectMode) { this.handleSelectModeKey(code); return; }
+        if (this.confirmDialog.isOpen) { this.confirmDialog.handleKey(code); return; }
         if (this.mode === 'card') this.handleCardModeKey(code);
-        else if (this.mode === 'button-bar') this.handleButtonBarModeKey(code);
+        else if (this.mode === 'add') this.handleAddModeKey(code);
         else this.handleFieldModeKey(code);
       },
     });
     this.keyboard.attach();
   }
 
-  private handleSelectModeKey(code: string) {
-    // Button bar is focused within select mode
-    if (this.mode === 'button-bar') {
-      handleButtonBarKey(this.buttonBar, code, {
-        onExitUp: () => {
-          this.mode = 'card';
-          this.buttonBar.deactivate();
-          this.updateCardFocus();
-        },
-        onEscape: () => this.exitSelectMode(),
-      });
-      return;
-    }
-
-    // Cards are focused within select mode
-    switch (code) {
-      case 'Escape': this.exitSelectMode(); break;
-      case 'ArrowUp':
-        if (this.cursorIdx > 0) { this.cursorIdx--; this.updateCardFocus(); this.scrollToCard(this.cursorIdx); }
-        break;
-      case 'ArrowDown': {
-        const max = this.cards.length - 1;
-        if (this.cursorIdx < max) {
-          this.cursorIdx++; this.updateCardFocus(); this.scrollToCard(this.cursorIdx);
-        } else {
-          this.focusButtonBar(true);
-        }
-        break;
-      }
-      case 'Space': {
-        const card = this.cards[this.cursorIdx];
-        if (card) this.toggleCardSelection(card);
-        break;
-      }
-    }
-  }
-
   private handleCardModeKey(code: string) {
     const lastCardIdx = this.cards.length - 1;
     switch (code) {
       case 'ArrowUp':
+        // First card is the top of the list — nothing above it now.
         if (this.cursorIdx > 0) { this.cursorIdx--; this.updateCardFocus(); this.scrollToCard(this.cursorIdx); }
         break;
       case 'ArrowDown':
         if (this.cursorIdx < lastCardIdx) { this.cursorIdx++; this.updateCardFocus(); this.scrollToCard(this.cursorIdx); }
-        else { this.focusButtonBar(true); }
-        break;
-      case 'ArrowRight':
-        if (this.cards.length > 0) this.enterFieldMode('name');
-        break;
-      case 'Space':
-        if (this.cards.length > 0) this.enterFieldMode('name');
-        else this.focusButtonBar(true);
+        else this.focusAddButton();
         break;
       case 'Escape':
+        // Escape ascends to the upper level (back to the Library). Left/Right
+        // do nothing here — they're reserved for value tweaks inside number
+        // fields (NumberInput) only.
+        this.cards[this.cursorIdx]?.setCardFocus(false);
         this.emit('back');
+        break;
+      case 'Space':
+      case 'Enter':
+        // Space/Enter descends into the card's fields.
+        if (this.cards.length > 0) this.enterFieldMode(CARD_FIELDS[0]);
         break;
     }
   }
 
-  private handleButtonBarModeKey(code: string) {
-    const exitToCards = () => {
-      if (this.cards.length === 0) return;
-      this.mode = 'card';
-      this.buttonBar.deactivate();
-      this.updateCardFocus();
-    };
-    handleButtonBarKey(this.buttonBar, code, {
-      onExitUp: exitToCards,
-      onEscape: exitToCards,
-    });
+  /** Hand focus down to the scene-owned navigation bar. */
+  private leaveToNav() {
+    this.cards[this.cursorIdx]?.setCardFocus(false);
+    this.emit('nav-down');
+  }
+
+  private handleAddModeKey(code: string) {
+    switch (code) {
+      case 'ArrowUp':
+        if (this.cards.length > 0) {
+          this.mode = 'card';
+          this.cursorIdx = this.cards.length - 1;
+          this.updateCardFocus();
+          this.scrollToCard(this.cursorIdx);
+        }
+        break;
+      case 'ArrowDown':
+        // Below the ADD row sits the scene-owned bottom nav.
+        this.mode = 'card';
+        this.refreshAddButtonVisuals();
+        this.leaveToNav();
+        break;
+      case 'Space':
+      case 'Enter':
+        this.addCard();
+        break;
+      case 'Escape':
+        if (this.cards.length > 0) {
+          this.mode = 'card';
+          this.cursorIdx = this.cards.length - 1;
+          this.updateCardFocus();
+          this.scrollToCard(this.cursorIdx);
+        } else {
+          this.emit('back');
+        }
+        break;
+    }
+  }
+
+  /** Focus the "ADD SPRITE" row (from the last card, or hover/click). */
+  private focusAddButton() {
+    if (this.mode === 'field') this.cards[this.cursorIdx]?.setFieldFocus(null);
+    this.mode = 'add';
+    this.updateCardFocus();
+    this.scrollToAddButton();
   }
 
   private handleFieldModeKey(code: string) {
     const card = this.cards[this.cursorIdx];
     if (!card) return;
 
-    const isPreview = this.focusedField === 'preview';
     const isNum     = this.focusedField === 'freq' || this.focusedField === 'repeat' || this.focusedField === 'repeatDelay';
     const fieldIdx  = CARD_FIELDS.indexOf(this.focusedField);
 
@@ -288,14 +308,13 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
         break;
 
       case 'ArrowRight':
-        if (isPreview) { this.focusedField = 'name'; this.updateFieldFocus(); }
-        else if (isNum) card.incrementField();
+        if (isNum) card.incrementField();
         break;
 
       case 'ArrowLeft':
+        // Left/Right only tweak number fields; on non-number fields they're
+        // inert (use Escape/Up to leave a field).
         if (isNum) card.decrementField();
-        else if (isPreview) this.exitFieldMode();
-        else if (!isPreview) { this.focusedField = 'preview'; this.updateFieldFocus(); }
         break;
 
       case 'ArrowUp':
@@ -304,7 +323,7 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
           this.focusedField = CARD_FIELDS[fieldIdx - 1];
           this.updateFieldFocus();
         } else if (this.cursorIdx > 0) {
-          // At first field ('preview'): jump to previous card's last field
+          // At the first field: jump to previous card's last field
           this.cursorIdx--;
           this.focusedField = CARD_FIELDS[CARD_FIELDS.length - 1];
           this.updateCardFocus();
@@ -322,15 +341,15 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
           this.focusedField = CARD_FIELDS[fieldIdx + 1];
           this.updateFieldFocus();
         } else if (this.cursorIdx < this.cards.length - 1) {
-          // At last field ('repeatDelay'): jump to next card's first field
+          // At last field: jump to next card's first field
           this.cursorIdx++;
           this.focusedField = CARD_FIELDS[0];
           this.updateCardFocus();
           this.updateFieldFocus();
           this.scrollToCard(this.cursorIdx);
         } else {
-          // No next card: move naturally to the button bar below
-          this.focusButtonBar(true);
+          // Last field of the last card: drop down to the ADD SPRITE row.
+          this.focusAddButton();
         }
         break;
 
@@ -346,59 +365,14 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
     if (this.cursorIdx >= this.cards.length) return;
     this.mode = 'field';
     this.focusedField = field;
-    this.buttonBar.deactivate();
     this.updateCardFocus();
     this.updateFieldFocus();
-  }
-
-  private focusButtonBar(resetCursor = false) {
-    this.mode = 'button-bar';
-    this.buttonBar.activate();
-    if (resetCursor) {
-      this.buttonBar.setCursorToFirst();
-      if (!this.selectMode) this.buttonBar.moveCursor(1);
-    }
-    this.updateCardFocus();
   }
 
   private exitFieldMode() {
     this.cards[this.cursorIdx]?.setFieldFocus(null);
     this.mode = 'card';
     this.updateCardFocus();
-  }
-
-  private enterSelectMode() {
-    this.selectMode = true;
-    this.selectedCardIds.clear();
-    if (this.mode === 'field') this.exitFieldMode();
-    this.mode = 'card';
-    this.buttonBar.deactivate();
-    this.buttonBar.setButtons(BUTTONS_SELECT(0));
-    this.cursorIdx = Math.min(this.cursorIdx, Math.max(0, this.cards.length - 1));
-    this.updateCardFocus();
-  }
-
-  private exitSelectMode() {
-    this.selectMode = false;
-    this.selectedCardIds.clear();
-    this.cards.forEach(c => c.setSelectState(false));
-    this.buttonBar.setButtons(BUTTONS_DEFAULT);
-    this.cursorIdx = Math.min(this.cursorIdx, Math.max(0, this.cards.length - 1));
-    this.updateCardFocus();
-  }
-
-  private toggleCardSelection(card: SpriteCard) {
-    const id = card.spriteId;
-    if (this.selectedCardIds.has(id)) { this.selectedCardIds.delete(id); card.setSelectState(false); }
-    else                              { this.selectedCardIds.add(id);    card.setSelectState(true);  }
-    this.buttonBar.setButtons(BUTTONS_SELECT(this.selectedCardIds.size));
-  }
-
-  private deleteSelectedCards() {
-    this.cards
-      .filter(c => this.selectedCardIds.has(c.spriteId))
-      .forEach(c => this.deleteCard(c));
-    this.exitSelectMode();
   }
 
   // ── Visuals ───────────────────────────────────────────────────────────────────
@@ -408,6 +382,7 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
       c.setCardFocus(i === this.cursorIdx && this.mode === 'card');
       if (this.mode !== 'field' || i !== this.cursorIdx) c.setFieldFocus(null);
     });
+    this.refreshAddButtonVisuals();
     this.syncPreviewPlayback();
   }
 
@@ -430,11 +405,19 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
   // ── Scroll ───────────────────────────────────────────────────────────────────
 
   private scrollToCard(idx: number) {
-    const rowH = CARD_HEIGHT + CARD_GAP;
-    const top = idx * rowH;
-    const bottom = top + CARD_HEIGHT;
+    this.scrollIntoView(idx * (CARD_HEIGHT + CARD_GAP), CARD_HEIGHT);
+  }
+
+  private scrollToAddButton() {
+    this.scrollIntoView(this.addButtonTop(), ADD_ROW_HEIGHT);
+  }
+
+  /** Scroll the column so the given row (top..top+height) is fully in view. */
+  private scrollIntoView(top: number, height: number) {
+    const bottom = top + height;
     if (top < -this.viewportY) this.viewportY = -top;
     else if (bottom > this.cardsAreaH - this.viewportY) this.viewportY = this.cardsAreaH - bottom;
+    this.viewportY = Math.min(0, this.viewportY);
     this.cardsContainer.setY(CARD_AREA_PAD + this.viewportY);
     this.clipCardVisibility();
   }
@@ -446,6 +429,57 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
       const top = i * (CARD_HEIGHT + CARD_GAP);
       c.setVisible(top + CARD_HEIGHT > visTop && top < visBottom);
     });
+    // The ADD row hides while scrolled out of view.
+    const addTop = this.addButtonTop();
+    this.addSpriteRow.setVisible(addTop + ADD_ROW_HEIGHT > visTop && addTop < visBottom);
+  }
+
+  // ── "ADD SPRITE" row ────────────────────────────────────────────────────────
+
+  private buildAddSpriteRow() {
+    this.addSpriteRow = this.scene.add.container(0, 0);
+
+    this.addSpriteBg = this.scene.add
+      .rectangle(0, 0, this.screenW, ADD_ROW_HEIGHT, COLORS.BUTTON_BG)
+      .setOrigin(0, 0)
+      .setInteractive({ cursor: 'pointer' });
+    // Hover focuses the row (unless typing); click adds a sprite.
+    this.addSpriteBg.on('pointerover', () => {
+      if (this.mode === 'field') return;
+      this.focusAddButton();
+    });
+    this.addSpriteBg.on('pointerdown', () => this.addCard());
+
+    this.addSpriteBorder = this.scene.add.graphics();
+
+    const label = this.scene.add
+      .text(Math.floor(this.screenW / 2), Math.floor(ADD_ROW_HEIGHT / 2), '+ ADD SPRITE', {
+        fontFamily: FONT.FAMILY,
+        fontSize: FONT.SIZE,
+        color: hex(COLORS.TEXT_BUTTON),
+        resolution: 1,
+      })
+      .setOrigin(0.5);
+
+    this.addSpriteRow.add([this.addSpriteBg, this.addSpriteBorder, label]);
+    this.cardsContainer.add(this.addSpriteRow);
+  }
+
+  /** Y of the ADD row: the slot right after the last card. */
+  private addButtonTop(): number {
+    return this.cards.length * (CARD_HEIGHT + CARD_GAP);
+  }
+
+  private repositionAddButton() {
+    this.addSpriteRow.setY(this.addButtonTop());
+  }
+
+  private refreshAddButtonVisuals() {
+    this.addSpriteBorder.clear();
+    if (this.mode === 'add') {
+      this.addSpriteBorder.lineStyle(2, COLORS.BUTTON_FOCUSED_BORDER, 1);
+      this.addSpriteBorder.strokeRect(0, 0, this.screenW, ADD_ROW_HEIGHT);
+    }
   }
 
   // ── Card operations ───────────────────────────────────────────────────────────
@@ -453,20 +487,49 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
   private addCard() {
     const sd = DEFAULT_SPRITE();
     const newIdx = this.cards.length; // before createCard pushes
-    const card = this.createCard(sd, newIdx);
+    this.createCard(sd, newIdx);
+    // Focus the new card (name is auto-assigned, so there's nothing to type).
+    this.mode = 'card';
     this.cursorIdx = newIdx;
+    this.updateCardFocus();
     this.scrollToCard(this.cursorIdx);
-    this.enterFieldMode('name');
-    card.activateCurrentField(); // auto-focus name TextInput
+  }
+
+  /** Duplicate a sprite's config into a new card inserted right after it. */
+  private duplicateCard(source: SpriteCard) {
+    const src = source.spriteData;
+    // Fresh id + auto number name; copy frames/timing from the source.
+    const sd: SpriteData = {
+      ...DEFAULT_SPRITE(),
+      frames: [...src.frames],
+      freq: src.freq,
+      repeat: src.repeat,
+      repeatDelay: src.repeatDelay,
+    };
+
+    const srcIdx = this.cards.indexOf(source);
+    const insertIdx = srcIdx < 0 ? this.cards.length : srcIdx + 1;
+
+    const card = new SpriteCard(this.scene, 0, 0, this.screenW, sd, this.images);
+    this.cardsContainer.add(card);
+    this.cards.splice(insertIdx, 0, card);
+    this.wireCardEvents(card);
+    this.cards.forEach((c, i) => c.setPosition(0, i * (CARD_HEIGHT + CARD_GAP)));
+    this.repositionAddButton();
+
+    this.mode = 'card';
+    this.cursorIdx = insertIdx;
+    this.updateCardFocus();
+    this.scrollToCard(this.cursorIdx);
   }
 
   private deleteCard(card: SpriteCard) {
     const idx = this.cards.indexOf(card);
     if (idx < 0) return;
-    this.selectedCardIds.delete(card.spriteId);
     card.destroy();
     this.cards.splice(idx, 1);
     this.cards.forEach((c, i) => c.setPosition(0, i * (CARD_HEIGHT + CARD_GAP)));
+    this.repositionAddButton();
     this.mode = 'card';
     this.cursorIdx = Math.min(this.cursorIdx, Math.max(0, this.cards.length - 1));
     if (this.cards.length === 0) this.cursorIdx = 0;
@@ -474,17 +537,31 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
     this.scrollToCard(this.cursorIdx);
   }
 
-  // ── Button actions ────────────────────────────────────────────────────────────
+  // ── Delete confirmation (inline: overlay message + CONFIRM/CANCEL nav) ─────────
 
-  private handleButtonAction(key: string) {
-    switch (key) {
-      case 'back':          this.emit('back');                          break;
-      case 'add':           this.addCard();                             break;
-      case 'select':        this.enterSelectMode();                     break;
-      case 'apply':         this.emit('apply', this.collectSprites());  break;
-      case 'export':        this.emit('export', this.collectSprites()); break;
-      case 'select-cancel': this.exitSelectMode();                      break;
-      case 'select-delete': this.deleteSelectedCards();                 break;
-    }
+  private showDeleteConfirm(card: SpriteCard) {
+    this.pendingDeleteCard = card;
+    // Drop focus on the screen behind the dialog so nothing stays highlighted.
+    this.cards[this.cursorIdx]?.setFieldFocus(null);
+    this.cards[this.cursorIdx]?.setCardFocus(false);
+    // Modal takes the bottom of the screen; ask the scene to hide its nav.
+    this.emit('nav-suppress', true);
+
+    const name = card.spriteData.prefix.trim() || 'this sprite';
+    this.confirmDialog.open(`Are you sure?\nDelete "${name}"?`);
+  }
+
+  private hideDeleteConfirm() {
+    this.pendingDeleteCard = undefined;
+    this.confirmDialog.close();
+    this.emit('nav-suppress', false);
+    this.mode = 'card';
+    this.updateCardFocus();
+  }
+
+  private confirmDelete() {
+    const card = this.pendingDeleteCard;
+    this.hideDeleteConfirm();
+    if (card) this.deleteCard(card);
   }
 }
