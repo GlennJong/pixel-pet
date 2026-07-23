@@ -6,6 +6,7 @@ import { ButtonBar, ScreenKeyboard, handleButtonBarKey } from './elements';
 import { EditorState, LibraryProceedPayload } from './types';
 import { buildSpriteEditorExport, downloadSpriteEditorExport } from './utils/export';
 import { buildPresetSpritesFromImages } from './utils/smartInput';
+import { removeEditorImageTextures } from './utils/texture';
 import { saveAtlasCustomization, setCustomizationActive, reloadAtlasIntoScene } from '@/game/customization';
 import { getStaticData } from '@/game/staticData';
 import { COLORS, FONT, BUTTON_BAR_HEIGHT, BANNER_AUTOHIDE_MS, hex } from './constants';
@@ -267,6 +268,10 @@ export default class EditorScene extends Scene {
     this.frameSelectorScreen = undefined;
     this.navKeyboard = undefined;
     this.navBar = undefined;
+    // Final teardown: free every editor_img_* texture. This is done here (not in
+    // a screen's destroy) because screens are destroyed/recreated on navigation
+    // round-trips where the textures must survive.
+    removeEditorImageTextures(this);
   }
 
   /** Leave the editor, returning to the scene that launched it. */

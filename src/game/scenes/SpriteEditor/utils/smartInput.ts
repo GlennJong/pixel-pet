@@ -55,7 +55,8 @@ export function buildPresetSpritesFromImages(images: ImageItem[]): SmartInputPre
 
   let idCounter = 1;
   const sprites: SpriteData[] = Array.from(groups.values()).map(group => {
-    const sortedFrames = [...group.frames].sort((a, b) => {
+    // group.frames is locally owned and discarded after mapping — sort in place.
+    const sortedFrames = group.frames.sort((a, b) => {
       if (a.order !== b.order) return a.order - b.order;
       return a.image.fileName.localeCompare(b.image.fileName);
     });
@@ -78,12 +79,17 @@ export function buildPresetSpritesFromImages(images: ImageItem[]): SmartInputPre
   };
 }
 
+/** Strip a trailing file extension (path-separator-safe). */
+export function stripExtension(name: string): string {
+  return name.replace(/\.[^.\/\\]+$/, '');
+}
+
 /**
  * Expected format: <key>_<sprite>_<order>.<ext>
  * Example: currycat_idle_0.png
  */
 export function parseSmartFileName(fileName: string): ParsedFileName | null {
-  const baseName = fileName.replace(/\.[^.]+$/, '');
+  const baseName = stripExtension(fileName);
   // Treat repeated underscores as a single separator so users don't need
   // to distinguish between single/double underscores when naming files.
   const normalizedBaseName = baseName.replace(/_+/g, '_');

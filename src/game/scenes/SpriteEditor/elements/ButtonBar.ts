@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { SelectorBar, SelectorBarItem } from '@/game/components/SelectorBar';
+import { FocusableCursorList } from './FocusableCursorList';
 import {
   COLORS,
   FONT,
@@ -40,12 +41,14 @@ const ARROW_RESERVE = 8;
  * Events emitted:
  *   'action' (key: string) – button was activated
  */
-export class ButtonBar extends Phaser.GameObjects.Container {
+export class ButtonBar extends FocusableCursorList {
   private bar: SelectorBar;
   private cells: ButtonCell[] = [];
   private buttonConfigs: ButtonConfig[] = [];
-  private _hasFocus = false;
   private readonly framed: boolean;
+  // Reused off-display-list Text for measuring label widths in setButtons, which
+  // some screens call on every selection change — one probe beats one-per-button.
+  private readonly probe: Phaser.GameObjects.Text;
 
   constructor(
     scene: Phaser.Scene,
@@ -85,13 +88,18 @@ export class ButtonBar extends Phaser.GameObjects.Container {
     // Keep the fallback focus border in sync when the page/selection changes.
     this.bar.on('select', () => this.refreshFallbackBorder());
 
+    // Off the display list — used only to measure label widths.
+    this.probe = scene.make.text(
+      { style: { fontFamily: FONT.FAMILY, fontSize: FONT.SIZE } },
+      false,
+    );
+
     scene.add.existing(this);
     this.setButtons(buttons);
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
-  get hasFocus() { return this._hasFocus; }
   get cursorIndex() { return this.bar.selectedIndex; }
 
   setButtons(buttons: ButtonConfig[]) {
@@ -109,10 +117,9 @@ export class ButtonBar extends Phaser.GameObjects.Container {
     const midY = Math.floor(BUTTON_BAR_HEIGHT / 2);
 
     const items: SelectorBarItem[] = buttons.map((cfg, i) => {
-      // Measure the label to size the cell.
-      const probe = this.scene.add.text(0, 0, cfg.label, textStyle);
-      const btnW = probe.width + BUTTON_PADDING_X * 2;
-      probe.destroy();
+      // Measure the label to size the cell (reusing the shared probe).
+      this.probe.setText(cfg.label);
+      const btnW = this.probe.width + BUTTON_PADDING_X * 2;
 
       const cell = this.scene.add.container(0, 0);
       const bg = this.scene.add
@@ -140,15 +147,8 @@ export class ButtonBar extends Phaser.GameObjects.Container {
     this.refreshFallbackBorder();
   }
 
-  activate() {
-    this._hasFocus = true;
-    this.bar.setFocused(true);
-    this.refreshFallbackBorder();
-  }
-
-  deactivate() {
-    this._hasFocus = false;
-    this.bar.setFocused(false);
+  protected onFocusChange() {
+    this.bar.setFocused(this._hasFocus);
     this.refreshFallbackBorder();
   }
 
@@ -173,6 +173,12 @@ export class ButtonBar extends Phaser.GameObjects.Container {
   executeCursor() {
     const btn = this.buttonConfigs[this.bar.selectedIndex];
     if (btn) this.emit('action', btn.key);
+  }
+
+  destroy(fromScene?: boolean) {
+    // The probe isn't a child of this container, so free it explicitly.
+    this.probe.destroy();
+    super.destroy(fromScene);
   }
 
   // ── Private ────────────────────────────────────────────────────────────────

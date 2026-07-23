@@ -147,8 +147,9 @@ export class TextInput extends Phaser.GameObjects.Container {
 
     this.keydownListener = (e: KeyboardEvent) => {
       if (!this._isFocused) return;
-      e.preventDefault();
-      this.handleKey(e);
+      // Only suppress the browser default for keys we actually consume, so
+      // shortcuts/combos we ignore (e.g. Tab, F5, Ctrl+…) still work.
+      if (this.handleKey(e)) e.preventDefault();
     };
     this.scene.input.keyboard!.on('keydown', this.keydownListener);
     this.emit('focus');
@@ -192,7 +193,8 @@ export class TextInput extends Phaser.GameObjects.Container {
     this.borderGfx.strokeRect(this.inputOffsetX, 0, this.inputW, this.inputH);
   }
 
-  private handleKey(event: KeyboardEvent) {
+  /** Handle a keydown; returns true if the key was consumed (caller preventsDefault). */
+  private handleKey(event: KeyboardEvent): boolean {
     const key = event.key;
 
     switch (key) {
@@ -201,7 +203,7 @@ export class TextInput extends Phaser.GameObjects.Container {
         this.blur();
         this.emit('confirm', this._value);
         this.emit('nav-down');
-        return;
+        return true;
 
       case 'Escape':
         this._draft = this._value;
@@ -209,28 +211,28 @@ export class TextInput extends Phaser.GameObjects.Container {
         this.blur();
         this.emit('cancel');
         this.emit('nav-down');
-        return;
+        return true;
 
       case 'ArrowLeft':
         this._cursorPos = Math.max(0, this._cursorPos - 1);
         this.refresh();
-        return;
+        return true;
 
       case 'ArrowRight':
         this._cursorPos = Math.min(this._draft.length, this._cursorPos + 1);
         this.refresh();
-        return;
+        return true;
 
       case 'ArrowUp':
         this.blur();
         this.emit('nav-up');
-        return;
+        return true;
 
       case 'ArrowDown':
         this._value = this._draft;
         this.blur();
         this.emit('nav-down');
-        return;
+        return true;
 
       case 'Backspace':
         if (this._cursorPos > 0) {
@@ -240,7 +242,7 @@ export class TextInput extends Phaser.GameObjects.Container {
           this._cursorPos--;
           this.refresh();
         }
-        return;
+        return true;
     }
 
     // Printable ASCII (letters, digits, underscore, hyphen, space)
@@ -253,7 +255,10 @@ export class TextInput extends Phaser.GameObjects.Container {
         this._cursorPos++;
         this.refresh();
       }
+      return true;
     }
+
+    return false;
   }
 
   /** Update display text and cursor position */

@@ -63,7 +63,7 @@ export class NumberInput extends Phaser.GameObjects.Container {
       fontFamily: FONT.FAMILY,
       fontSize: FONT.SIZE,
       color: dimColor,
-      resolution: 4,
+      resolution: 1,
     })
     .setOrigin(0, 0.5)
     this.add(this.labelText);
@@ -86,7 +86,7 @@ export class NumberInput extends Phaser.GameObjects.Container {
       fontFamily: FONT.FAMILY,
       fontSize: FONT.SIZE,
       color: dimColor,
-      resolution: 4,
+      resolution: 1,
     })
     .setOrigin(0, 0.5)
     this.add(this.valueText);

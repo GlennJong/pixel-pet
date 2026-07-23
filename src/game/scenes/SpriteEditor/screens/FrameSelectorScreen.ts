@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GridSelector, GridCellData, ButtonBar, ScreenKeyboard, handleButtonBarKey } from '../elements';
+import { EditorScreen } from './EditorScreen';
 import {
   COLORS,
   BUTTON_BAR_HEIGHT,
@@ -18,12 +19,11 @@ import { ImageItem } from '../types';
  *   'cancel'            – Esc / cancel button
  *   'confirm' ({ frameIds: string[] }) – confirm button with ordered selection
  */
-export class FrameSelectorScreen extends Phaser.GameObjects.Container {
+export class FrameSelectorScreen extends EditorScreen {
   private grid!: GridSelector;
   private buttonBar!: ButtonBar;
 
   private _buttonBarFocused = false;
-  private keyboard!: ScreenKeyboard;
 
   constructor(
     scene: Phaser.Scene,
@@ -32,7 +32,7 @@ export class FrameSelectorScreen extends Phaser.GameObjects.Container {
     images: ImageItem[],
     currentFrames: string[],
   ) {
-    super(scene, 0, 0);
+    super(scene);
 
     const buttonBarY = height - BUTTON_BAR_HEIGHT;
     const gridH = buttonBarY - GRID_OUTER_PAD;
@@ -49,9 +49,11 @@ export class FrameSelectorScreen extends Phaser.GameObjects.Container {
     });
     this.add(this.grid);
 
-    // Populate cells (no add cell)
+    // Populate cells (no add cell). Look up each image's frame order via a Map
+    // built once — indexOf per image would be O(images × frames).
+    const orderById = new Map(currentFrames.map((id, i) => [id, i]));
     const cells: GridCellData[] = images.map(img => {
-      const frameIdx = currentFrames.indexOf(img.id);
+      const frameIdx = orderById.get(img.id) ?? -1;
       return {
         id: img.id,
         type: 'image' as const,
@@ -131,9 +133,4 @@ export class FrameSelectorScreen extends Phaser.GameObjects.Container {
   }
 
   update() { /* event-driven */ }
-
-  destroy(fromScene?: boolean) {
-    this.keyboard.destroy();
-    super.destroy(fromScene);
-  }
 }

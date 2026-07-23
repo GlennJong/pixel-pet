@@ -36,6 +36,9 @@ export class SpriteCard extends Phaser.GameObjects.Container {
   public readonly spriteId: string;
   private _spriteData: SpriteData;
   private _images: ImageItem[];
+  // id → image lookup, rebuilt only when the image pool changes, so
+  // rebuildAnimation doesn't linear-scan `_images` per frame.
+  private imageById = new Map<string, ImageItem>();
 
   // Layout (computed from width in ctor)
   private readonly previewSize: number;
@@ -76,6 +79,7 @@ export class SpriteCard extends Phaser.GameObjects.Container {
     this.spriteId = spriteData.id;
     this._spriteData = { ...spriteData };
     this._images = images;
+    this.rebuildImageIndex();
 
     // Compute layout constants
     this.previewSize = PREVIEW_SIZE;
@@ -187,6 +191,12 @@ export class SpriteCard extends Phaser.GameObjects.Container {
   /** Update the image pool (e.g. after returning from S1 with purged images). */
   setImages(images: ImageItem[]) {
     this._images = images;
+    this.rebuildImageIndex();
+  }
+
+  private rebuildImageIndex() {
+    this.imageById.clear();
+    for (const img of this._images) this.imageById.set(img.id, img);
   }
 
   // ── Build ───────────────────────────────────────────────────────────────────
@@ -235,28 +245,9 @@ export class SpriteCard extends Phaser.GameObjects.Container {
     const deleteY       = copyY + rowH + CARD_FIELD_GAP;
 
     // ── Select-frames button ────────────────────────────────────────────────────
-    this.selectFramesBtnBg = this.scene.add
-      .rectangle(this.configX, selectFramesY, this.configW, NUMBER_INPUT_HEIGHT, COLORS.X_BTN_BG)
-      .setOrigin(0, 0)
-      .setInteractive({ cursor: 'pointer' });
-    this.selectFramesBtnBg.on('pointerover', () => this.emit('hover-field', 'selectFrames'));
-    this.selectFramesBtnBg.on('pointerdown', () => this.emit('activate', 'selectFrames'));
-    this.add(this.selectFramesBtnBg);
-
-    this.selectFramesBtnText = this.scene.add
-      .text(
-        this.configX,
-        selectFramesY,
-        this.framesLabel(),
-        {
-          fontFamily: FONT.FAMILY,
-          fontSize: FONT.SIZE,
-          color: hex(COLORS.X_BTN_TEXT),
-          resolution: 1,
-        },
-      )
-      .setOrigin(0, 0);
-    this.add(this.selectFramesBtnText);
+    const selectFramesBtn = this.makeCardButton('selectFrames', selectFramesY, this.framesLabel());
+    this.selectFramesBtnBg = selectFramesBtn.bg;
+    this.selectFramesBtnText = selectFramesBtn.text;
 
     this.freqInput = new NumberInput(this.scene, {
       x: this.configX, y: freqY,
@@ -286,47 +277,14 @@ export class SpriteCard extends Phaser.GameObjects.Container {
     this.add(this.repeatDelayInput);
 
     // ── Copy button ─────────────────────────────────────────────────────────────
-    this.copyBtnBg = this.scene.add
-      .rectangle(this.configX, copyY, this.configW, NUMBER_INPUT_HEIGHT, COLORS.X_BTN_BG)
-      .setOrigin(0, 0)
-      .setInteractive({ cursor: 'pointer' });
-    this.copyBtnBg.on('pointerover', () => this.emit('hover-field', 'copy'));
-    this.copyBtnBg.on('pointerdown', () => this.emit('activate', 'copy'));
-    this.add(this.copyBtnBg);
-
-    this.copyBtnText = this.scene.add
-      .text(this.configX, copyY, 'COPY', {
-        fontFamily: FONT.FAMILY,
-        fontSize: FONT.SIZE,
-        color: hex(COLORS.X_BTN_TEXT),
-        resolution: 1,
-      })
-      .setOrigin(0, 0);
-    this.add(this.copyBtnText);
+    const copyBtn = this.makeCardButton('copy', copyY, 'COPY');
+    this.copyBtnBg = copyBtn.bg;
+    this.copyBtnText = copyBtn.text;
 
     // ── Delete button ─────────────────────────────────────────────────────────
-    this.deleteBtnBg = this.scene.add
-      .rectangle(this.configX, deleteY, this.configW, NUMBER_INPUT_HEIGHT, COLORS.X_BTN_BG)
-      .setOrigin(0, 0)
-      .setInteractive({ cursor: 'pointer' });
-    this.deleteBtnBg.on('pointerover', () => this.emit('hover-field', 'delete'));
-    this.deleteBtnBg.on('pointerdown', () => this.emit('activate', 'delete'));
-    this.add(this.deleteBtnBg);
-
-    this.deleteBtnText = this.scene.add
-      .text(
-        this.configX,
-        deleteY,
-        'DELETE',
-        {
-          fontFamily: FONT.FAMILY,
-          fontSize: FONT.SIZE,
-          color: hex(COLORS.X_BTN_TEXT),
-          resolution: 1,
-        },
-      )
-      .setOrigin(0, 0);
-    this.add(this.deleteBtnText);
+    const deleteBtn = this.makeCardButton('delete', deleteY, 'DELETE');
+    this.deleteBtnBg = deleteBtn.bg;
+    this.deleteBtnText = deleteBtn.text;
 
     // Mouse overlays for the NumberInput rows (hover/click without blocking them).
     [
@@ -348,6 +306,33 @@ export class SpriteCard extends Phaser.GameObjects.Container {
     this.add(this.selectOverlay);
   }
 
+  /** Build one full-width labeled card button (SELECT FRAMES / COPY / DELETE). */
+  private makeCardButton(
+    field: CardField,
+    y: number,
+    label: string,
+  ): { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text } {
+    const bg = this.scene.add
+      .rectangle(this.configX, y, this.configW, NUMBER_INPUT_HEIGHT, COLORS.X_BTN_BG)
+      .setOrigin(0, 0)
+      .setInteractive({ cursor: 'pointer' });
+    bg.on('pointerover', () => this.emit('hover-field', field));
+    bg.on('pointerdown', () => this.emit('activate', field));
+    this.add(bg);
+
+    const text = this.scene.add
+      .text(this.configX, y, label, {
+        fontFamily: FONT.FAMILY,
+        fontSize: FONT.SIZE,
+        color: hex(COLORS.X_BTN_TEXT),
+        resolution: 1,
+      })
+      .setOrigin(0, 0);
+    this.add(text);
+
+    return { bg, text };
+  }
+
   // ── Refresh visuals ─────────────────────────────────────────────────────────
 
   private refreshVisuals() {
@@ -363,20 +348,17 @@ export class SpriteCard extends Phaser.GameObjects.Container {
     this._focusedField === 'repeat'      ? this.repeatInput.focus()      : this.repeatInput.blur();
     this._focusedField === 'repeatDelay' ? this.repeatDelayInput.focus() : this.repeatDelayInput.blur();
 
-    // Select-frames button focus highlight
-    const selectFramesFocused = this._focusedField === 'selectFrames';
-    this.selectFramesBtnBg.setFillStyle(selectFramesFocused ? COLORS.X_BTN_FOCUSED_BG : COLORS.X_BTN_BG);
-    this.selectFramesBtnText.setColor(hex(selectFramesFocused ? COLORS.X_BTN_TEXT_FOCUSED : COLORS.X_BTN_TEXT));
-
-    // Copy button focus highlight
-    const copyFocused = this._focusedField === 'copy';
-    this.copyBtnBg.setFillStyle(copyFocused ? COLORS.X_BTN_FOCUSED_BG : COLORS.X_BTN_BG);
-    this.copyBtnText.setColor(hex(copyFocused ? COLORS.X_BTN_TEXT_FOCUSED : COLORS.X_BTN_TEXT));
-
-    // Delete button focus highlight
-    const deleteFocused = this._focusedField === 'delete';
-    this.deleteBtnBg.setFillStyle(deleteFocused ? COLORS.X_BTN_FOCUSED_BG : COLORS.X_BTN_BG);
-    this.deleteBtnText.setColor(hex(deleteFocused ? COLORS.X_BTN_TEXT_FOCUSED : COLORS.X_BTN_TEXT));
+    // Card-button focus highlights (SELECT FRAMES / COPY / DELETE).
+    const cardButtons: Array<[CardField, Phaser.GameObjects.Rectangle, Phaser.GameObjects.Text]> = [
+      ['selectFrames', this.selectFramesBtnBg, this.selectFramesBtnText],
+      ['copy', this.copyBtnBg, this.copyBtnText],
+      ['delete', this.deleteBtnBg, this.deleteBtnText],
+    ];
+    cardButtons.forEach(([field, bg, text]) => {
+      const focused = this._focusedField === field;
+      bg.setFillStyle(focused ? COLORS.X_BTN_FOCUSED_BG : COLORS.X_BTN_BG);
+      text.setColor(hex(focused ? COLORS.X_BTN_TEXT_FOCUSED : COLORS.X_BTN_TEXT));
+    });
   }
 
   // ── Animation preview ───────────────────────────────────────────────────────
@@ -407,10 +389,21 @@ export class SpriteCard extends Phaser.GameObjects.Container {
       return;
     }
 
-    const animFrames = frames
-      .map(imgId => this._images.find(i => i.id === imgId))
-      .filter((img): img is ImageItem => img !== undefined && this.scene.textures.exists(img.textureKey))
-      .map(img => ({ key: img.textureKey }));
+    // Single pass over the frames: collect the playable texture keys and, for
+    // scaling, the largest source dimensions (over every resolvable frame so
+    // mixed-size frames stay fully visible without per-frame scale jitter).
+    const animFrames: Array<{ key: string }> = [];
+    let sourceW = 1;
+    let sourceH = 1;
+    frames.forEach(imgId => {
+      const image = this.imageById.get(imgId);
+      if (!image) return;
+      sourceW = Math.max(sourceW, image.width);
+      sourceH = Math.max(sourceH, image.height);
+      if (this.scene.textures.exists(image.textureKey)) {
+        animFrames.push({ key: image.textureKey });
+      }
+    });
 
     if (animFrames.length === 0) {
       this.previewSprite?.setVisible(false);
@@ -421,17 +414,6 @@ export class SpriteCard extends Phaser.GameObjects.Container {
     const cx = CARD_PAD_X + Math.floor(this.previewSize / 2);
     const cy = CARD_PAD_Y + Math.floor(this.previewSize / 2);
     const maxPreviewSize = this.previewSize - 4;
-
-    // Use largest frame dimensions so mixed-size animation frames remain
-    // fully visible without cropping or per-frame scale jitter.
-    let sourceW = 1;
-    let sourceH = 1;
-    frames.forEach(imgId => {
-      const image = this._images.find(i => i.id === imgId);
-      if (!image) return;
-      sourceW = Math.max(sourceW, image.width);
-      sourceH = Math.max(sourceH, image.height);
-    });
     const fitted = fitContainNoUpscale(sourceW, sourceH, maxPreviewSize, maxPreviewSize);
 
     if (!this.previewSprite || !this.previewSprite.active) {
@@ -476,11 +458,8 @@ export class SpriteCard extends Phaser.GameObjects.Container {
 
     this.previewSprite.stop();
 
-    const firstFrameImageId = this._spriteData.frames[0];
-    const firstFrameImage = this._images.find(
-      image => image.id === firstFrameImageId && this.scene.textures.exists(image.textureKey),
-    );
-    if (firstFrameImage) {
+    const firstFrameImage = this.imageById.get(this._spriteData.frames[0]);
+    if (firstFrameImage && this.scene.textures.exists(firstFrameImage.textureKey)) {
       this.previewSprite.setTexture(firstFrameImage.textureKey);
     }
   }

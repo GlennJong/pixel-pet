@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { ScreenKeyboard, ButtonBar, handleButtonBarKey, OptionMenu } from '../elements';
 import { COLORS, BUTTON_BAR_HEIGHT } from '../constants';
 import { WorkspaceAtlasEntry } from '../types';
+import { EditorScreen } from './EditorScreen';
 
 /**
  * S1 modal overlay – pick an existing workspace atlas to import.
@@ -14,14 +15,13 @@ import { WorkspaceAtlasEntry } from '../types';
  *   'cancel'
  *   'confirm' ({ atlas })
  */
-export class AtlasImportScreen extends Phaser.GameObjects.Container {
+export class AtlasImportScreen extends EditorScreen {
   private readonly screenW: number;
   private readonly screenH: number;
   private readonly atlasList: WorkspaceAtlasEntry[];
 
   private optionMenu!: OptionMenu;
   private buttonBar!: ButtonBar;
-  private keyboard!: ScreenKeyboard;
 
   private focusSection: 'list' | 'button-bar' = 'list';
 
@@ -32,7 +32,7 @@ export class AtlasImportScreen extends Phaser.GameObjects.Container {
     atlasList: WorkspaceAtlasEntry[],
     initialIndex = 0,
   ) {
-    super(scene, 0, 0);
+    super(scene);
 
     this.screenW = width;
     this.screenH = height;
@@ -133,10 +133,5 @@ export class AtlasImportScreen extends Phaser.GameObjects.Container {
     const atlas = this.atlasList[index];
     if (!atlas) return;
     this.emit('confirm', { atlas });
-  }
-
-  destroy(fromScene?: boolean) {
-    this.keyboard.destroy();
-    super.destroy(fromScene);
   }
 }

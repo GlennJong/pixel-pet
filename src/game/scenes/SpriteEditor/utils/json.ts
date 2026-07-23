@@ -1,6 +1,6 @@
-/** Narrow an unknown value to a plain object (non-null, typeof 'object'). */
+/** Narrow an unknown value to a plain object (non-null, non-array, typeof 'object'). */
 export function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object';
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /** Coerce a value to an integer, returning `fallback` when it isn't finite. */

@@ -14,6 +14,7 @@ import {
   hex,
 } from '../constants';
 import { SpriteData, ImageItem } from '../types';
+import { EditorScreen } from './EditorScreen';
 
 let _spriteIdCounter = 1;
 
@@ -41,7 +42,7 @@ type EditMode = 'card' | 'field' | 'add';
 // scrolling column, in the slot where the next card would appear.
 const ADD_ROW_HEIGHT = BUTTON_BAR_HEIGHT;
 
-export class SpriteEditScreen extends Phaser.GameObjects.Container {
+export class SpriteEditScreen extends EditorScreen {
   private readonly screenW: number;
   private readonly screenH: number;
   private readonly cardsAreaH: number;
@@ -61,13 +62,14 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
   // `cards` is the single source of truth for sprite data (each SpriteCard owns
   // its SpriteData); collectSprites() derives the SpriteData[] from it.
   private cards: SpriteCard[] = [];
+  // Card → index lookup, rebuilt on structural changes so pointer events (hover)
+  // don't linear-scan `cards` on every move.
+  private cardIndex = new Map<SpriteCard, number>();
 
   private mode: EditMode = 'card';
   private cursorIdx = 0;
   private focusedField: CardField = 'freq';
   private viewportY = 0;
-
-  private keyboard!: ScreenKeyboard;
 
   constructor(
     scene: Phaser.Scene,
@@ -76,7 +78,7 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
     images: ImageItem[],
     sprites: SpriteData[],
   ) {
-    super(scene, 0, 0);
+    super(scene);
     this.screenW = width;
     this.screenH = height;
     // Leave room at the bottom for the scene-owned navigation bar.
@@ -121,11 +123,6 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
 
   update() { /* event-driven */ }
 
-  destroy(fromScene?: boolean) {
-    this.keyboard.destroy();
-    super.destroy(fromScene);
-  }
-
   // ── Build ───────────────────────────────────────────────────────────────────
 
   private buildUI(initialSprites: SpriteData[]) {
@@ -152,15 +149,22 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
     const card = new SpriteCard(this.scene, 0, y, this.screenW, spriteData, this.images);
     this.cardsContainer.add(card);
     this.cards.push(card);
+    this.reindexCards();
     this.wireCardEvents(card);
     this.repositionAddButton();
     return card;
   }
 
+  /** Rebuild the card → index lookup after any structural change to `cards`. */
+  private reindexCards() {
+    this.cardIndex.clear();
+    this.cards.forEach((c, i) => this.cardIndex.set(c, i));
+  }
+
   private wireCardEvents(card: SpriteCard) {
     card.on('hover', () => {
       if (this.mode === 'field') return;
-      const idx = this.cards.indexOf(card);
+      const idx = this.cardIndex.get(card) ?? -1;
       // Hovering a card while the ADD row is focused hands focus back to cards.
       if (this.mode === 'add') this.mode = 'card';
       if (idx >= 0 && (idx !== this.cursorIdx || this.mode === 'card')) {
@@ -171,13 +175,13 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
 
     card.on('hover-field', (field: CardField) => {
       if (this.mode !== 'field') return;
-      if (this.cards.indexOf(card) !== this.cursorIdx) return;
+      if ((this.cardIndex.get(card) ?? -1) !== this.cursorIdx) return;
       this.focusedField = field;
       this.updateFieldFocus();
     });
 
     card.on('activate', (field: CardField) => {
-      const idx = this.cards.indexOf(card);
+      const idx = this.cardIndex.get(card) ?? -1;
       if (idx < 0) return;
 
       // Deactivate old card
@@ -513,6 +517,7 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
     const card = new SpriteCard(this.scene, 0, 0, this.screenW, sd, this.images);
     this.cardsContainer.add(card);
     this.cards.splice(insertIdx, 0, card);
+    this.reindexCards();
     this.wireCardEvents(card);
     this.cards.forEach((c, i) => c.setPosition(0, i * (CARD_HEIGHT + CARD_GAP)));
     this.repositionAddButton();
@@ -528,6 +533,7 @@ export class SpriteEditScreen extends Phaser.GameObjects.Container {
     if (idx < 0) return;
     card.destroy();
     this.cards.splice(idx, 1);
+    this.reindexCards();
     this.cards.forEach((c, i) => c.setPosition(0, i * (CARD_HEIGHT + CARD_GAP)));
     this.repositionAddButton();
     this.mode = 'card';

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, FONT, hex } from '../constants';
+import { FocusableCursorList } from './FocusableCursorList';
 
 export interface OptionMenuItem {
   key: string;
@@ -22,13 +23,16 @@ const ROW_TEXT_PAD_X = 4;
  * Events emitted:
  *   'select' (key: string) – a row was activated
  */
-export class OptionMenu extends Phaser.GameObjects.Container {
+export class OptionMenu extends FocusableCursorList {
   private rowBgs: Phaser.GameObjects.Rectangle[] = [];
   private rowTexts: Phaser.GameObjects.Text[] = [];
   private items: OptionMenuItem[] = [];
+  // Ellipsized display strings, computed once per setItems (parallel to `items`).
+  // Labels don't change between cursor moves, so refreshVisuals must not rebuild
+  // them — it only recolours rows.
+  private displayLabels: string[] = [];
 
   private _cursorIndex = 0;
-  private _hasFocus = false;
   private scrollOffset = 0;
   private visibleRows = 1;
 
@@ -57,11 +61,11 @@ export class OptionMenu extends Phaser.GameObjects.Container {
 
   get cursorIndex() { return this._cursorIndex; }
   get itemCount() { return this.items.length; }
-  get hasFocus() { return this._hasFocus; }
 
   setItems(items: OptionMenuItem[]) {
     this.clearRows();
     this.items = [...items];
+    this.computeDisplayLabels();
     this._cursorIndex = Phaser.Math.Clamp(this._cursorIndex, 0, Math.max(0, items.length - 1));
     this.scrollOffset = 0;
 
@@ -107,13 +111,7 @@ export class OptionMenu extends Phaser.GameObjects.Container {
     this.refreshVisuals();
   }
 
-  activate() {
-    this._hasFocus = true;
-    this.refreshVisuals();
-  }
-
-  deactivate() {
-    this._hasFocus = false;
+  protected onFocusChange() {
     this.refreshVisuals();
   }
 
@@ -183,13 +181,24 @@ export class OptionMenu extends Phaser.GameObjects.Container {
         text.setColor(textColor);
       }
 
-      this.setEllipsizedText(text, item.label);
+      // Precomputed; setText early-returns when the value is unchanged, so
+      // recolouring a row doesn't re-measure/re-render its (fixed) text.
+      text.setText(this.displayLabels[itemIdx] ?? item.label);
     });
   }
 
-  private setEllipsizedText(textObj: Phaser.GameObjects.Text, value: string) {
-    textObj.setText(value);
-    if (textObj.width <= this.rowTextMaxW) return;
+  /** Compute each item's ellipsized display string once, using a single probe. */
+  private computeDisplayLabels() {
+    const probe = this.scene.add
+      .text(0, 0, '', { fontFamily: FONT.FAMILY, fontSize: FONT.SIZE, resolution: 1 })
+      .setVisible(false);
+    this.displayLabels = this.items.map(item => this.ellipsize(probe, item.label));
+    probe.destroy();
+  }
+
+  private ellipsize(probe: Phaser.GameObjects.Text, value: string): string {
+    probe.setText(value);
+    if (probe.width <= this.rowTextMaxW) return value;
 
     const ellipsis = '...';
     let low = 0;
@@ -198,14 +207,14 @@ export class OptionMenu extends Phaser.GameObjects.Container {
     while (low <= high) {
       const mid = Math.floor((low + high) / 2);
       const candidate = `${value.slice(0, mid)}${ellipsis}`;
-      textObj.setText(candidate);
-      if (textObj.width <= this.rowTextMaxW) {
+      probe.setText(candidate);
+      if (probe.width <= this.rowTextMaxW) {
         best = candidate;
         low = mid + 1;
       } else {
         high = mid - 1;
       }
     }
-    textObj.setText(best);
+    return best;
   }
 }

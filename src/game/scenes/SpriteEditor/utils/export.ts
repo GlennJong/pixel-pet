@@ -145,6 +145,14 @@ function packFrames(input: FrameInput[]) {
   const maxFrameW = input.reduce((max, f) => Math.max(max, f.image.width), 0);
   const targetWidth = Math.max(maxFrameW, Math.ceil(Math.sqrt(totalArea)));
 
+  // Shelf-pack tallest-first so short frames don't sit under a tall neighbour
+  // and waste vertical space. Frame names are assigned by the caller before
+  // packing and the output JSON is keyed by name, so reordering is safe.
+  const ordered = [...input].sort((a, b) => {
+    if (b.image.height !== a.image.height) return b.image.height - a.image.height;
+    return b.image.width - a.image.width;
+  });
+
   const frames: PackedFrame[] = [];
   let x = 0;
   let y = 0;
@@ -152,7 +160,7 @@ function packFrames(input: FrameInput[]) {
   let atlasW = 0;
   let atlasH = 0;
 
-  input.forEach(item => {
+  ordered.forEach(item => {
     const w = item.image.width;
     const h = item.image.height;
 

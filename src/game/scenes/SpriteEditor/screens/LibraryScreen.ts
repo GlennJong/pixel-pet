@@ -10,6 +10,7 @@ import {
   OptionMenuItem,
 } from '../elements';
 import { AtlasImportScreen } from './AtlasImportScreen';
+import { EditorScreen } from './EditorScreen';
 import { importAtlasTrio, ImportAtlasTrioResult } from '../utils/import';
 import { parseSmartFileName } from '../utils/smartInput';
 import { loadTextureFromDataUrl } from '../utils/texture';
@@ -57,7 +58,7 @@ interface LocalAtlasTrio {
  * Events emitted:
  *   'proceed' ({ projectName, images, sprites? }) – [Next] validated and passed
  */
-export class LibraryScreen extends Phaser.GameObjects.Container {
+export class LibraryScreen extends EditorScreen {
   private readonly screenW: number;
   private readonly screenH: number;
 
@@ -86,11 +87,13 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
 
   // Hidden file input – the only allowed DOM element
   private fileInput: HTMLInputElement;
+  private readonly onFileInputChange = () => { void this.handleFileSelect(); };
 
-  private keyboard!: ScreenKeyboard;
+  /** Auto-hide timer for the error banner; only one runs at a time. */
+  private errorTimer?: Phaser.Time.TimerEvent;
 
   constructor(scene: Phaser.Scene, width: number, height: number, initialState?: { projectName: string; images: ImageItem[] }) {
-    super(scene, 0, 0);
+    super(scene);
 
     this.screenW = width;
     this.screenH = height;
@@ -173,7 +176,7 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
     this.fileInput.multiple = true;
     this.fileInput.style.cssText = 'position:fixed;opacity:0;pointer-events:none;width:0;height:0;';
     document.body.appendChild(this.fileInput);
-    this.fileInput.addEventListener('change', () => { void this.handleFileSelect(); });
+    this.fileInput.addEventListener('change', this.onFileInputChange);
 
     // ── Component event wiring ────────────────────────────────────────────────
     this.nameInput.on('confirm', () => this.transitionToGrid());
@@ -480,10 +483,16 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
         break;
       case 'delete': {
         const toDelete = this.grid.selectedIds;
-        toDelete.forEach(id => {
-          this.grid.removeCellById(id);
-          this.images = this.images.filter(img => img.id !== id);
+        const deleting = new Set(toDelete);
+        // Free each deleted image's texture (it isn't reused) before dropping
+        // the record — otherwise the texture leaks in the manager.
+        this.images.forEach(img => {
+          if (deleting.has(img.id) && this.scene.textures.exists(img.textureKey)) {
+            this.scene.textures.remove(img.textureKey);
+          }
         });
+        toDelete.forEach(id => this.grid.removeCellById(id));
+        this.images = this.images.filter(img => !deleting.has(img.id));
         if (toDelete.length > 0) {
           this.importedSprites = undefined;
         }
@@ -513,8 +522,12 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
 
   private showError(msg: string) {
     this.errorText.setText(msg).setVisible(true);
-    this.scene.time.delayedCall(BANNER_AUTOHIDE_MS, () => {
+    // Cancel any in-flight auto-hide so an older timer can't hide this newer
+    // banner, and so timers don't stack under rapid errors.
+    this.errorTimer?.remove();
+    this.errorTimer = this.scene.time.delayedCall(BANNER_AUTOHIDE_MS, () => {
       if (this.errorText?.active) this.errorText.setVisible(false);
+      this.errorTimer = undefined;
     });
   }
 
@@ -598,6 +611,9 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
 
     try {
       await Promise.all(imageFiles.map(file => this.importImageFile(file)));
+      // Derive the project name once after the whole batch — doing it per image
+      // (inside the map above) re-parsed every filename O(n) times per import.
+      this.autoFillProjectNameFromParsedImages();
       // Stay on the Library so the imported thumbnails show in the grid; the user
       // advances to the sprite editor via the SPRITES nav when ready.
       this.errorText.setVisible(false);
@@ -652,7 +668,6 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
       height: frame.realHeight,
     };
     this.images.push(item);
-    this.autoFillProjectNameFromParsedImages();
     this.grid.addImageCell({ id, textureKey });
   }
 
@@ -876,10 +891,13 @@ export class LibraryScreen extends Phaser.GameObjects.Container {
   destroy(fromScene?: boolean) {
     this.atlasImportScreen?.destroy();
     this.atlasImportScreen = undefined;
-    this.keyboard.destroy();
+    this.errorTimer?.remove();
+    this.errorTimer = undefined;
+    this.fileInput.removeEventListener('change', this.onFileInputChange);
     if (this.fileInput.parentNode) {
       this.fileInput.parentNode.removeChild(this.fileInput);
     }
+    // super.destroy() (EditorScreen) tears down the keyboard.
     super.destroy(fromScene);
   }
 }

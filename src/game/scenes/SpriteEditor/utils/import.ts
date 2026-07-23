@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import { ImageItem, SpriteData } from '../types';
-import { parseSmartFileName } from './smartInput';
+import { parseSmartFileName, stripExtension } from './smartInput';
 import { isRecord, toInteger } from './json';
-import { loadTextureFromDataUrl } from './texture';
+import { removeEditorImageTextures } from './texture';
 
 interface NormalizedAtlasFrame {
   frameName: string;
@@ -53,7 +53,7 @@ export async function importAtlasTrio(input: ImportAtlasTrioInput): Promise<Impo
   const atlasImage = await loadImageFromBlob(input.pngBlob);
   validateFrameBounds(atlasFrames, atlasImage.width, atlasImage.height);
 
-  const frameImages = await extractFrameImages(input.scene, atlasImage, atlasFrames);
+  const frameImages = extractFrameImages(input.scene, atlasImage, atlasFrames);
   const frameIdByName = buildFrameIdLookup(frameImages);
 
   const animations = parseAnimations(input.animationsJsonText, warnings);
@@ -163,24 +163,30 @@ function validateFrameBounds(frames: NormalizedAtlasFrame[], atlasWidth: number,
   }
 }
 
-async function extractFrameImages(
+function extractFrameImages(
   scene: Phaser.Scene,
   atlasImage: HTMLImageElement,
   frames: NormalizedAtlasFrame[],
-): Promise<FrameImageResult[]> {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    throw new Error('Cannot create canvas context for atlas import.');
-  }
+): FrameImageResult[] {
+  // Free any editor textures from a previous import before creating the new
+  // set, so re-importing a smaller atlas can't leave higher-indexed textures
+  // resident in the (game-global) texture manager.
+  removeEditorImageTextures(scene);
 
   const results: FrameImageResult[] = [];
 
   for (let i = 0; i < frames.length; i += 1) {
     const frame = frames[i];
+    // One canvas per frame, registered directly with the texture manager. This
+    // avoids the PNG encode→decode round-trip (toDataURL + addBase64) the old
+    // path did per frame, and is synchronous so no per-frame decode to await.
+    const canvas = document.createElement('canvas');
     canvas.width = frame.w;
     canvas.height = frame.h;
-    ctx.clearRect(0, 0, frame.w, frame.h);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Cannot create canvas context for atlas import.');
+    }
     ctx.drawImage(
       atlasImage,
       frame.x,
@@ -193,15 +199,9 @@ async function extractFrameImages(
       frame.h,
     );
 
-    const dataUrl = canvas.toDataURL('image/png');
     const id = `img_${i + 1}`;
     const textureKey = `editor_img_${id}`;
-
-    if (scene.textures.exists(textureKey)) {
-      scene.textures.remove(textureKey);
-    }
-
-    await loadTextureFromDataUrl(scene, textureKey, dataUrl);
+    scene.textures.addCanvas(textureKey, canvas);
 
     results.push({
       frameName: frame.frameName,
@@ -420,10 +420,6 @@ function readRepeat(entry: Record<string, unknown>): number {
   return -1;
 }
 
-function stripExtension(name: string): string {
-  return name.replace(/\.[^.\/\\]+$/, '');
-}
-
 function getBaseName(name: string): string {
   const segments = name.split(/[\\/]/);
   return segments[segments.length - 1] || name;
@@ -447,7 +443,8 @@ function buildFallbackSprites(frameImages: FrameImageResult[]): SpriteData[] {
   });
 
   return Array.from(groups.entries()).map(([prefix, items], index) => {
-    const sortedItems = [...items].sort((a, b) => {
+    // items is locally owned and not reused after mapping — sort in place.
+    const sortedItems = items.sort((a, b) => {
       if (a.order !== b.order) return a.order - b.order;
       return a.frameName.localeCompare(b.frameName);
     });
@@ -472,36 +469,26 @@ function inferProjectName(
   if (hint) return hint;
 
   const animationPrefix = animations[0]?.prefix?.trim();
-  if (animationPrefix) {
-    const parsedPrefix = parseSmartFileName(`${animationPrefix}_0.png`);
-    if (parsedPrefix) {
-      return parsedPrefix.key;
-    }
-
-    const firstToken = animationPrefix.split('_')[0]?.trim();
-    if (firstToken) {
-      return firstToken;
-    }
-
-    return animationPrefix;
-  }
+  if (animationPrefix) return deriveProjectKey(`${animationPrefix}_0.png`, animationPrefix);
 
   const firstFrameName = frameNames[0]?.trim();
-  if (firstFrameName) {
-    const parsedFrame = parseSmartFileName(`${firstFrameName}.png`);
-    if (parsedFrame) {
-      return parsedFrame.key;
-    }
-
-    const firstToken = firstFrameName.split('_')[0]?.trim();
-    if (firstToken) {
-      return firstToken;
-    }
-
-    return firstFrameName;
-  }
+  if (firstFrameName) return deriveProjectKey(`${firstFrameName}.png`, firstFrameName);
 
   return 'project';
+}
+
+/**
+ * Derive a project key from a candidate filename: prefer the smart-parsed key,
+ * else the first underscore token, else the raw fallback.
+ */
+function deriveProjectKey(candidateFileName: string, rawFallback: string): string {
+  const parsed = parseSmartFileName(candidateFileName);
+  if (parsed) return parsed.key;
+
+  const firstToken = rawFallback.split('_')[0]?.trim();
+  if (firstToken) return firstToken;
+
+  return rawFallback;
 }
 
 function loadImageFromBlob(blob: Blob): Promise<HTMLImageElement> {
