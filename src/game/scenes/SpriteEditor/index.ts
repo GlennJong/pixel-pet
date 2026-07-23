@@ -2,7 +2,8 @@ import Phaser, { Scene } from 'phaser';
 import { LibraryScreen } from './screens/LibraryScreen';
 import { SpriteEditScreen } from './screens/SpriteEditScreen';
 import { FrameSelectorScreen } from './screens/FrameSelectorScreen';
-import { ButtonBar, ScreenKeyboard, handleButtonBarKey } from './elements';
+import { ButtonBar } from './elements';
+import { Focusable, NavHost, makeFocusable } from './elements/focus';
 import { EditorState, LibraryProceedPayload } from './types';
 import { buildSpriteEditorExport, downloadSpriteEditorExport } from './utils/export';
 import { buildPresetSpritesFromImages } from './utils/smartInput';
@@ -47,7 +48,7 @@ const SAVE_BUTTONS = [
  *
  * Scene key: 'SpriteEditor'
  */
-export default class EditorScene extends Scene {
+export default class EditorScene extends Scene implements NavHost {
   private libraryScreen?: LibraryScreen;
   private spriteEditScreen?: SpriteEditScreen;
   private frameSelectorScreen?: FrameSelectorScreen;
@@ -56,10 +57,11 @@ export default class EditorScene extends Scene {
 
   private errorBanner?: Phaser.GameObjects.Text;
 
-  // Persistent bottom navigation (owned here, shared by S1/S2).
+  // Persistent bottom navigation (owned here, shared by S1/S2). Keyboard focus is
+  // driven by the active screen's FocusRouter, which embeds this bar as a
+  // trailing focusable (see buildNavFocusable); the scene only owns the bar,
+  // its actions, the SAVE sub-menu, and visibility.
   private navBar?: ButtonBar;
-  private navKeyboard?: ScreenKeyboard;
-  private navFocused = false;
   private navSuppressed = false; // a screen has a modal/contextual bar up
   private navSaveMode = false; // nav is showing the SAVE sub-menu (APPLY/EXPORT/CANCEL)
   private currentScreen: 'library' | 'sprites' | 'frames' | 'none' = 'none';
@@ -107,23 +109,41 @@ export default class EditorScene extends Scene {
     this.navBar = new ButtonBar(this, h - BUTTON_BAR_HEIGHT, w, NAV_BUTTONS, 'left');
     this.navBar.setDepth(500);
     this.navBar.on('action', (key: string) => this.handleNavAction(key));
-
-    this.navKeyboard = new ScreenKeyboard({
-      scene: this,
-      canAttach: () => true,
-      shouldHandleKeyDown: () => this.navFocused,
-      onKeyDown: (code) => this.handleNavKey(code),
-    });
-    this.navKeyboard.attach();
   }
 
-  private handleNavKey(code: string) {
-    if (!this.navBar) return;
-    // In the SAVE sub-menu, backing out returns to the default nav (not the
-    // screen); at the top level it hands focus back to the screen content.
-    handleButtonBarKey(this.navBar, code, {
-      onExitUp: () => (this.navSaveMode ? this.exitSaveMenu() : this.returnFocusToScreen()),
-      onEscape: () => (this.navSaveMode ? this.exitSaveMenu() : this.returnFocusToScreen()),
+  /** True when the nav bar can currently take focus (visible + not suppressed). */
+  private navShowable(): boolean {
+    const showable = this.currentScreen === 'library' || this.currentScreen === 'sprites';
+    return showable && !this.navSuppressed;
+  }
+
+  /**
+   * Build the shared nav bar as a Focusable for the active screen's router. It
+   * sits as the trailing (bottom) member of the screen's scope: geometry reaches
+   * it going down and the screen's boundary overrides wrap top↔nav. `enterContent`
+   * is the screen's hook to return focus to real content (Escape / bridges).
+   */
+  buildNavFocusable(enterContent: (edge: 'first' | 'last') => void): Focusable {
+    return makeFocusable({
+      id: 'nav',
+      object: this.navBar!,
+      isEnabled: () => this.navShowable(),
+      onFocus: () => { this.navBar?.activate(); this.navBar?.setCursorToFirst(); },
+      onBlur: () => this.navBar?.deactivate(),
+      onSelect: () => this.navBar?.executeCursor(), // → 'action' → handleNavAction
+      handleKey: (code) => {
+        if (code !== 'Escape') return false;
+        if (this.navSaveMode) { this.exitSaveMenu(); return true; }
+        enterContent('last');
+        return true;
+      },
+      handleDirection: (dir) => {
+        if (dir === 'LEFT') { this.navBar?.moveCursor(-1); return true; }
+        if (dir === 'RIGHT') { this.navBar?.moveCursor(1); return true; }
+        // UP/DOWN: trap inside the bar while the SAVE sub-menu is open; otherwise
+        // let the router move (up → content via geometry, down → wrap boundary).
+        return this.navSaveMode;
+      },
     });
   }
 
@@ -150,15 +170,10 @@ export default class EditorScene extends Scene {
         return;
     }
 
-    // Leaving the nav — drop its focus highlight (screen switches recreate the
-    // target screen fresh; same-screen actions resume the paused keyboard).
-    this.navFocused = false;
-    this.navBar?.deactivate();
-
     switch (key) {
       case 'library':
         if (this.currentScreen === 'library') {
-          this.libraryScreen?.resume();
+          // Already here — re-open the entry menu (it takes focus itself).
           this.libraryScreen?.showMenu();
         } else {
           if (this.spriteEditScreen) this.state.sprites = this.spriteEditScreen.collectSprites();
@@ -170,8 +185,8 @@ export default class EditorScene extends Scene {
           // Emits 'proceed' with the library payload → showSpriteEditScreen.
           this.libraryScreen?.requestProceed();
         } else {
-          this.spriteEditScreen?.resume();
-          this.spriteEditScreen?.focusFromNav();
+          // Already on S2 — move focus from the nav back into the card content.
+          this.spriteEditScreen?.focusContent('last');
         }
         break;
       case 'exit':
@@ -180,10 +195,10 @@ export default class EditorScene extends Scene {
     }
   }
 
-  /** Swap the nav to the SAVE sub-menu (APPLY / EXPORT / CANCEL). */
+  /** Swap the nav to the SAVE sub-menu (APPLY / EXPORT / CANCEL). Focus stays on
+   *  the 'nav' focusable in the active router; only the buttons change. */
   private enterSaveMenu() {
     this.navSaveMode = true;
-    this.navFocused = true;
     this.navBar?.setButtons(SAVE_BUTTONS);
     this.navBar?.activate();
     this.navBar?.setCursorToFirst();
@@ -192,7 +207,6 @@ export default class EditorScene extends Scene {
   /** Restore the default nav buttons after the SAVE sub-menu. */
   private exitSaveMenu() {
     this.navSaveMode = false;
-    this.navFocused = true;
     this.navBar?.setButtons(NAV_BUTTONS);
     this.navBar?.activate();
     this.navBar?.setCursorToFirst();
@@ -203,48 +217,13 @@ export default class EditorScene extends Scene {
     if (this.spriteEditScreen) this.state.sprites = this.spriteEditScreen.collectSprites();
   }
 
-  /** The screen that currently owns the nav (S1 or S2). */
-  private activeScreen(): { pause(): void; resume(): void; focusFromNav(): void } | undefined {
-    if (this.currentScreen === 'library') return this.libraryScreen;
-    if (this.currentScreen === 'sprites') return this.spriteEditScreen;
-    return undefined;
-  }
-
-  /** Move keyboard focus from the active screen down into the nav bar. */
-  private focusNav() {
-    if (!this.navBar || this.navFocused) return;
-    if (!this.navBar.visible) {
-      // Nav is suppressed/hidden — the screen already blurred to leave, so give
-      // its focus back rather than stranding it.
-      this.activeScreen()?.focusFromNav();
-      return;
-    }
-    this.navFocused = true;
-    this.activeScreen()?.pause();
-    this.navBar.activate();
-    this.navBar.setCursorToFirst();
-  }
-
-  /** Hand focus back from the nav to the active screen's bottom content. */
-  private returnFocusToScreen() {
-    this.navFocused = false;
-    this.navBar?.deactivate();
-    const screen = this.activeScreen();
-    screen?.resume();
-    screen?.focusFromNav();
-  }
-
   /** Recompute nav visibility from the current screen + suppression state. */
   private refreshNav() {
-    const showable = this.currentScreen === 'library' || this.currentScreen === 'sprites';
-    const visible = showable && !this.navSuppressed;
-    this.navBar?.setVisible(visible);
-    if (!visible && this.navFocused) this.returnFocusToScreen();
+    this.navBar?.setVisible(this.navShowable());
   }
 
-  /** Wire the shared nav events every screen exposes (S1/S2). */
+  /** Wire the shared nav-suppress signal (a screen has a modal/contextual bar up). */
   private wireScreenNav(screen: Phaser.GameObjects.Container) {
-    screen.on('nav-down', () => this.focusNav());
     screen.on('nav-suppress', (suppressed: boolean) => {
       this.navSuppressed = suppressed;
       this.refreshNav();
@@ -261,12 +240,10 @@ export default class EditorScene extends Scene {
     this.libraryScreen?.destroy();
     this.spriteEditScreen?.destroy();
     this.frameSelectorScreen?.destroy();
-    this.navKeyboard?.destroy();
     this.navBar?.destroy();
     this.libraryScreen = undefined;
     this.spriteEditScreen = undefined;
     this.frameSelectorScreen = undefined;
-    this.navKeyboard = undefined;
     this.navBar = undefined;
     // Final teardown: free every editor_img_* texture. This is done here (not in
     // a screen's destroy) because screens are destroyed/recreated on navigation
@@ -291,7 +268,7 @@ export default class EditorScene extends Scene {
     this.libraryScreen = new LibraryScreen(this, w, h, {
       projectName: this.state.projectName,
       images: this.state.images,
-    });
+    }, this);
     this.libraryScreen.on('exit', () => this.exitEditor());
     this.libraryScreen.on('proceed', (data: LibraryProceedPayload) => {
       this.state.projectName = data.projectName;
@@ -304,8 +281,10 @@ export default class EditorScene extends Scene {
     this.wireScreenNav(this.libraryScreen);
 
     this.currentScreen = 'library';
-    this.navFocused = false;
     this.navSuppressed = false;
+    this.navSaveMode = false;
+    this.navBar?.setButtons(NAV_BUTTONS);
+    this.navBar?.deactivate(); // focus starts on the screen content, not the nav
     this.refreshNav();
   }
 
@@ -341,13 +320,15 @@ export default class EditorScene extends Scene {
     }
 
     this.spriteEditScreen = new SpriteEditScreen(
-      this, w, h, this.state.images, this.state.sprites,
+      this, w, h, this.state.images, this.state.sprites, this,
     );
     this.wireScreenNav(this.spriteEditScreen);
 
     this.currentScreen = 'sprites';
-    this.navFocused = false;
     this.navSuppressed = false;
+    this.navSaveMode = false;
+    this.navBar?.setButtons(NAV_BUTTONS);
+    this.navBar?.deactivate(); // focus starts on the screen content, not the nav
     this.refreshNav();
 
     this.spriteEditScreen.on('back', () => {
@@ -374,7 +355,6 @@ export default class EditorScene extends Scene {
 
     // S3 is a modal sub-screen with its own nav; hide the shared bottom nav.
     this.currentScreen = 'frames';
-    this.navFocused = false;
     this.refreshNav();
 
     this.frameSelectorScreen = new FrameSelectorScreen(

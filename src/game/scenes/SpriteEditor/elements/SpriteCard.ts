@@ -135,6 +135,30 @@ export class SpriteCard extends Phaser.GameObjects.Container {
     }
   }
 
+  /** Focus this card's first/last field — used when the router enters the card
+   *  travelling down ('first') or up ('last'). */
+  focusFieldEdge(edge: 'first' | 'last') {
+    const field = edge === 'first' ? CARD_FIELDS[0] : CARD_FIELDS[CARD_FIELDS.length - 1];
+    this.setCardFocus(false);
+    this.setFieldFocus(field);
+  }
+
+  /** Move field focus by delta within the card; returns false at the field edge
+   *  so the router can move to the adjacent card / nav. */
+  moveFieldFocus(delta: number): boolean {
+    const current = this._focusedField ?? CARD_FIELDS[0];
+    const next = CARD_FIELDS.indexOf(current) + delta;
+    if (next < 0 || next >= CARD_FIELDS.length) return false;
+    this.setFieldFocus(CARD_FIELDS[next]);
+    return true;
+  }
+
+  /** Adjust the focused number field by ±1 step (no-op on non-number fields). */
+  adjustFocusedField(delta: number) {
+    if (delta > 0) this.incrementField();
+    else this.decrementField();
+  }
+
   /** Space handler for the currently focused field. */
   activateCurrentField() {
     switch (this._focusedField) {

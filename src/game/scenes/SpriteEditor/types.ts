@@ -42,5 +42,3 @@ export interface AnimationItem {
   repeatDelay?: number;
   duration?: number;
 }
-
-export type LibraryFocusSection = 'menu' | 'text-input' | 'grid' | 'button-bar';

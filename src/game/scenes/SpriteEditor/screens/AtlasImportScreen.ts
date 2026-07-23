@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { ScreenKeyboard, ButtonBar, handleButtonBarKey, OptionMenu } from '../elements';
+import { ScreenKeyboard, ButtonBar, OptionMenu } from '../elements';
+import { FocusRouter, createScope, makeFocusable } from '../elements/focus';
 import { COLORS, BUTTON_BAR_HEIGHT } from '../constants';
 import { WorkspaceAtlasEntry } from '../types';
 import { EditorScreen } from './EditorScreen';
@@ -7,9 +8,10 @@ import { EditorScreen } from './EditorScreen';
 /**
  * S1 modal overlay – pick an existing workspace atlas to import.
  *
- * Uses the shared {@link OptionMenu} for the list (framed, scrolling, ellipsized)
- * plus a CANCEL nav bar. Arrow-down off the bottom of the list moves focus to
- * CANCEL; Escape also cancels.
+ * A scrolling {@link OptionMenu} list above a single CANCEL bar. Navigation is
+ * driven by the shared {@link FocusRouter}: the list and the bar are two
+ * focusables; geometry moves between them and boundary overrides wrap
+ * (list-top ↑ → CANCEL, CANCEL ↓ → list-top).
  *
  * Events emitted:
  *   'cancel'
@@ -22,8 +24,7 @@ export class AtlasImportScreen extends EditorScreen {
 
   private optionMenu!: OptionMenu;
   private buttonBar!: ButtonBar;
-
-  private focusSection: 'list' | 'button-bar' = 'list';
+  private readonly router = new FocusRouter();
 
   constructor(
     scene: Phaser.Scene,
@@ -40,6 +41,7 @@ export class AtlasImportScreen extends EditorScreen {
 
     this.buildUI();
     this.optionMenu.setCursor(initialIndex);
+    this.setupFocus();
     this.installKeyboard();
 
     scene.add.existing(this);
@@ -65,10 +67,9 @@ export class AtlasImportScreen extends EditorScreen {
       this.atlasList.map((atlas, i) => ({ key: String(i), label: `${i + 1}. ${atlas.atlasId}` })),
     );
     this.optionMenu.on('select', (key: string) => this.confirmSelection(Number(key)));
-    this.optionMenu.activate();
     this.add(this.optionMenu);
 
-    // Bottom nav: a single CANCEL action (Escape also cancels via keyboard).
+    // Bottom nav: a single CANCEL action (Escape also cancels via the scope).
     this.buttonBar = new ButtonBar(
       this.scene,
       this.screenH - BUTTON_BAR_HEIGHT,
@@ -79,54 +80,67 @@ export class AtlasImportScreen extends EditorScreen {
     this.add(this.buttonBar);
   }
 
+  private setupFocus() {
+    const list = makeFocusable({
+      id: 'list',
+      object: this.optionMenu,
+      onFocus: (from) => {
+        this.optionMenu.activate();
+        // Entered from below (moving up out of CANCEL) → land on the last row;
+        // from above → the first row.
+        if (from === 'UP') this.optionMenu.setCursor(this.optionMenu.itemCount - 1);
+        else if (from === 'DOWN') this.optionMenu.setCursor(0);
+      },
+      onBlur: () => this.optionMenu.deactivate(),
+      onSelect: () => this.optionMenu.selectCurrent(),
+      handleDirection: (dir) => {
+        if (dir === 'UP') {
+          if (this.optionMenu.cursorIndex <= 0) return false; // edge → let router wrap
+          this.optionMenu.moveCursor(-1);
+          return true;
+        }
+        if (dir === 'DOWN') {
+          if (this.optionMenu.cursorIndex >= this.optionMenu.itemCount - 1) return false;
+          this.optionMenu.moveCursor(1);
+          return true;
+        }
+        return false;
+      },
+    });
+
+    const cancel = makeFocusable({
+      id: 'cancel',
+      object: this.buttonBar,
+      onFocus: () => this.buttonBar.activate(),
+      onBlur: () => this.buttonBar.deactivate(),
+      onSelect: () => this.buttonBar.executeCursor(),
+      handleDirection: (dir) => {
+        if (dir === 'LEFT') { this.buttonBar.moveCursor(-1); return true; }
+        if (dir === 'RIGHT') { this.buttonBar.moveCursor(1); return true; }
+        return false; // UP/DOWN → let router move/bridge
+      },
+    });
+
+    const scope = createScope({
+      id: 'atlas-import',
+      members: () => [list, cancel],
+      onCancel: () => this.emit('cancel'),
+      boundaryOverride: {
+        UP: () => this.router.focusId('cancel'),                                   // list-top ↑ → CANCEL
+        DOWN: () => { this.optionMenu.setCursor(0); this.router.focusId('list'); }, // CANCEL ↓ → list-top
+      },
+    });
+
+    this.router.setBaseScope(scope, 'list');
+  }
+
   private installKeyboard() {
     this.keyboard = new ScreenKeyboard({
       scene: this.scene,
       canAttach: () => this.active,
       deferAttach: true,
-      onKeyDown: (code: string) => this.handleNavKey(code),
+      onKeyDown: (code: string) => this.router.handleKey(code),
     });
-  }
-
-  private handleNavKey(code: string) {
-    if (this.focusSection === 'button-bar') {
-      handleButtonBarKey(this.buttonBar, code, {
-        onExitUp: () => this.focusList(),
-        onEscape: () => this.emit('cancel'),
-      });
-      return;
-    }
-
-    switch (code) {
-      case 'ArrowUp':
-        this.optionMenu.moveCursor(-1);
-        break;
-      case 'ArrowDown':
-        // Off the bottom of the list → move focus to the CANCEL nav.
-        if (this.optionMenu.cursorIndex >= this.optionMenu.itemCount - 1) this.focusButtonBar();
-        else this.optionMenu.moveCursor(1);
-        break;
-      case 'Space':
-      case 'Enter':
-        this.optionMenu.selectCurrent();
-        break;
-      case 'Escape':
-        this.emit('cancel');
-        break;
-    }
-  }
-
-  private focusButtonBar() {
-    this.focusSection = 'button-bar';
-    this.optionMenu.deactivate();
-    this.buttonBar.activate();
-    this.buttonBar.setCursorToFirst();
-  }
-
-  private focusList() {
-    this.focusSection = 'list';
-    this.buttonBar.deactivate();
-    this.optionMenu.activate();
   }
 
   private confirmSelection(index: number) {

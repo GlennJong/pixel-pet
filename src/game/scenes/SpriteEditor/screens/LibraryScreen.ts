@@ -5,10 +5,17 @@ import {
   ButtonBar,
   ConfirmDialog,
   ScreenKeyboard,
-  handleButtonBarKey,
   OptionMenu,
   OptionMenuItem,
 } from '../elements';
+import {
+  FocusRouter,
+  FocusScope,
+  Focusable,
+  NavHost,
+  createScope,
+  makeFocusable,
+} from '../elements/focus';
 import { AtlasImportScreen } from './AtlasImportScreen';
 import { EditorScreen } from './EditorScreen';
 import { importAtlasTrio, ImportAtlasTrioResult } from '../utils/import';
@@ -26,15 +33,13 @@ import {
 } from '../constants';
 import {
   ImageItem,
-  LibraryFocusSection,
   LibraryProceedPayload,
   SpriteData,
   WorkspaceAtlasEntry,
 } from '../types';
 
-// Screen navigation (LIBRARY / SPRITES / EXIT) is owned by the scene
-// (SpriteEditor/index) now. This screen's own bottom bar only carries the
-// contextual multi-select actions, shown while grid cells are selected.
+// This screen's own bottom bar carries only the contextual multi-select actions,
+// shown while grid cells are selected. Screen/scene navigation is the shared nav.
 const buttonsWithSelection = (n: number) => [
   { key: 'delete', label: n > 0 ? `DELETE(${n})` : 'DELETE' },
   { key: 'cancel', label: 'CANCEL' },
@@ -48,19 +53,21 @@ interface LocalAtlasTrio {
 /**
  * S1 – LibraryScreen
  *
- * Layout (top → bottom):
- *   [name input]
- *   [grid selector with thumbnails + '+' add cell]
- *   [button bar]
- *
- * Focus sections: 'text-input' | 'grid' | 'button-bar'
+ * Two modes, each a FocusScope driven by the shared {@link FocusRouter}:
+ *   - menu: [OptionMenu, nav]  (LOAD DATA / CREATE NEW / {current})
+ *   - edit: [name TextInput, image grid, selection bar (when selecting), nav]
+ * Geometry moves between widgets by position; boundary overrides wrap top↔nav.
+ * The depose confirmation and the atlas-import overlay are handled as a pushed
+ * modal scope and a paused-router overlay respectively.
  *
  * Events emitted:
- *   'proceed' ({ projectName, images, sprites? }) – [Next] validated and passed
+ *   'proceed' ({ projectName, images, sprites? })
+ *   'exit'
  */
 export class LibraryScreen extends EditorScreen {
   private readonly screenW: number;
   private readonly screenH: number;
+  private readonly navHost: NavHost;
 
   private nameInput: TextInput;
   private grid: GridSelector;
@@ -69,15 +76,11 @@ export class LibraryScreen extends EditorScreen {
   private confirmDialog: ConfirmDialog;
   private errorText: Phaser.GameObjects.Text;
 
-  /** 'menu' = entry menu (LOAD DATA / CREATE NEW); 'edit' = name input + grid. */
-  private mode: 'menu' | 'edit' = 'menu';
   /** Action awaiting confirmation when it would deposit the current project. */
   private pendingMenuAction?: 'load' | 'create';
   /** True while grid cells are multi-selected (own contextual bar is shown). */
   private selectionActive = false;
 
-  private focusSection: LibraryFocusSection = 'menu';
-  private focusBeforeAtlasImport: LibraryFocusSection = 'menu';
   private images: ImageItem[] = [];
   private importedSprites: SpriteData[] | undefined;
   /** True once CREATE NEW starts a fresh project: proceed must reset sprites. */
@@ -92,11 +95,29 @@ export class LibraryScreen extends EditorScreen {
   /** Auto-hide timer for the error banner; only one runs at a time. */
   private errorTimer?: Phaser.Time.TimerEvent;
 
-  constructor(scene: Phaser.Scene, width: number, height: number, initialState?: { projectName: string; images: ImageItem[] }) {
+  // Focus model.
+  private readonly router = new FocusRouter();
+  private menuScope!: FocusScope;
+  private editScope!: FocusScope;
+  private deposeScope!: FocusScope;
+  private menuFocusable!: Focusable;
+  private nameFocusable!: Focusable;
+  private gridFocusable!: Focusable;
+  private selectionFocusable!: Focusable;
+  private navFocusable!: Focusable;
+
+  constructor(
+    scene: Phaser.Scene,
+    width: number,
+    height: number,
+    initialState: { projectName: string; images: ImageItem[] } | undefined,
+    navHost: NavHost,
+  ) {
     super(scene);
 
     this.screenW = width;
     this.screenH = height;
+    this.navHost = navHost;
 
     const PAD = 8;
     const inputY = PAD;
@@ -146,7 +167,6 @@ export class LibraryScreen extends EditorScreen {
     this.add(this.buttonBar);
 
     // ── Entry menu (LOAD DATA / CREATE NEW / {current}) ───────────────────────
-    // Framed panel; auto-sizes to its rows (a small box for 2–3 options).
     this.optionMenu = new OptionMenu(
       scene,
       PAD,
@@ -179,27 +199,31 @@ export class LibraryScreen extends EditorScreen {
     this.fileInput.addEventListener('change', this.onFileInputChange);
 
     // ── Component event wiring ────────────────────────────────────────────────
-    this.nameInput.on('confirm', () => this.transitionToGrid());
-    this.nameInput.on('cancel', () => this.transitionToGrid());
-    this.nameInput.on('nav-down', () => this.transitionToGrid());
-    this.nameInput.on('nav-up', () => this.nameInput.focus());
+    // The name input keeps its own key handling while focused (the screen
+    // keyboard is muted via shouldHandleKeyDown); its nav-up/nav-down bridge into
+    // the router so ArrowUp/Enter/Escape move focus by geometry.
+    this.nameInput.on('nav-up', () => this.router.moveFocus('UP'));
+    this.nameInput.on('nav-down', () => this.router.moveFocus('DOWN'));
 
     this.grid.on('add-request', () => this.fileInput.click());
-    this.grid.on('selection-change', (selected: any[]) => {
+    this.grid.on('selection-change', (selected: unknown[]) => {
       this.updateButtonsForSelection(selected.length);
     });
 
     this.buttonBar.on('action', (key: string) => this.handleButtonAction(key));
     this.optionMenu.on('select', (key: string) => this.handleMenuSelect(key));
-    this.confirmDialog.on('confirm', () => { this.confirmDialog.close(); this.confirmDepose(); });
+    this.confirmDialog.on('confirm', () => this.confirmDepose());
     this.confirmDialog.on('cancel', () => this.cancelDepose());
+
+    this.setupFocus();
 
     // ── Keyboard ──────────────────────────────────────────────────────────────
     this.keyboard = new ScreenKeyboard({
       scene,
       canAttach: () => this.active,
+      // While the DOM-style TextInput owns keys, mute the router path.
       shouldHandleKeyDown: () => !this.nameInput.isFocused,
-      onKeyDown: (code: string) => this.handleNavKey(code),
+      onKeyDown: (code: string) => this.router.handleKey(code),
     });
     this.keyboard.attach();
 
@@ -211,95 +235,128 @@ export class LibraryScreen extends EditorScreen {
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
-  /** Call from EditorScene.update() if polling-based updates are needed */
-  update() {
-    // Currently keyboard-event driven; placeholder for future use
-  }
+  update() { /* keyboard-event driven */ }
 
-  // ── Shared-nav contract (driven by SpriteEditor/index) ──────────────────────
-
-  /** Pause/resume this screen's keyboard while the scene nav owns focus. */
-  pause() { this.keyboard.pause(); }
-  resume() { this.keyboard.resume(); }
-
-  /** Re-take focus from the scene nav, landing on this screen's bottom content. */
-  focusFromNav() {
-    if (this.mode === 'menu') this.transitionToMenuFocus('last');
-    else this.transitionToGrid(/* lastRow */ true);
-  }
+  /** Pause/resume the focus router + keyboard (around the atlas-import overlay). */
+  pause() { this.router.pause(); this.keyboard.pause(); }
+  resume() { this.keyboard.resume(); this.router.resume(); }
 
   /** Build + emit the proceed payload (invoked by the scene's SPRITES nav). */
   requestProceed() { this.proceedToSpriteEdit(); }
 
-  // ── Navigation ─────────────────────────────────────────────────────────────
+  // ── Focus model ─────────────────────────────────────────────────────────────
 
-  private handleNavKey(code: string) {
-    if (this.confirmDialog.isOpen) {
-      this.confirmDialog.handleKey(code);
-      return;
-    }
-    if (this.focusSection === 'menu') {
-      switch (code) {
-        case 'ArrowUp':
+  private setupFocus() {
+    this.menuFocusable = makeFocusable({
+      id: 'menu',
+      object: this.optionMenu,
+      onFocus: (from) => {
+        this.optionMenu.activate();
+        if (from === 'DOWN') this.optionMenu.setCursor(0);
+        else if (from === 'UP') this.optionMenu.setCursor(this.optionMenu.itemCount - 1);
+      },
+      onBlur: () => this.optionMenu.deactivate(),
+      onSelect: () => this.optionMenu.selectCurrent(),
+      handleDirection: (dir) => {
+        if (dir === 'UP') {
+          if (this.optionMenu.cursorIndex <= 0) return false;
           this.optionMenu.moveCursor(-1);
-          break;
-        case 'ArrowDown':
-          if (this.optionMenu.cursorIndex >= this.optionMenu.itemCount - 1) {
-            this.leaveToNav();
-          } else {
-            this.optionMenu.moveCursor(1);
-          }
-          break;
-        case 'Space':
-        case 'Enter':
-          this.optionMenu.selectCurrent();
-          break;
-      }
-    } else if (this.focusSection === 'grid') {
-      switch (code) {
-        case 'ArrowLeft':
-          this.grid.moveCursorLeft();
-          break;
-        case 'ArrowRight':
-          this.grid.moveCursorRight();
-          break;
-        case 'ArrowUp': {
-          const moved = this.grid.moveCursorUp();
-          if (!moved) this.transitionToTextInput();
-          break;
+          return true;
         }
-        case 'ArrowDown': {
-          const moved = this.grid.moveCursorDown();
-          // With a selection, the own DELETE/CANCEL bar owns the bottom; else
-          // hand focus down to the scene nav.
-          if (!moved) {
-            if (this.selectionActive) this.transitionToButtonBar();
-            else this.leaveToNav();
-          }
-          break;
+        if (dir === 'DOWN') {
+          if (this.optionMenu.cursorIndex >= this.optionMenu.itemCount - 1) return false;
+          this.optionMenu.moveCursor(1);
+          return true;
         }
-        case 'Space':
-          this.grid.activateCurrent();
-          break;
-        case 'Escape':
+        return false;
+      },
+    });
+
+    this.nameFocusable = makeFocusable({
+      id: 'name',
+      object: this.nameInput,
+      onFocus: () => this.nameInput.focus(),
+      onBlur: () => this.nameInput.blur(),
+    });
+
+    this.gridFocusable = makeFocusable({
+      id: 'grid',
+      object: this.grid,
+      onFocus: (from) => {
+        this.grid.activate();
+        if (from === 'DOWN') this.grid.setCursor(0);
+        else if (from === 'UP') this.grid.setCursor(Math.max(0, this.grid.cellCount - 1));
+      },
+      onBlur: () => this.grid.deactivate(),
+      onSelect: () => this.grid.activateCurrent(),
+      handleKey: (code) => {
+        if (code !== 'Escape') return false;
+        if (this.selectionActive) {
           this.grid.clearAllSelections();
           this.updateButtonsForSelection(0);
-          break;
-      }
-    } else if (this.focusSection === 'button-bar') {
-      handleButtonBarKey(this.buttonBar, code, {
-        onExitUp: () => this.exitButtonBarUp(),
-        onEscape: () => {
-          if (this.mode === 'edit') {
-            this.grid.clearAllSelections();
-            this.updateButtonsForSelection(0);
-            this.transitionToGrid(true);
-          } else {
-            this.transitionToMenuFocus();
-          }
-        },
-      });
-    }
+        }
+        return true; // consume Escape (no back from the grid)
+      },
+      handleDirection: (dir) => {
+        switch (dir) {
+          case 'LEFT':  this.grid.moveCursorLeft();  return true;
+          case 'RIGHT': this.grid.moveCursorRight(); return true;
+          case 'UP':    return this.grid.moveCursorUp();   // false at top row → router bridges to name
+          case 'DOWN':  return this.grid.moveCursorDown(); // false at last row → router bridges to bar/nav
+          default:      return false;
+        }
+      },
+    });
+
+    this.selectionFocusable = makeFocusable({
+      id: 'selection-bar',
+      object: this.buttonBar,
+      isEnabled: () => this.selectionActive,
+      onFocus: () => { this.buttonBar.activate(); this.buttonBar.setCursorToFirst(); },
+      onBlur: () => this.buttonBar.deactivate(),
+      onSelect: () => this.buttonBar.executeCursor(),
+      handleKey: (code) => {
+        if (code !== 'Escape') return false;
+        this.grid.clearAllSelections();
+        this.updateButtonsForSelection(0);
+        this.router.focusId('grid');
+        return true;
+      },
+      handleDirection: (dir) => {
+        if (dir === 'LEFT') { this.buttonBar.moveCursor(-1); return true; }
+        if (dir === 'RIGHT') { this.buttonBar.moveCursor(1); return true; }
+        return false;
+      },
+    });
+
+    this.navFocusable = this.navHost.buildNavFocusable((edge) => this.router.focusEdge(edge, 'nav'));
+
+    const wrap = {
+      UP: () => this.router.focusEdge('last'),   // top content ↑ → bottom (nav / selection bar)
+      DOWN: () => this.router.focusEdge('first'), // bottom ↓ → top content (wrap)
+    };
+
+    this.menuScope = createScope({
+      id: 'library-menu',
+      members: () => [this.menuFocusable, this.navFocusable],
+      boundaryOverride: wrap,
+    });
+
+    this.editScope = createScope({
+      id: 'library-edit',
+      members: () => [this.nameFocusable, this.gridFocusable, this.selectionFocusable, this.navFocusable],
+      boundaryOverride: wrap,
+    });
+
+    // Depose confirmation: modal scope forwarding every key to the dialog.
+    const deposeDialog = makeFocusable({
+      id: 'depose-dialog',
+      object: this.confirmDialog,
+      onFocus: () => undefined,
+      onBlur: () => undefined,
+      handleKey: (code) => { this.confirmDialog.handleKey(code); return true; },
+    });
+    this.deposeScope = createScope({ id: 'depose', members: () => [deposeDialog] });
   }
 
   // ── Mode switching ───────────────────────────────────────────────────────
@@ -317,7 +374,6 @@ export class LibraryScreen extends EditorScreen {
 
   /** Show the entry menu (LOAD DATA / CREATE NEW / {current}); hide the editor. */
   showMenu() {
-    this.mode = 'menu';
     this.pendingMenuAction = undefined;
     this.confirmDialog.close();
     this.nameInput.blur();
@@ -328,12 +384,11 @@ export class LibraryScreen extends EditorScreen {
     this.optionMenu.setVisible(true);
     this.updateButtonsForSelection(0);
     this.errorText.setVisible(false);
-    this.transitionToMenuFocus();
+    this.router.setBaseScope(this.menuScope, 'menu');
   }
 
   /** Show the editor (name input + grid); hide the entry menu. */
   private showEdit() {
-    this.mode = 'edit';
     this.pendingMenuAction = undefined;
     this.confirmDialog.close();
     this.optionMenu.deactivate();
@@ -342,8 +397,7 @@ export class LibraryScreen extends EditorScreen {
     this.grid.setVisible(true);
     this.updateButtonsForSelection(0);
     this.errorText.setVisible(false);
-    this.focusSection = 'text-input';
-    this.nameInput.focus();
+    this.router.setBaseScope(this.editScope, 'name');
   }
 
   private enterCreateNew() {
@@ -376,11 +430,10 @@ export class LibraryScreen extends EditorScreen {
     return this.images.length > 0;
   }
 
-  // ── Depose confirmation (shared modal dialog: message + CONFIRM/CANCEL nav) ──
+  // ── Depose confirmation (modal dialog: message + CONFIRM/CANCEL) ─────────────
 
   private askDeposeConfirm(action: 'load' | 'create') {
     this.pendingMenuAction = action;
-    this.deactivateCurrentFocus();
     this.errorText.setVisible(false);
 
     const name = this.nameInput.value.trim() || 'project';
@@ -388,10 +441,13 @@ export class LibraryScreen extends EditorScreen {
       `Are you sure?\nIf you LOAD DATA or CREATE NEW,\n${name} would be deposed?`,
     );
     this.emitNavSuppress();
+    this.router.pushModal(this.deposeScope);
   }
 
   private confirmDepose() {
     const action = this.pendingMenuAction;
+    this.confirmDialog.close();
+    // showMenu / enterCreateNew reset the base scope (dropping the modal).
     if (action === 'load') {
       this.showMenu();
       void this.openAtlasImportScreen();
@@ -407,79 +463,14 @@ export class LibraryScreen extends EditorScreen {
     this.emitNavSuppress();
   }
 
-  // ── Section transitions ────────────────────────────────────────────────────
-
-  private transitionToMenuFocus(cursor: 'first' | 'last' = 'first') {
-    if (this.focusSection === 'button-bar') this.buttonBar.deactivate();
-    this.focusSection = 'menu';
-    this.optionMenu.activate();
-    this.optionMenu.setCursor(cursor === 'last' ? this.optionMenu.itemCount - 1 : 0);
-  }
-
-  private exitButtonBarUp() {
-    if (this.mode === 'edit') this.transitionToGrid(/* lastRow */ true);
-    // Coming up from the nav lands on the last option (symmetric with ArrowDown).
-    else this.transitionToMenuFocus('last');
-  }
-
-  /** Hand focus down to the scene-owned navigation bar. */
-  private leaveToNav() {
-    this.deactivateCurrentFocus();
-    this.emit('nav-down');
-  }
-
-  /** Emit the combined nav-suppress signal (modal or contextual bar is up). */
-  private emitNavSuppress() {
-    const suppressed = this.selectionActive
-      || this.confirmDialog.isOpen
-      || this.atlasImportScreen !== undefined;
-    this.emit('nav-suppress', suppressed);
-  }
-
-  private transitionToTextInput() {
-    this.grid.deactivate();
-    this.focusSection = 'text-input';
-    this.nameInput.focus();
-  }
-
-  private transitionToGrid(lastRow = false) {
-    if (this.focusSection === 'text-input') {
-      this.nameInput.blur();
-    } else if (this.focusSection === 'button-bar') {
-      this.buttonBar.deactivate();
-    }
-    this.focusSection = 'grid';
-    this.grid.activate();
-    if (lastRow) {
-      // Move cursor to last row
-      const total = this.grid.cellCount;
-      if (total > 0) {
-        const lastIdx = total - 1;
-        this.grid.setCursor(lastIdx);
-      }
-    } else {
-      this.grid.setCursor(0);
-    }
-  }
-
-  private transitionToButtonBar() {
-    if (this.mode === 'menu') this.optionMenu.deactivate();
-    else this.grid.deactivate();
-    this.focusSection = 'button-bar';
-    this.buttonBar.activate();
-    this.buttonBar.setCursorToFirst();
-  }
-
   // ── Button actions ─────────────────────────────────────────────────────────
 
-  // Only the contextual multi-select actions live here now — LIBRARY / SPRITES /
-  // EXIT moved to the scene-owned nav (SpriteEditor/index).
   private handleButtonAction(key: string) {
     switch (key) {
       case 'cancel':
         this.grid.clearAllSelections();
         this.updateButtonsForSelection(0);
-        this.transitionToGrid(/* lastRow */ true);
+        this.router.focusId('grid');
         break;
       case 'delete': {
         const toDelete = this.grid.selectedIds;
@@ -499,7 +490,7 @@ export class LibraryScreen extends EditorScreen {
         this.autoFillProjectNameFromParsedImages();
         this.grid.clearAllSelections();
         this.updateButtonsForSelection(0);
-        this.transitionToGrid(/* lastRow */ true);
+        this.router.focusId('grid');
         break;
       }
     }
@@ -518,6 +509,17 @@ export class LibraryScreen extends EditorScreen {
     }
     // Hide the scene nav while our own contextual bar occupies the bottom.
     this.emitNavSuppress();
+    // The selection bar / nav availability just changed — re-home if the focused
+    // member became unavailable.
+    this.router.refreshAvailability();
+  }
+
+  /** Emit the combined nav-suppress signal (modal or contextual bar is up). */
+  private emitNavSuppress() {
+    const suppressed = this.selectionActive
+      || this.confirmDialog.isOpen
+      || this.atlasImportScreen !== undefined;
+    this.emit('nav-suppress', suppressed);
   }
 
   private showError(msg: string) {
@@ -704,9 +706,8 @@ export class LibraryScreen extends EditorScreen {
         return;
       }
 
-      this.focusBeforeAtlasImport = this.focusSection;
-      this.deactivateCurrentFocus();
-      this.keyboard.pause();
+      // Pause this screen's router + keyboard; the overlay has its own.
+      this.pause();
 
       this.atlasImportScreen = new AtlasImportScreen(this.scene, this.screenW, this.screenH, atlasList);
       this.emitNavSuppress();
@@ -729,8 +730,8 @@ export class LibraryScreen extends EditorScreen {
 
     this.atlasImportScreen.destroy();
     this.atlasImportScreen = undefined;
-    this.keyboard.resume();
-    this.restoreFocusAfterAtlasImport();
+    // Resume restores focus to exactly where it was before the overlay.
+    this.resume();
     this.emitNavSuppress();
   }
 
@@ -794,46 +795,6 @@ export class LibraryScreen extends EditorScreen {
       });
       return list;
     }, []);
-  }
-
-  private deactivateCurrentFocus() {
-    if (this.focusSection === 'menu') {
-      this.optionMenu.deactivate();
-      return;
-    }
-    if (this.focusSection === 'text-input') {
-      this.nameInput.blur();
-      return;
-    }
-    if (this.focusSection === 'grid') {
-      this.grid.deactivate();
-      return;
-    }
-    this.buttonBar.deactivate();
-  }
-
-  private restoreFocusAfterAtlasImport() {
-    if (this.focusBeforeAtlasImport === 'menu') {
-      this.transitionToMenuFocus();
-      return;
-    }
-
-    if (this.focusBeforeAtlasImport === 'text-input') {
-      this.focusSection = 'text-input';
-      this.nameInput.focus();
-      return;
-    }
-
-    if (this.focusBeforeAtlasImport === 'grid') {
-      this.focusSection = 'grid';
-      this.nameInput.blur();
-      this.grid.activate();
-      return;
-    }
-
-    this.focusSection = 'button-bar';
-    this.nameInput.blur();
-    this.buttonBar.activate();
   }
 
   private applyImportedAtlas(result: ImportAtlasTrioResult) {

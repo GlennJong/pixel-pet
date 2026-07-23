@@ -2,10 +2,17 @@ import Phaser from 'phaser';
 import {
   SpriteCard,
   CardField,
-  CARD_FIELDS,
   ConfirmDialog,
   ScreenKeyboard,
 } from '../elements';
+import {
+  FocusRouter,
+  FocusScope,
+  Focusable,
+  NavHost,
+  createScope,
+  makeFocusable,
+} from '../elements/focus';
 import {
   COLORS,
   FONT,
@@ -32,20 +39,26 @@ const DEFAULT_SPRITE = (): SpriteData => {
   };
 };
 
-// 'add' focuses the "ADD SPRITE" row pinned after the last card. ADD/SELECT/
-// APPLY/EXPORT used to live in a top operation bar; that bar was removed —
-// adding is the ADD row, apply/export live in the scene nav's SAVE menu, and
-// bulk select was dropped (delete is per-card).
-type EditMode = 'card' | 'field' | 'add';
-
 // "ADD SPRITE" row: a full-width button that rides at the bottom of the
 // scrolling column, in the slot where the next card would appear.
 const ADD_ROW_HEIGHT = BUTTON_BAR_HEIGHT;
 
+/**
+ * S2 – SpriteEditScreen
+ *
+ * A scrolling column of {@link SpriteCard}s + an "ADD SPRITE" row, with the
+ * shared bottom nav below. The whole column is ONE focusable driven by the
+ * {@link FocusRouter}: it navigates cards/fields/ADD by index (geometry can't be
+ * used for a scrolling list — off-screen cards sit below the fixed nav bar), and
+ * bridges to the nav at its top/bottom edges (first field ↑ → nav, ADD ↓ → nav,
+ * nav ↑ → ADD, nav ↓ → first field). Left/Right adjust number fields; delete is
+ * a pushed modal scope.
+ */
 export class SpriteEditScreen extends EditorScreen {
   private readonly screenW: number;
   private readonly screenH: number;
   private readonly cardsAreaH: number;
+  private readonly navHost: NavHost;
 
   private cardsContainer!: Phaser.GameObjects.Container;
   private confirmDialog!: ConfirmDialog;
@@ -59,17 +72,20 @@ export class SpriteEditScreen extends EditorScreen {
   private pendingDeleteCard?: SpriteCard;
 
   private images: ImageItem[];
-  // `cards` is the single source of truth for sprite data (each SpriteCard owns
-  // its SpriteData); collectSprites() derives the SpriteData[] from it.
+  // `cards` is the single source of truth for sprite data.
   private cards: SpriteCard[] = [];
-  // Card → index lookup, rebuilt on structural changes so pointer events (hover)
-  // don't linear-scan `cards` on every move.
   private cardIndex = new Map<SpriteCard, number>();
-
-  private mode: EditMode = 'card';
-  private cursorIdx = 0;
-  private focusedField: CardField = 'freq';
   private viewportY = 0;
+
+  // Linear cursor over the column: 0..cards.length; === cards.length is the ADD row.
+  private cursorIdx = 0;
+
+  // Focus model.
+  private readonly router = new FocusRouter();
+  private cardsFocusable!: Focusable;
+  private navFocusable!: Focusable;
+  private scope!: FocusScope;
+  private dialogScope!: FocusScope;
 
   constructor(
     scene: Phaser.Scene,
@@ -77,22 +93,25 @@ export class SpriteEditScreen extends EditorScreen {
     height: number,
     images: ImageItem[],
     sprites: SpriteData[],
+    navHost: NavHost,
   ) {
     super(scene);
     this.screenW = width;
     this.screenH = height;
+    this.navHost = navHost;
     // Leave room at the bottom for the scene-owned navigation bar.
     this.cardsAreaH = height - CARD_AREA_PAD * 2 - BUTTON_BAR_HEIGHT;
     this.images = images;
 
     this.buildUI(sprites);
+    this.setupFocus();
     this.installKeyboard();
     scene.add.existing(this);
-    if (this.cards.length === 0) {
-      this.addCard();
-    } else {
-      this.updateCardFocus();
-    }
+    this.keyboard.attach();
+
+    this.router.setBaseScope(this.scope, 'first');
+    if (this.cards.length === 0) this.addCard();
+    else this.focusTop();
   }
 
   // ── Public API ──────────────────────────────────────────────────────────────
@@ -103,20 +122,20 @@ export class SpriteEditScreen extends EditorScreen {
   }
 
   pause() {
+    this.router.pause();
     this.keyboard.pause();
   }
 
   resume() {
-    this.updateCardFocus();
     this.keyboard.resume();
+    this.router.resume();
   }
 
-  /** Re-take focus from the shared nav (lands on the last card). */
-  focusFromNav() {
-    this.mode = 'card';
-    this.cursorIdx = Math.max(0, this.cards.length - 1);
-    this.updateCardFocus();
-    this.scrollToCard(this.cursorIdx);
+  /** Move focus from the nav back into the card content (scene 'sprites' action). */
+  focusContent(edge: 'first' | 'last' = 'last') {
+    this.router.focusId('cards');
+    if (edge === 'last') this.focusBottom();
+    else this.focusTop();
   }
 
   collectSprites(): SpriteData[] { return this.cards.map(c => c.spriteData); }
@@ -144,6 +163,131 @@ export class SpriteEditScreen extends EditorScreen {
     this.add(this.confirmDialog);
   }
 
+  private setupFocus() {
+    // The card column is one focusable; its bounds are the (stable) visible card
+    // area so the nav's upward geometry reliably lands on it.
+    const cardsArea = {
+      getBounds: () => new Phaser.Geom.Rectangle(0, CARD_AREA_PAD, this.screenW, this.cardsAreaH),
+    };
+
+    this.cardsFocusable = makeFocusable({
+      id: 'cards',
+      object: cardsArea,
+      onFocus: (from) => {
+        if (from === 'UP') this.focusBottom();
+        else if (from === 'DOWN') this.focusTop();
+        else this.applyVisual();
+      },
+      onBlur: () => this.blurColumn(),
+      onSelect: () => {
+        if (this.onAddRow) this.addCard();
+        else this.currentCard()?.activateCurrentField();
+      },
+      handleDirection: (dir) => {
+        switch (dir) {
+          case 'LEFT':  this.currentCard()?.adjustFocusedField(-1); return true;
+          case 'RIGHT': this.currentCard()?.adjustFocusedField(1);  return true;
+          case 'UP':    return this.stepUp();
+          case 'DOWN':  return this.stepDown();
+          default:      return false;
+        }
+      },
+    });
+
+    this.navFocusable = this.navHost.buildNavFocusable((edge) => this.focusContent(edge));
+
+    this.scope = createScope({
+      id: 'sprite-edit',
+      members: () => [this.cardsFocusable, this.navFocusable],
+      onCancel: () => this.emit('back'), // Escape on the column ascends to the Library
+      boundaryOverride: {
+        // nav ↓ → top of the column (wrap). (nav ↑ reaches the column by geometry.)
+        DOWN: () => { this.router.focusId('cards'); this.focusTop(); },
+      },
+    });
+
+    // Delete confirmation: a modal scope forwarding every key to the dialog.
+    const dialog = makeFocusable({
+      id: 'confirm-dialog',
+      object: this.confirmDialog,
+      onFocus: () => undefined,
+      onBlur: () => undefined,
+      handleKey: (code) => { this.confirmDialog.handleKey(code); return true; },
+    });
+    this.dialogScope = createScope({ id: 'confirm', members: () => [dialog] });
+  }
+
+  // ── Column cursor ─────────────────────────────────────────────────────────────
+
+  private get onAddRow(): boolean { return this.cursorIdx >= this.cards.length; }
+  private currentCard(): SpriteCard | undefined { return this.cards[this.cursorIdx]; }
+
+  private stepUp(): boolean {
+    if (this.onAddRow) {
+      if (this.cards.length > 0) { this.focusCard(this.cards.length - 1, 'last'); return true; }
+      this.router.focusId('nav');
+      return true;
+    }
+    const card = this.currentCard();
+    if (card && card.moveFieldFocus(-1)) { this.applyVisual(); return true; }
+    if (this.cursorIdx > 0) { this.focusCard(this.cursorIdx - 1, 'last'); return true; }
+    this.router.focusId('nav'); // first card, first field ↑ → nav (wrap)
+    return true;
+  }
+
+  private stepDown(): boolean {
+    if (this.onAddRow) { this.router.focusId('nav'); return true; } // ADD ↓ → nav
+    const card = this.currentCard();
+    if (card && card.moveFieldFocus(1)) { this.applyVisual(); return true; }
+    if (this.cursorIdx < this.cards.length - 1) { this.focusCard(this.cursorIdx + 1, 'first'); return true; }
+    this.focusAdd(); // last card, last field ↓ → ADD row
+    return true;
+  }
+
+  private focusTop() {
+    if (this.cards.length > 0) this.focusCard(0, 'first');
+    else this.focusAdd();
+  }
+
+  private focusBottom() {
+    // Coming up from the nav lands on the bottom-most element (the ADD row).
+    this.focusAdd();
+  }
+
+  private focusCard(idx: number, edge: 'first' | 'last') {
+    this.cursorIdx = idx;
+    this.cards[idx]?.focusFieldEdge(edge);
+    this.applyVisual();
+  }
+
+  private focusAdd() {
+    this.cursorIdx = this.cards.length;
+    this.applyVisual();
+  }
+
+  /** Apply focus visuals for the current cursor: highlight, scroll, preview. */
+  private applyVisual() {
+    this.cards.forEach((c, i) => {
+      if (i !== this.cursorIdx) { c.setFieldFocus(null); c.setCardFocus(false); c.setPreviewPlayback(false); }
+    });
+    this.refreshAddButtonVisuals();
+    if (this.onAddRow) {
+      this.scrollToAddButton();
+    } else {
+      this.currentCard()?.setPreviewPlayback(true);
+      this.scrollToCard(this.cursorIdx);
+    }
+  }
+
+  private blurColumn() {
+    this.currentCard()?.setFieldFocus(null);
+    this.currentCard()?.setCardFocus(false);
+    this.cards.forEach(c => c.setPreviewPlayback(false));
+    this.refreshAddButtonVisuals(false);
+  }
+
+  // ── Cards ─────────────────────────────────────────────────────────────────────
+
   private createCard(spriteData: SpriteData, index: number): SpriteCard {
     const y = index * (CARD_HEIGHT + CARD_GAP);
     const card = new SpriteCard(this.scene, 0, y, this.screenW, spriteData, this.images);
@@ -155,57 +299,34 @@ export class SpriteEditScreen extends EditorScreen {
     return card;
   }
 
-  /** Rebuild the card → index lookup after any structural change to `cards`. */
   private reindexCards() {
     this.cardIndex.clear();
     this.cards.forEach((c, i) => this.cardIndex.set(c, i));
   }
 
+  /** Mouse wiring: pointer moves/clicks set the column cursor + take focus. */
   private wireCardEvents(card: SpriteCard) {
-    card.on('hover', () => {
-      if (this.mode === 'field') return;
-      const idx = this.cardIndex.get(card) ?? -1;
-      // Hovering a card while the ADD row is focused hands focus back to cards.
-      if (this.mode === 'add') this.mode = 'card';
-      if (idx >= 0 && (idx !== this.cursorIdx || this.mode === 'card')) {
-        this.cursorIdx = idx;
-        this.updateCardFocus();
-      }
-    });
-
-    card.on('hover-field', (field: CardField) => {
-      if (this.mode !== 'field') return;
-      if ((this.cardIndex.get(card) ?? -1) !== this.cursorIdx) return;
-      this.focusedField = field;
-      this.updateFieldFocus();
-    });
-
+    card.on('hover', () => this.focusCardFromPointer(card));
+    card.on('hover-field', (field: CardField) => this.focusCardFromPointer(card, field));
     card.on('activate', (field: CardField) => {
-      const idx = this.cardIndex.get(card) ?? -1;
-      if (idx < 0) return;
-
-      // Deactivate old card
-      if (idx !== this.cursorIdx) {
-        this.cards[this.cursorIdx]?.setFieldFocus(null);
-        this.cards[this.cursorIdx]?.setCardFocus(false);
-      }
-
-      // Mouse click: enter field mode on the clicked field
-      this.cursorIdx = idx;
-      this.mode = 'field';
-      this.focusedField = field;
-      this.updateCardFocus();
-      this.updateFieldFocus();
+      this.focusCardFromPointer(card, field);
       if (field === 'selectFrames' || field === 'copy' || field === 'delete') card.activateCurrentField();
     });
-
     card.on('delete', () => this.showDeleteConfirm(card));
-
     card.on('copy', () => this.duplicateCard(card));
-
     card.on('go-to-frames', () => {
       this.emit('go-to-frames', { spriteId: card.spriteId, currentFrames: card.spriteData.frames });
     });
+  }
+
+  private focusCardFromPointer(card: SpriteCard, field?: CardField) {
+    const idx = this.cardIndex.get(card);
+    if (idx === undefined) return;
+    this.cursorIdx = idx;
+    if (field) card.setFieldFocus(field);
+    else card.focusFieldEdge('first');
+    this.applyVisual();
+    this.router.focusId('cards');
   }
 
   // ── Keyboard ─────────────────────────────────────────────────────────────────
@@ -215,194 +336,7 @@ export class SpriteEditScreen extends EditorScreen {
       scene: this.scene,
       canAttach: () => this.active,
       deferAttach: true,
-      shouldHandleKeyDown: () => !(this.mode === 'field' && this.cards[this.cursorIdx]?.isTextInputActive),
-      onKeyDown: (code: string) => {
-        if (this.confirmDialog.isOpen) { this.confirmDialog.handleKey(code); return; }
-        if (this.mode === 'card') this.handleCardModeKey(code);
-        else if (this.mode === 'add') this.handleAddModeKey(code);
-        else this.handleFieldModeKey(code);
-      },
-    });
-    this.keyboard.attach();
-  }
-
-  private handleCardModeKey(code: string) {
-    const lastCardIdx = this.cards.length - 1;
-    switch (code) {
-      case 'ArrowUp':
-        // First card is the top of the list — nothing above it now.
-        if (this.cursorIdx > 0) { this.cursorIdx--; this.updateCardFocus(); this.scrollToCard(this.cursorIdx); }
-        break;
-      case 'ArrowDown':
-        if (this.cursorIdx < lastCardIdx) { this.cursorIdx++; this.updateCardFocus(); this.scrollToCard(this.cursorIdx); }
-        else this.focusAddButton();
-        break;
-      case 'Escape':
-        // Escape ascends to the upper level (back to the Library). Left/Right
-        // do nothing here — they're reserved for value tweaks inside number
-        // fields (NumberInput) only.
-        this.cards[this.cursorIdx]?.setCardFocus(false);
-        this.emit('back');
-        break;
-      case 'Space':
-      case 'Enter':
-        // Space/Enter descends into the card's fields.
-        if (this.cards.length > 0) this.enterFieldMode(CARD_FIELDS[0]);
-        break;
-    }
-  }
-
-  /** Hand focus down to the scene-owned navigation bar. */
-  private leaveToNav() {
-    this.cards[this.cursorIdx]?.setCardFocus(false);
-    this.emit('nav-down');
-  }
-
-  private handleAddModeKey(code: string) {
-    switch (code) {
-      case 'ArrowUp':
-        if (this.cards.length > 0) {
-          this.mode = 'card';
-          this.cursorIdx = this.cards.length - 1;
-          this.updateCardFocus();
-          this.scrollToCard(this.cursorIdx);
-        }
-        break;
-      case 'ArrowDown':
-        // Below the ADD row sits the scene-owned bottom nav.
-        this.mode = 'card';
-        this.refreshAddButtonVisuals();
-        this.leaveToNav();
-        break;
-      case 'Space':
-      case 'Enter':
-        this.addCard();
-        break;
-      case 'Escape':
-        if (this.cards.length > 0) {
-          this.mode = 'card';
-          this.cursorIdx = this.cards.length - 1;
-          this.updateCardFocus();
-          this.scrollToCard(this.cursorIdx);
-        } else {
-          this.emit('back');
-        }
-        break;
-    }
-  }
-
-  /** Focus the "ADD SPRITE" row (from the last card, or hover/click). */
-  private focusAddButton() {
-    if (this.mode === 'field') this.cards[this.cursorIdx]?.setFieldFocus(null);
-    this.mode = 'add';
-    this.updateCardFocus();
-    this.scrollToAddButton();
-  }
-
-  private handleFieldModeKey(code: string) {
-    const card = this.cards[this.cursorIdx];
-    if (!card) return;
-
-    const isNum     = this.focusedField === 'freq' || this.focusedField === 'repeat' || this.focusedField === 'repeatDelay';
-    const fieldIdx  = CARD_FIELDS.indexOf(this.focusedField);
-
-    switch (code) {
-      case 'Escape':
-        this.exitFieldMode();
-        break;
-
-      case 'ArrowRight':
-        if (isNum) card.incrementField();
-        break;
-
-      case 'ArrowLeft':
-        // Left/Right only tweak number fields; on non-number fields they're
-        // inert (use Escape/Up to leave a field).
-        if (isNum) card.decrementField();
-        break;
-
-      case 'ArrowUp':
-        if (fieldIdx > 0) {
-          // Move up within this card's fields
-          this.focusedField = CARD_FIELDS[fieldIdx - 1];
-          this.updateFieldFocus();
-        } else if (this.cursorIdx > 0) {
-          // At the first field: jump to previous card's last field
-          this.cursorIdx--;
-          this.focusedField = CARD_FIELDS[CARD_FIELDS.length - 1];
-          this.updateCardFocus();
-          this.updateFieldFocus();
-          this.scrollToCard(this.cursorIdx);
-        } else {
-          // Move out to card-mode when going above the first field of the first card
-          this.exitFieldMode();
-        }
-        break;
-
-      case 'ArrowDown':
-        if (fieldIdx < CARD_FIELDS.length - 1) {
-          // Move down within this card's fields
-          this.focusedField = CARD_FIELDS[fieldIdx + 1];
-          this.updateFieldFocus();
-        } else if (this.cursorIdx < this.cards.length - 1) {
-          // At last field: jump to next card's first field
-          this.cursorIdx++;
-          this.focusedField = CARD_FIELDS[0];
-          this.updateCardFocus();
-          this.updateFieldFocus();
-          this.scrollToCard(this.cursorIdx);
-        } else {
-          // Last field of the last card: drop down to the ADD SPRITE row.
-          this.focusAddButton();
-        }
-        break;
-
-      case 'Space':
-        if (!isNum) card.activateCurrentField();
-        break;
-    }
-  }
-
-  // ── Mode transitions ─────────────────────────────────────────────────────────
-
-  private enterFieldMode(field: CardField) {
-    if (this.cursorIdx >= this.cards.length) return;
-    this.mode = 'field';
-    this.focusedField = field;
-    this.updateCardFocus();
-    this.updateFieldFocus();
-  }
-
-  private exitFieldMode() {
-    this.cards[this.cursorIdx]?.setFieldFocus(null);
-    this.mode = 'card';
-    this.updateCardFocus();
-  }
-
-  // ── Visuals ───────────────────────────────────────────────────────────────────
-
-  private updateCardFocus() {
-    this.cards.forEach((c, i) => {
-      c.setCardFocus(i === this.cursorIdx && this.mode === 'card');
-      if (this.mode !== 'field' || i !== this.cursorIdx) c.setFieldFocus(null);
-    });
-    this.refreshAddButtonVisuals();
-    this.syncPreviewPlayback();
-  }
-
-  private updateFieldFocus() {
-    const card = this.cards[this.cursorIdx];
-    if (card) { card.setCardFocus(false); card.setFieldFocus(this.focusedField); }
-    this.syncPreviewPlayback();
-  }
-
-  private syncPreviewPlayback() {
-    const activeCardIndex = this.mode === 'card' || this.mode === 'field'
-      ? this.cursorIdx
-      : -1;
-
-    this.cards.forEach((card, index) => {
-      card.setPreviewPlayback(index === activeCardIndex);
+      onKeyDown: (code: string) => this.router.handleKey(code),
     });
   }
 
@@ -447,11 +381,7 @@ export class SpriteEditScreen extends EditorScreen {
       .rectangle(0, 0, this.screenW, ADD_ROW_HEIGHT, COLORS.BUTTON_BG)
       .setOrigin(0, 0)
       .setInteractive({ cursor: 'pointer' });
-    // Hover focuses the row (unless typing); click adds a sprite.
-    this.addSpriteBg.on('pointerover', () => {
-      if (this.mode === 'field') return;
-      this.focusAddButton();
-    });
+    this.addSpriteBg.on('pointerover', () => { this.focusAdd(); this.router.focusId('cards'); });
     this.addSpriteBg.on('pointerdown', () => this.addCard());
 
     this.addSpriteBorder = this.scene.add.graphics();
@@ -478,9 +408,9 @@ export class SpriteEditScreen extends EditorScreen {
     this.addSpriteRow.setY(this.addButtonTop());
   }
 
-  private refreshAddButtonVisuals() {
+  private refreshAddButtonVisuals(focused = this.onAddRow) {
     this.addSpriteBorder.clear();
-    if (this.mode === 'add') {
+    if (focused) {
       this.addSpriteBorder.lineStyle(2, COLORS.BUTTON_FOCUSED_BORDER, 1);
       this.addSpriteBorder.strokeRect(0, 0, this.screenW, ADD_ROW_HEIGHT);
     }
@@ -489,20 +419,14 @@ export class SpriteEditScreen extends EditorScreen {
   // ── Card operations ───────────────────────────────────────────────────────────
 
   private addCard() {
-    const sd = DEFAULT_SPRITE();
-    const newIdx = this.cards.length; // before createCard pushes
-    this.createCard(sd, newIdx);
-    // Focus the new card (name is auto-assigned, so there's nothing to type).
-    this.mode = 'card';
-    this.cursorIdx = newIdx;
-    this.updateCardFocus();
-    this.scrollToCard(this.cursorIdx);
+    this.createCard(DEFAULT_SPRITE(), this.cards.length);
+    this.focusCard(this.cards.length - 1, 'first');
+    this.router.focusId('cards');
   }
 
   /** Duplicate a sprite's config into a new card inserted right after it. */
   private duplicateCard(source: SpriteCard) {
     const src = source.spriteData;
-    // Fresh id + auto number name; copy frames/timing from the source.
     const sd: SpriteData = {
       ...DEFAULT_SPRITE(),
       frames: [...src.frames],
@@ -522,10 +446,8 @@ export class SpriteEditScreen extends EditorScreen {
     this.cards.forEach((c, i) => c.setPosition(0, i * (CARD_HEIGHT + CARD_GAP)));
     this.repositionAddButton();
 
-    this.mode = 'card';
-    this.cursorIdx = insertIdx;
-    this.updateCardFocus();
-    this.scrollToCard(this.cursorIdx);
+    this.focusCard(insertIdx, 'first');
+    this.router.focusId('cards');
   }
 
   private deleteCard(card: SpriteCard) {
@@ -536,33 +458,27 @@ export class SpriteEditScreen extends EditorScreen {
     this.reindexCards();
     this.cards.forEach((c, i) => c.setPosition(0, i * (CARD_HEIGHT + CARD_GAP)));
     this.repositionAddButton();
-    this.mode = 'card';
-    this.cursorIdx = Math.min(this.cursorIdx, Math.max(0, this.cards.length - 1));
-    if (this.cards.length === 0) this.cursorIdx = 0;
-    this.updateCardFocus();
-    this.scrollToCard(this.cursorIdx);
+    // Keep the cursor in range and re-apply focus visuals.
+    this.cursorIdx = Math.min(this.cursorIdx, this.cards.length);
+    if (this.cards.length === 0) this.focusAdd();
+    else this.focusCard(Math.min(this.cursorIdx, this.cards.length - 1), 'first');
   }
 
-  // ── Delete confirmation (inline: overlay message + CONFIRM/CANCEL nav) ─────────
+  // ── Delete confirmation (modal scope) ─────────────────────────────────────────
 
   private showDeleteConfirm(card: SpriteCard) {
     this.pendingDeleteCard = card;
-    // Drop focus on the screen behind the dialog so nothing stays highlighted.
-    this.cards[this.cursorIdx]?.setFieldFocus(null);
-    this.cards[this.cursorIdx]?.setCardFocus(false);
-    // Modal takes the bottom of the screen; ask the scene to hide its nav.
     this.emit('nav-suppress', true);
-
     const name = card.spriteData.prefix.trim() || 'this sprite';
     this.confirmDialog.open(`Are you sure?\nDelete "${name}"?`);
+    this.router.pushModal(this.dialogScope);
   }
 
   private hideDeleteConfirm() {
     this.pendingDeleteCard = undefined;
     this.confirmDialog.close();
     this.emit('nav-suppress', false);
-    this.mode = 'card';
-    this.updateCardFocus();
+    this.router.popModal();
   }
 
   private confirmDelete() {

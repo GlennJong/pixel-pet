@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { GridSelector, GridCellData, ButtonBar, ScreenKeyboard, handleButtonBarKey } from '../elements';
+import { GridSelector, GridCellData, ButtonBar, ScreenKeyboard } from '../elements';
+import { FocusRouter, createScope, makeFocusable } from '../elements/focus';
 import { EditorScreen } from './EditorScreen';
 import {
   COLORS,
@@ -11,19 +12,19 @@ import { ImageItem } from '../types';
 /**
  * S3 – FrameSelectorScreen
  *
- * Grid of all library images. Pre-selects the target sprite's current frames
- * (with badges showing order). Space toggles selection. Corner shows a
- * magnified preview of the cell under the cursor.
+ * Grid of all library images above a cancel/confirm bar. Navigation is driven by
+ * the shared {@link FocusRouter}: the grid and the bar are two focusables;
+ * geometry moves between them and boundary overrides wrap (grid-top ↑ → bar,
+ * bar ↓ → grid-top). Space toggles a frame; Enter confirms; Escape cancels.
  *
  * Events emitted:
- *   'cancel'            – Esc / cancel button
- *   'confirm' ({ frameIds: string[] }) – confirm button with ordered selection
+ *   'cancel'
+ *   'confirm' ({ frameIds: string[] })
  */
 export class FrameSelectorScreen extends EditorScreen {
   private grid!: GridSelector;
   private buttonBar!: ButtonBar;
-
-  private _buttonBarFocused = false;
+  private readonly router = new FocusRouter();
 
   constructor(
     scene: Phaser.Scene,
@@ -63,7 +64,6 @@ export class FrameSelectorScreen extends EditorScreen {
       };
     });
     this.grid.setCells(cells);
-    this.grid.activate();
 
     // ── Button bar ────────────────────────────────────────────────────────────
     this.buttonBar = new ButtonBar(scene, buttonBarY, width, this.buildButtons(currentFrames.length));
@@ -77,50 +77,73 @@ export class FrameSelectorScreen extends EditorScreen {
       this.buttonBar.setButtons(this.buildButtons(selected.length));
     });
 
+    this.setupFocus();
+
     // ── Keyboard ──────────────────────────────────────────────────────────────
     this.keyboard = new ScreenKeyboard({
       scene,
       canAttach: () => this.active,
       deferAttach: true,
-      onKeyDown: (code: string) => this.handleNavKey(code),
+      onKeyDown: (code: string) => this.router.handleKey(code),
     });
 
     scene.add.existing(this);
     this.keyboard.attach();
   }
 
-  // ── Navigation ────────────────────────────────────────────────────────────
-
-  private handleNavKey(code: string) {
-    if (this._buttonBarFocused) {
-      handleButtonBarKey(this.buttonBar, code, {
-        onExitUp: () => {
-          this._buttonBarFocused = false;
-          this.buttonBar.deactivate();
-          this.grid.activate();
-        },
-        onEscape: () => this.emit('cancel'),
-      });
-      return;
-    }
-
-    switch (code) {
-      case 'ArrowLeft':  this.grid.moveCursorLeft();  break;
-      case 'ArrowRight': this.grid.moveCursorRight(); break;
-      case 'ArrowUp':    this.grid.moveCursorUp();    break;
-      case 'ArrowDown': {
-        const moved = this.grid.moveCursorDown();
-        if (!moved) {
-          this._buttonBarFocused = true;
-          this.grid.deactivate();
-          this.buttonBar.activate();
+  private setupFocus() {
+    const grid = makeFocusable({
+      id: 'grid',
+      object: this.grid,
+      onFocus: (from) => {
+        this.grid.activate();
+        // Entered from below (up out of the bar) → last row; from above → first.
+        if (from === 'UP') this.grid.setCursor(Math.max(0, this.grid.cellCount - 1));
+        else if (from === 'DOWN') this.grid.setCursor(0);
+      },
+      onBlur: () => this.grid.deactivate(),
+      onSelect: () => this.grid.activateCurrent(),
+      // Enter confirms the whole selection from within the grid.
+      handleKey: (code) => {
+        if (code !== 'Enter') return false;
+        this.emit('confirm', { frameIds: this.grid.selectedIds });
+        return true;
+      },
+      handleDirection: (dir) => {
+        switch (dir) {
+          case 'LEFT':  this.grid.moveCursorLeft();  return true;
+          case 'RIGHT': this.grid.moveCursorRight(); return true;
+          case 'UP':    return this.grid.moveCursorUp();   // false at top row → router bridges
+          case 'DOWN':  return this.grid.moveCursorDown(); // false at last row → router bridges
+          default:      return false;
         }
-        break;
-      }
-      case 'Space':  this.grid.activateCurrent(); break;
-      case 'Escape': this.emit('cancel');          break;
-      case 'Enter':  this.emit('confirm', { frameIds: this.grid.selectedIds }); break;
-    }
+      },
+    });
+
+    const bar = makeFocusable({
+      id: 'bar',
+      object: this.buttonBar,
+      onFocus: () => this.buttonBar.activate(),
+      onBlur: () => this.buttonBar.deactivate(),
+      onSelect: () => this.buttonBar.executeCursor(),
+      handleDirection: (dir) => {
+        if (dir === 'LEFT') { this.buttonBar.moveCursor(-1); return true; }
+        if (dir === 'RIGHT') { this.buttonBar.moveCursor(1); return true; }
+        return false; // UP/DOWN → router move/bridge
+      },
+    });
+
+    const scope = createScope({
+      id: 'frame-selector',
+      members: () => [grid, bar],
+      onCancel: () => this.emit('cancel'),
+      boundaryOverride: {
+        UP: () => this.router.focusId('bar'),                                 // grid-top ↑ → bar
+        DOWN: () => { this.grid.setCursor(0); this.router.focusId('grid'); }, // bar ↓ → grid-top
+      },
+    });
+
+    this.router.setBaseScope(scope, 'grid');
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
