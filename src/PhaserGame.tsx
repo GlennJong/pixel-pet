@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import StartGame from "./game";
+import { fetchJson } from "@/utils/assetUrl";
 import {
   getIsAutoSaveEnabled,
   saveAllRuntimeDataToLocalStorage,
@@ -10,12 +11,20 @@ import {
 export const PhaserGame = () => {
   const gameRef = useRef<Phaser.Game | null>(null);
   const [coreConfig, setCoreConfig] = useState<any>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("configs/system/core.json").then(r => r.json()).then(data => {
-      initRuntimeData("system.core", data);
-      setCoreConfig(data);
-    });
+    fetchJson<any>("configs/system/core.json")
+      .then(data => {
+        initRuntimeData("system.core", data);
+        setCoreConfig(data);
+      })
+      .catch(error => {
+        // Without this the rejection surfaces as a bare
+        // "Unexpected token '<' ... is not valid JSON" and the game never boots.
+        console.error("[PhaserGame] Failed to load system core config", error);
+        setLoadError(error instanceof Error ? error.message : String(error));
+      });
   }, []);
 
   useEffect(() => {
@@ -50,6 +59,7 @@ export const PhaserGame = () => {
       }
     };
   }, [coreConfig]);
+  if (loadError) return <div className="game-load-error">{loadError}</div>;
   if (!coreConfig) return null;
   return <div id="game-container"></div>;
 };

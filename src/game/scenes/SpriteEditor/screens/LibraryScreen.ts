@@ -22,6 +22,7 @@ import { importAtlasTrio, ImportAtlasTrioResult } from '../utils/import';
 import { parseSmartFileName } from '../utils/smartInput';
 import { loadTextureFromDataUrl } from '../utils/texture';
 import { isRecord } from '../utils/json';
+import { assetUrl } from '@/utils/assetUrl';
 import {
   COLORS,
   FONT,
@@ -693,7 +694,7 @@ export class LibraryScreen extends EditorScreen {
     if (this.atlasImportScreen) return;
 
     try {
-      const configResponse = await fetch('configs/assets.json');
+      const configResponse = await fetch(assetUrl('configs/assets.json'));
       if (!configResponse.ok) {
         throw new Error('Failed to load configs/assets.json');
       }
@@ -738,9 +739,9 @@ export class LibraryScreen extends EditorScreen {
   private async importAtlasFromWorkspace(atlas: WorkspaceAtlasEntry) {
     try {
       const [pngResponse, spritesheetResponse, animationsResponse] = await Promise.all([
-        fetch(atlas.png),
-        fetch(atlas.json),
-        atlas.animations ? fetch(atlas.animations) : Promise.resolve(null),
+        fetch(assetUrl(atlas.png)),
+        fetch(assetUrl(atlas.json)),
+        atlas.animations ? fetch(assetUrl(atlas.animations)) : Promise.resolve(null),
       ]);
 
       if (!pngResponse.ok) {

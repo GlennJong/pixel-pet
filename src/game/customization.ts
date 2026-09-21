@@ -24,7 +24,13 @@ interface PreloadConfig {
   [key: string]: unknown;
 }
 
-const CUSTOM_CONFIG_KEY = "custom_config";
+// The ConfigEditor owns "custom_config": a FULL config override that the
+// Preloader loads in place of configs/manifest.json. Atlas customizations are a
+// partial overlay (a few atlases, nothing else), so they get their own key —
+// writing them into "custom_config" used to make the Preloader boot a config
+// with no system/pet/locale sections at all.
+const ATLAS_CUSTOMIZATION_KEY = "custom_atlases";
+const LEGACY_CUSTOM_CONFIG_KEY = "custom_config";
 const CUSTOMIZATION_STATE_KEY = "customization_state";
 
 function blobToDataUrl(blob: Blob): Promise<string> {
@@ -42,23 +48,60 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
+export interface AtlasCustomization {
+  atlasId: string;
+  png: string;
+  json: string;
+  animations?: string;
+}
+
 function readCustomConfig(): PreloadConfig {
   if (typeof window === "undefined") return {};
 
   try {
-    const raw = localStorage.getItem(CUSTOM_CONFIG_KEY);
-    if (!raw) return {};
+    const raw = localStorage.getItem(ATLAS_CUSTOMIZATION_KEY);
+    if (!raw) return migrateLegacyAtlasCustomizations();
     const parsed = JSON.parse(raw) as PreloadConfig;
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch (error) {
-    console.error("[customization] Failed to read custom config", error);
+    console.error("[customization] Failed to read atlas customizations", error);
+    return {};
+  }
+}
+
+/**
+ * Earlier builds stored atlas customizations inside the ConfigEditor's
+ * "custom_config". Lift those atlases out once so an existing save keeps
+ * working, and leave the rest of that key alone.
+ */
+function migrateLegacyAtlasCustomizations(): PreloadConfig {
+  try {
+    const raw = localStorage.getItem(LEGACY_CUSTOM_CONFIG_KEY);
+    if (!raw) return {};
+    const legacy = JSON.parse(raw) as PreloadConfig;
+    const atlases = legacy?.assets?.atlases;
+    if (!Array.isArray(atlases) || atlases.length === 0) return {};
+    // Only data-URL entries are customizations; plain paths come from the manifest.
+    const customized = atlases.filter((item) => item?.png?.startsWith("data:"));
+    if (customized.length === 0) return {};
+    const migrated: PreloadConfig = { assets: { atlases: customized } };
+    localStorage.setItem(ATLAS_CUSTOMIZATION_KEY, JSON.stringify(migrated));
+    return migrated;
+  } catch (error) {
+    console.error("[customization] Failed to migrate legacy customizations", error);
     return {};
   }
 }
 
 function writeCustomConfig(config: PreloadConfig) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(CUSTOM_CONFIG_KEY, JSON.stringify(config));
+  localStorage.setItem(ATLAS_CUSTOMIZATION_KEY, JSON.stringify(config));
+}
+
+/** Atlas overlays saved by the Sprite Editor's APPLY, for the Preloader to merge. */
+export function getAtlasCustomizations(): AtlasCustomization[] {
+  const atlases = readCustomConfig().assets?.atlases;
+  return Array.isArray(atlases) ? (atlases as AtlasCustomization[]) : [];
 }
 
 export async function saveAtlasCustomization(input: SaveAtlasCustomizationInput): Promise<void> {

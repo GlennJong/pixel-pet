@@ -5,6 +5,7 @@ import { StaticDataSchema } from "../staticData/types";
 import { ProgressBar } from "../components/ProgressBar";
 import { PROGRESS_BAR_CONFIG } from "../constants";
 import { runtimeData } from "../runtimeData";
+import { getAtlasCustomizations } from "../customization";
 
 interface PreloadConfig extends Partial<StaticDataSchema> {
   assets?: {
@@ -15,6 +16,15 @@ interface PreloadConfig extends Partial<StaticDataSchema> {
   locales?: {
     "zh-tw"?: any;
   };
+}
+
+/**
+ * A stored config is usable as a full replacement for configs/manifest.json only
+ * if it carries more than the assets section.
+ */
+function isFullConfig(config: PreloadConfig | null): boolean {
+  if (!config || typeof config !== "object") return false;
+  return Object.keys(config).some((key) => key !== "assets");
 }
 
 export class Preloader extends Scene {
@@ -36,19 +46,28 @@ export class Preloader extends Scene {
       y: barY,
       ...PROGRESS_BAR_CONFIG
     });
-    this.load.setPath("");
+    // Anchor every load to the app base; a bare "" resolves against the current
+    // document path, so any non-root URL 404s into index.html.
+    this.load.setPath(import.meta.env.BASE_URL || "/");
 
     let customConfig: PreloadConfig | null = null;
     if (typeof window !== "undefined") {
       try {
         const local = localStorage.getItem("custom_config");
-        if (local) customConfig = JSON.parse(local) as PreloadConfig;
+        if (local) {
+          const parsed = JSON.parse(local) as PreloadConfig;
+          // "custom_config" is the ConfigEditor's FULL override. A value holding
+          // nothing but assets is a partial overlay from an older build; booting
+          // it would leave the game with no system/pet/locale config at all.
+          customConfig = isFullConfig(parsed) ? parsed : null;
+        }
       } catch (e) {
         console.error(e);
       }
     }
 
     if (customConfig) {
+      this._applyAtlasCustomizations(customConfig);
       this.cache.json.add("config", customConfig);
       this._preloadAssetsFromConfig(customConfig);
     } else {
@@ -73,6 +92,7 @@ export class Preloader extends Scene {
               current[keys[keys.length-1]] = fileData;
 
               if (num === data.length) {
+                this._applyAtlasCustomizations(result);
                 this.cache.json.add("config", result);
                 this._preloadAssetsFromConfig(result);
               }
@@ -83,6 +103,24 @@ export class Preloader extends Scene {
     }
 
 
+  }
+
+  /**
+   * Overlay the Sprite Editor's saved atlases (data URLs) on top of the
+   * manifest's, matching by atlasId. Replaces the entry in place so every other
+   * atlas — and every non-asset config section — survives.
+   */
+  _applyAtlasCustomizations(data: PreloadConfig) {
+    const customizations = getAtlasCustomizations();
+    if (customizations.length === 0) return;
+
+    data.assets = data.assets || {};
+    const atlases = (data.assets.atlases = data.assets.atlases || []);
+    for (const entry of customizations) {
+      const index = atlases.findIndex((item) => item.atlasId === entry.atlasId);
+      if (index >= 0) atlases[index] = entry;
+      else atlases.push(entry);
+    }
   }
 
   _preloadAssetsFromConfig(data: PreloadConfig) {

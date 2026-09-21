@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import JsonEditor from "./JsonEditor";
+import { assetUrl } from "@/utils/assetUrl";
 import {
   petConditionWording,
   idleActionsWording,
@@ -17,7 +18,7 @@ const configsFiles = [
   { key: "global_dialogue", filename: "configs/global/dialogue/core.json" },
   { key: "assets", filename: "configs/assets.json" },
   { key: "pet_room", filename: "configs/pet/room/core.json" },
-  { key: "pet_ui_header", filename: "configs/pet/ui/header/core.json" },
+  { key: "pet_header", filename: "configs/pet/header/core.json" },
   { key: "pet_character", filename: "configs/pet/character/core.json" },
   { key: "pet_character_stats", filename: "configs/pet/character/stats.json" },
   { key: "pet_character_conditions", filename: "configs/pet/character/conditions.json" },
@@ -52,7 +53,7 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
     await Promise.all(
       configsFiles.map(async (cfg) => {
         try {
-          const res = await fetch(`${cfg.filename}`);
+          const res = await fetch(assetUrl(cfg.filename));
           rawConfig[cfg.key] = await res.json();
         } catch {
           rawConfig[cfg.key] = null;
@@ -86,7 +87,7 @@ const ConfigEditor = ({ onChange }: { onChange: () => void }): JSX.Element => {
     await Promise.all(
       configsFiles.map(async (cfg) => {
         try {
-          const res = await fetch(`${cfg.filename}`);
+          const res = await fetch(assetUrl(cfg.filename));
           rawConfig[cfg.key] = await res.json();
         } catch {
           rawConfig[cfg.key] = null;
