@@ -11,7 +11,7 @@ export interface ButtonBarKeyHandlers {
 
 /**
  * Handle the button-bar cursor keys shared by every editor screen:
- * Left/Right move the cursor, Space executes. ArrowUp/ArrowDown/Escape delegate
+ * Left/Right move the cursor, Space / Enter executes. ArrowUp/ArrowDown/Escape delegate
  * to the per-screen callbacks, which own the (screen-specific) focus transition
  * out of the bar. Returns true if the key was consumed.
  *
@@ -26,7 +26,8 @@ export function handleButtonBarKey(
   switch (code) {
     case 'ArrowLeft':  bar.moveCursor(-1);   return true;
     case 'ArrowRight': bar.moveCursor(1);    return true;
-    case 'Space':      bar.executeCursor();  return true;
+    case 'Space':
+    case 'Enter':      bar.executeCursor();  return true;
     case 'ArrowUp':    handlers.onExitUp?.(); return true;
     case 'ArrowDown':
       if (!handlers.onExitDown) return false;

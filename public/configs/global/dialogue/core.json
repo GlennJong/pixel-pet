@@ -1,6 +1,6 @@
 {
   "frameKey": "ui_dialogue_frame",
-  "frameFrame": "frame",
+  "frameFrame": "frame_1",
   "fontFamily": "BoutiqueBitmap",
   "autoNextDelay": 1000
 }

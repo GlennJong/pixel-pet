@@ -3,8 +3,8 @@ import { LibraryScreen } from './screens/LibraryScreen';
 import { SpriteEditScreen } from './screens/SpriteEditScreen';
 import { FrameSelectorScreen } from './screens/FrameSelectorScreen';
 import { ButtonBar } from './elements';
-import { Focusable, NavHost, makeFocusable } from './elements/focus';
-import { EditorState, LibraryProceedPayload } from './types';
+import { Focusable } from '@/game/ui/focus';
+import { EditorState, LibraryProceedPayload, NavHost } from './types';
 import { buildSpriteEditorExport, downloadSpriteEditorExport } from './utils/export';
 import { buildPresetSpritesFromImages } from './utils/smartInput';
 import { removeEditorImageTextures } from './utils/texture';
@@ -123,27 +123,36 @@ export default class EditorScene extends Scene implements NavHost {
    * it going down and the screen's boundary overrides wrap top↔nav. `enterContent`
    * is the screen's hook to return focus to real content (Escape / bridges).
    */
-  buildNavFocusable(enterContent: (edge: 'first' | 'last') => void): Focusable {
-    return makeFocusable({
-      id: 'nav',
-      object: this.navBar!,
+  buildNavFocusable(
+    enterContent: (edge: 'first' | 'last') => void,
+    requestFocus: () => void,
+  ): Focusable {
+    // The nav bar outlives the screens, so re-bind (never stack) the pointer
+    // hook each time a screen builds its focusable.
+    this.navBar?.off('request-focus');
+    this.navBar?.on('request-focus', requestFocus);
+
+    return this.navBar!.asFocusable('nav', {
       isEnabled: () => this.navShowable(),
-      onFocus: () => { this.navBar?.activate(); this.navBar?.setCursorToFirst(); },
-      onBlur: () => this.navBar?.deactivate(),
-      onSelect: () => this.navBar?.executeCursor(), // → 'action' → handleNavAction
+      homeOnEnter: 'first',
+      onBlur: () => {
+        // Losing focus closes the SAVE sub-menu. Escape is not the only way out
+        // of the bar (clicking screen content or the SPRITES action also move
+        // focus away), and leaving APPLY/EXPORT/CANCEL up would put APPLY under
+        // the cursor the next time the nav is focused.
+        if (this.navSaveMode) this.exitSaveMenu(false);
+      },
       handleKey: (code) => {
         if (code !== 'Escape') return false;
         if (this.navSaveMode) { this.exitSaveMenu(); return true; }
         enterContent('last');
         return true;
       },
-      handleDirection: (dir) => {
-        if (dir === 'LEFT') { this.navBar?.moveCursor(-1); return true; }
-        if (dir === 'RIGHT') { this.navBar?.moveCursor(1); return true; }
-        // UP/DOWN: trap inside the bar while the SAVE sub-menu is open; otherwise
-        // let the router move (up → content via geometry, down → wrap boundary).
-        return this.navSaveMode;
-      },
+      // UP/DOWN: trap inside the bar while the SAVE sub-menu is open; otherwise
+      // undefined → the bar's own contract (no vertical movement) lets the router
+      // move out (up → content via geometry, down → wrap boundary).
+      handleDirection: (dir) =>
+        (dir === 'UP' || dir === 'DOWN') ? this.navSaveMode : undefined,
     });
   }
 
@@ -204,10 +213,12 @@ export default class EditorScene extends Scene implements NavHost {
     this.navBar?.setCursorToFirst();
   }
 
-  /** Restore the default nav buttons after the SAVE sub-menu. */
-  private exitSaveMenu() {
+  /** Restore the default nav buttons after the SAVE sub-menu. `refocus` re-homes
+   *  the bar's cursor; pass false when the bar is losing focus anyway. */
+  private exitSaveMenu(refocus = true) {
     this.navSaveMode = false;
     this.navBar?.setButtons(NAV_BUTTONS);
+    if (!refocus) return;
     this.navBar?.activate();
     this.navBar?.setCursorToFirst();
   }

@@ -960,7 +960,7 @@
         "h": 11
       }
     },
-    "hp-empty": {
+    "hp-empty_1": {
       "frame": {
         "x": 66,
         "y": 66,
@@ -1200,7 +1200,7 @@
         "h": 11
       }
     },
-    "frame": {
+    "frame_1": {
       "rotated": false,
       "trimmed": false,
       "sourceSize": {

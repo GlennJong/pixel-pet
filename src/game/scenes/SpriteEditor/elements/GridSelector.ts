@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, FONT, GRID_COLS, GRID_GAP, GRID_OUTER_PAD, hex } from '../constants';
+import { Direction } from '@/game/ui/focus';
 import { fitContainNoUpscale, resolveTextureSourceSize } from '../utils/sizing';
 import { FocusableCursorList } from './FocusableCursorList';
 
@@ -28,6 +29,7 @@ export interface GridSelectorConfig {
  *
  * Events emitted:
  *   'add-request'              – '+' cell was activated
+ *   'request-focus'            – pointer entered/pressed; owner should focus this grid
  *   'selection-change' (cells) – selection state changed
  */
 export class GridSelector extends FocusableCursorList {
@@ -95,6 +97,23 @@ export class GridSelector extends FocusableCursorList {
 
   protected onFocusChange() {
     this.refreshVisuals();
+  }
+
+  // ── Cursor contract (see FocusableCursorList.asFocusable) ──────────────────
+
+  protected moveCursorIn(dir: Direction): boolean {
+    if (dir === 'LEFT')  { this.moveCursorLeft();  return true; } // wraps in-row
+    if (dir === 'RIGHT') { this.moveCursorRight(); return true; }
+    if (dir === 'UP')    return this.moveCursorUp();   // false at the top row
+    return this.moveCursorDown();                      // false at the last row
+  }
+
+  protected homeCursor(edge: 'first' | 'last') {
+    this.setCursor(edge === 'first' ? 0 : Math.max(0, this.cells.length - 1));
+  }
+
+  protected activateCursor() {
+    this.activateCurrent();
   }
 
   /** Add the special '+' cell at the end */
@@ -334,15 +353,19 @@ export class GridSelector extends FocusableCursorList {
 
     // Mouse interaction. Resolve the live index at event time — cells are
     // inserted/removed incrementally, so a captured index would go stale.
+    // 'request-focus' first: the owner pulls router focus onto this grid, then we
+    // place the cursor on the hovered cell.
     bg.on('pointerover', () => {
       const idx = this.cellContainers.indexOf(container);
       if (idx < 0) return;
+      this.emit('request-focus');
       this._cursorIndex = idx;
       this.refreshCursor();
     });
     bg.on('pointerdown', () => {
       const idx = this.cellContainers.indexOf(container);
       if (idx < 0) return;
+      this.emit('request-focus');
       this._cursorIndex = idx;
       this.activateCurrent();
     });

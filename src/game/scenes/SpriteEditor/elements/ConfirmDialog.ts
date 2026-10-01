@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Focusable, makeFocusable } from '@/game/ui/focus';
 import { ButtonBar } from './ButtonBar';
 import { handleButtonBarKey } from './buttonBarNav';
 import {
@@ -109,6 +110,21 @@ export class ConfirmDialog extends Phaser.GameObjects.Container {
     this._isOpen = false;
     this.buttonBar.deactivate();
     this.setVisible(false);
+  }
+
+  /**
+   * Describe the open dialog as a modal scope's single member: it swallows every
+   * key, so nothing leaks to the screen underneath. Push it with
+   * `router.pushModal(createScope({ id, members: () => [dialog.asFocusable()] }))`.
+   */
+  asFocusable(id = 'dialog'): Focusable {
+    return makeFocusable({
+      id,
+      object: this,
+      onFocus: () => undefined,
+      onBlur: () => undefined,
+      handleKey: (code) => { this.handleKey(code); return true; },
+    });
   }
 
   /** Forward a key code from the host screen while the dialog is open. */

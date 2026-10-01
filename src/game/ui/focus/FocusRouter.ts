@@ -57,26 +57,33 @@ export class FocusRouter {
     this.focusedId = null;
   }
 
-  /** Focus a specific member id in the active scope. */
-  focusId(id: string): void {
+  /**
+   * Focus a specific member id in the active scope. `from` is the travel
+   * direction, forwarded to the member's onFocus so a widget entered by a
+   * boundary bridge homes its internal cursor to the entered edge (omit it for
+   * a direct focus, e.g. a pointer landing on the widget).
+   */
+  focusId(id: string, from?: Direction): void {
     const scope = this.activeScope;
     if (!scope) return;
     const target = scope.members().find(m => m.id === id && m.isEnabled());
     if (!target) return;
-    this.setFocus(target);
+    this.setFocus(target, from);
   }
 
   /**
    * Focus the top ('first') or bottom ('last') member of the active scope,
    * optionally excluding one id (e.g. the trailing nav member, so "enter
-   * content" lands on real content rather than the nav itself).
+   * content" lands on real content rather than the nav itself). `from` is the
+   * travel direction — pass it when this is a wrap (bottom ↓ → top is entered
+   * travelling DOWN), so the landed widget homes its cursor to the right edge.
    */
-  focusEdge(edge: 'first' | 'last', excludeId?: string): void {
+  focusEdge(edge: 'first' | 'last', excludeId?: string, from?: Direction): void {
     const scope = this.activeScope;
     if (!scope) return;
     const enabled = scope.members().filter(m => m.isEnabled() && m.id !== excludeId);
     const target = edgeMember(enabled, edge);
-    if (target) this.setFocus(target);
+    if (target) this.setFocus(target, from);
   }
 
   /** Blur the active scope's focus without unwinding the stack (overlay open). */

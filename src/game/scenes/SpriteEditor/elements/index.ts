@@ -5,6 +5,5 @@ export * from './ConfirmDialog';
 export * from './OptionMenu';
 export * from './GridSelector';
 export * from './NumberInput';
-export * from './ScreenKeyboard';
 export * from './SpriteCard';
 export * from './TextInput';

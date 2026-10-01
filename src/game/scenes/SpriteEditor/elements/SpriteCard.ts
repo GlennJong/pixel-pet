@@ -17,8 +17,8 @@ export const CARD_FIELDS: CardField[] = ['selectFrames', 'freq', 'repeat', 'repe
 /**
  * A sprite configuration card for S2 (SpriteEditScreen).
  *
- * The sprite name (prefix) is auto-assigned (a number string) and shown as a
- * read-only label — there is no name input, so it isn't a navigable field.
+ * The sprite name (prefix) is auto-assigned and shown as a read-only label —
+ * there is no name input, so it isn't a navigable field.
  *
  * Layout (within a card of `width` × CARD_HEIGHT), config column top → bottom:
  *   FRAMES, FPS, REPEAT, DELAY, COPY, DELETE (preview thumbnail to the left).

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Direction } from '@/game/ui/focus';
 import { COLORS, FONT, hex } from '../constants';
 import { FocusableCursorList } from './FocusableCursorList';
 
@@ -22,6 +23,7 @@ const ROW_TEXT_PAD_X = 4;
  *
  * Events emitted:
  *   'select' (key: string) – a row was activated
+ *   'request-focus'        – pointer entered/pressed; owner should focus this menu
  */
 export class OptionMenu extends FocusableCursorList {
   private rowBgs: Phaser.GameObjects.Rectangle[] = [];
@@ -88,15 +90,19 @@ export class OptionMenu extends FocusableCursorList {
         .setOrigin(0, 0.5);
 
       const rowIndex = i;
+      // 'request-focus' first: the owner pulls router focus onto this menu, then
+      // we place the cursor on the hovered row.
       bg.on('pointerover', () => {
         const idx = this.scrollOffset + rowIndex;
         if (idx >= this.items.length) return;
+        this.emit('request-focus');
         this._cursorIndex = idx;
         this.refreshVisuals();
       });
       bg.on('pointerdown', () => {
         const idx = this.scrollOffset + rowIndex;
         if (idx >= this.items.length) return;
+        this.emit('request-focus');
         this._cursorIndex = idx;
         this.selectCurrent();
       });
@@ -113,6 +119,30 @@ export class OptionMenu extends FocusableCursorList {
 
   protected onFocusChange() {
     this.refreshVisuals();
+  }
+
+  // ── Cursor contract (see FocusableCursorList.asFocusable) ──────────────────
+
+  protected moveCursorIn(dir: Direction): boolean {
+    if (dir === 'UP') {
+      if (this._cursorIndex <= 0) return false;
+      this.moveCursor(-1);
+      return true;
+    }
+    if (dir === 'DOWN') {
+      if (this._cursorIndex >= this.items.length - 1) return false;
+      this.moveCursor(1);
+      return true;
+    }
+    return false; // horizontal → the router moves focus out of the list
+  }
+
+  protected homeCursor(edge: 'first' | 'last') {
+    this.setCursor(edge === 'first' ? 0 : this.items.length - 1);
+  }
+
+  protected activateCursor() {
+    this.selectCurrent();
   }
 
   moveCursor(delta: number) {

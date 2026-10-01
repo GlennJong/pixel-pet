@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { ScreenKeyboard, ButtonBar, OptionMenu } from '../elements';
-import { FocusRouter, createScope, makeFocusable } from '../elements/focus';
+import { ButtonBar, OptionMenu } from '../elements';
+import { ScreenKeyboard } from '@/game/ui';
+import { FocusRouter, createScope } from '@/game/ui/focus';
 import { COLORS, BUTTON_BAR_HEIGHT } from '../constants';
 import { WorkspaceAtlasEntry } from '../types';
 import { EditorScreen } from './EditorScreen';
@@ -81,53 +82,20 @@ export class AtlasImportScreen extends EditorScreen {
   }
 
   private setupFocus() {
-    const list = makeFocusable({
-      id: 'list',
-      object: this.optionMenu,
-      onFocus: (from) => {
-        this.optionMenu.activate();
-        // Entered from below (moving up out of CANCEL) → land on the last row;
-        // from above → the first row.
-        if (from === 'UP') this.optionMenu.setCursor(this.optionMenu.itemCount - 1);
-        else if (from === 'DOWN') this.optionMenu.setCursor(0);
-      },
-      onBlur: () => this.optionMenu.deactivate(),
-      onSelect: () => this.optionMenu.selectCurrent(),
-      handleDirection: (dir) => {
-        if (dir === 'UP') {
-          if (this.optionMenu.cursorIndex <= 0) return false; // edge → let router wrap
-          this.optionMenu.moveCursor(-1);
-          return true;
-        }
-        if (dir === 'DOWN') {
-          if (this.optionMenu.cursorIndex >= this.optionMenu.itemCount - 1) return false;
-          this.optionMenu.moveCursor(1);
-          return true;
-        }
-        return false;
-      },
-    });
+    // Pointer events take router focus first, so mouse and keyboard agree.
+    this.optionMenu.on('request-focus', () => this.router.focusId('list'));
+    this.buttonBar.on('request-focus', () => this.router.focusId('cancel'));
 
-    const cancel = makeFocusable({
-      id: 'cancel',
-      object: this.buttonBar,
-      onFocus: () => this.buttonBar.activate(),
-      onBlur: () => this.buttonBar.deactivate(),
-      onSelect: () => this.buttonBar.executeCursor(),
-      handleDirection: (dir) => {
-        if (dir === 'LEFT') { this.buttonBar.moveCursor(-1); return true; }
-        if (dir === 'RIGHT') { this.buttonBar.moveCursor(1); return true; }
-        return false; // UP/DOWN → let router move/bridge
-      },
-    });
+    const list = this.optionMenu.asFocusable('list');
+    const cancel = this.buttonBar.asFocusable('cancel', { homeOnEnter: 'none' });
 
     const scope = createScope({
       id: 'atlas-import',
       members: () => [list, cancel],
       onCancel: () => this.emit('cancel'),
       boundaryOverride: {
-        UP: () => this.router.focusId('cancel'),                                   // list-top ↑ → CANCEL
-        DOWN: () => { this.optionMenu.setCursor(0); this.router.focusId('list'); }, // CANCEL ↓ → list-top
+        UP: () => this.router.focusId('cancel', 'UP'),   // list-top ↑ → CANCEL
+        DOWN: () => this.router.focusId('list', 'DOWN'), // CANCEL ↓ → list-top
       },
     });
 

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ScreenKeyboard } from '../elements';
+import { ScreenKeyboard } from '@/game/ui';
 
 /**
  * Shared base for the editor screens (S1 Library, S2 SpriteEdit, S3 Frame

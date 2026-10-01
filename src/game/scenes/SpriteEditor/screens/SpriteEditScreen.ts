@@ -3,16 +3,15 @@ import {
   SpriteCard,
   CardField,
   ConfirmDialog,
-  ScreenKeyboard,
 } from '../elements';
+import { ScreenKeyboard } from '@/game/ui';
 import {
   FocusRouter,
   FocusScope,
   Focusable,
-  NavHost,
   createScope,
   makeFocusable,
-} from '../elements/focus';
+} from '@/game/ui/focus';
 import {
   COLORS,
   FONT,
@@ -20,18 +19,21 @@ import {
   CARD_HEIGHT, CARD_GAP, CARD_AREA_PAD,
   hex,
 } from '../constants';
-import { SpriteData, ImageItem } from '../types';
+import { SpriteData, ImageItem, NavHost } from '../types';
 import { EditorScreen } from './EditorScreen';
 
 let _spriteIdCounter = 1;
 
-// New sprites get an auto-assigned number string as their name (prefix); there
-// is no name input. Import/preset sprites keep their own prefix.
+// New sprites get an auto-assigned placeholder prefix; there is no name input.
+// Import/preset sprites keep their own prefix. The '-' separator matters: '_' is
+// reserved for the frame index, so a prefix must never contain one (a prefix
+// 'sprite_1' would export frames named 'sprite_1_1', which no longer parses
+// back to a prefix unambiguously).
 const DEFAULT_SPRITE = (): SpriteData => {
   const n = _spriteIdCounter++;
   return {
     id: `sprite_${n}`,
-    prefix: String(n),
+    prefix: `sprite-${n}`,
     frames: [],
     freq: 8,
     repeat: -1,
@@ -194,7 +196,10 @@ export class SpriteEditScreen extends EditorScreen {
       },
     });
 
-    this.navFocusable = this.navHost.buildNavFocusable((edge) => this.focusContent(edge));
+    this.navFocusable = this.navHost.buildNavFocusable(
+      (edge) => this.focusContent(edge),
+      () => this.router.focusId('nav'),
+    );
 
     this.scope = createScope({
       id: 'sprite-edit',
@@ -202,19 +207,15 @@ export class SpriteEditScreen extends EditorScreen {
       onCancel: () => this.emit('back'), // Escape on the column ascends to the Library
       boundaryOverride: {
         // nav ↓ → top of the column (wrap). (nav ↑ reaches the column by geometry.)
-        DOWN: () => { this.router.focusId('cards'); this.focusTop(); },
+        DOWN: () => this.router.focusId('cards', 'DOWN'),
       },
     });
 
     // Delete confirmation: a modal scope forwarding every key to the dialog.
-    const dialog = makeFocusable({
-      id: 'confirm-dialog',
-      object: this.confirmDialog,
-      onFocus: () => undefined,
-      onBlur: () => undefined,
-      handleKey: (code) => { this.confirmDialog.handleKey(code); return true; },
+    this.dialogScope = createScope({
+      id: 'confirm',
+      members: () => [this.confirmDialog.asFocusable('confirm-dialog')],
     });
-    this.dialogScope = createScope({ id: 'confirm', members: () => [dialog] });
   }
 
   // ── Column cursor ─────────────────────────────────────────────────────────────

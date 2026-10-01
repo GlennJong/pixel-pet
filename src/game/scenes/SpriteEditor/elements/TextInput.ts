@@ -22,6 +22,7 @@ export interface TextInputConfig {
  *   - labeled:    "Label  [________]" (used in SpriteEditScreen name field)
  *
  * Events emitted:
+ *   'request-focus' – clicked; the owner should focus this input via its router
  *   'confirm'  – Enter pressed; value committed
  *   'cancel'   – Esc pressed; draft discarded
  *   'nav-up'   – Up arrow while focused
@@ -116,8 +117,11 @@ export class TextInput extends Phaser.GameObjects.Container {
     ).setOrigin(0, 0.5).setVisible(false);
     this.add(this.cursorObj);
 
-    // Click to focus
-    this.bg.on('pointerdown', () => this.focus());
+    // Click to focus. Routed through the owner (which holds the FocusRouter)
+    // rather than focusing ourselves: a self-focus would leave the router still
+    // pointing at the previously focused widget, so our nav-up/nav-down bridges
+    // would then move focus from the wrong origin.
+    this.bg.on('pointerdown', () => this.emit('request-focus'));
 
     scene.add.existing(this);
     this.refresh();

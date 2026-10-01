@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { SelectorBar, SelectorBarItem } from '@/game/components/SelectorBar';
+import { Direction } from '@/game/ui/focus';
 import { FocusableCursorList } from './FocusableCursorList';
 import {
   COLORS,
@@ -40,6 +41,7 @@ const ARROW_RESERVE = 8;
  *
  * Events emitted:
  *   'action' (key: string) – button was activated
+ *   'request-focus'        – pointer entered/pressed; owner should focus this bar
  */
 export class ButtonBar extends FocusableCursorList {
   private bar: SelectorBar;
@@ -132,8 +134,14 @@ export class ButtonBar extends FocusableCursorList {
         .setOrigin(0, 0.5);
       cell.add([bg, border, text]);
 
-      bg.on('pointerover', () => this.bar.setSelectedIndex(i));
+      // 'request-focus' first: the owner pulls router focus onto this bar (which
+      // homes the cursor), then we place the cursor on the hovered button.
+      bg.on('pointerover', () => {
+        this.emit('request-focus');
+        this.bar.setSelectedIndex(i);
+      });
       bg.on('pointerdown', () => {
+        this.emit('request-focus');
         this.bar.setSelectedIndex(i);
         this.executeCursor();
       });
@@ -150,6 +158,23 @@ export class ButtonBar extends FocusableCursorList {
   protected onFocusChange() {
     this.bar.setFocused(this._hasFocus);
     this.refreshFallbackBorder();
+  }
+
+  // ── Cursor contract (see FocusableCursorList.asFocusable) ──────────────────
+
+  protected moveCursorIn(dir: Direction): boolean {
+    if (dir === 'LEFT')  { this.moveCursor(-1); return true; }
+    if (dir === 'RIGHT') { this.moveCursor(1);  return true; }
+    return false; // vertical → the router moves focus out of the bar
+  }
+
+  protected homeCursor(edge: 'first' | 'last') {
+    if (edge === 'first') this.setCursorToFirst();
+    else this.setCursorToLast();
+  }
+
+  protected activateCursor() {
+    this.executeCursor();
   }
 
   moveCursor(delta: number) {

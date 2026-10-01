@@ -38,7 +38,7 @@ export function buildPresetSpritesFromImages(images: ImageItem[]): SmartInputPre
 
   parsedEntries.forEach(entry => {
     const { parsed, image } = entry;
-    const prefix = includeKeyInPrefix ? `${parsed.key}_${parsed.sprite}` : parsed.sprite;
+    const prefix = includeKeyInPrefix ? `${parsed.key}-${parsed.sprite}` : parsed.sprite;
     const groupKey = `${parsed.key}__${parsed.sprite}`;
     const group = groups.get(groupKey);
 

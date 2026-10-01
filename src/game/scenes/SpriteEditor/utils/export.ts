@@ -253,7 +253,7 @@ function downloadBlob(fileName: string, blob: Blob) {
 function normalizeSpritePrefixes(sprites: SpriteData[]) {
   const normalized = sprites.map((sp, i) => ({
     ...sp,
-    prefix: (sp.prefix || '').trim() || `sprite_${i + 1}`,
+    prefix: (sp.prefix || '').trim() || `sprite-${i + 1}`,
   }));
 
   const grouped = new Map<string, number[]>();
@@ -271,7 +271,7 @@ function normalizeSpritePrefixes(sprites: SpriteData[]) {
     let n = 1;
     while (used.has(out)) {
       n += 1;
-      out = `${candidate}(${n})`;
+      out = `${candidate}-${n}`;
     }
     used.add(out);
     return out;
@@ -289,7 +289,7 @@ function normalizeSpritePrefixes(sprites: SpriteData[]) {
     }
 
     indices.forEach((idx, i) => {
-      const renamedPrefix = ensureUnique(`${base}(${i + 1})`);
+      const renamedPrefix = ensureUnique(`${base}-${i + 1}`);
       renamed.push({ from: base, to: renamedPrefix });
       normalized[idx] = { ...normalized[idx], prefix: renamedPrefix };
     });

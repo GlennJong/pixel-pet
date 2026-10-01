@@ -60,15 +60,6 @@ export interface Focusable {
 /** A boundary target: a member id to focus, or a callback (bridge / wrap). */
 export type BoundaryTarget = string | (() => void);
 
-/**
- * Implemented by the EditorScene so S1/S2 can embed the shared bottom nav bar in
- * their own scope as a trailing focusable. `enterContent` is the screen's hook
- * for the nav to return focus to real content (bound to that screen's router).
- */
-export interface NavHost {
-  buildNavFocusable(enterContent: (edge: 'first' | 'last') => void): Focusable;
-}
-
 export interface FocusScope {
   readonly id: string;
   state: ScopeState;

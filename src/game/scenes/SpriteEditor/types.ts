@@ -1,3 +1,19 @@
+import { Focusable } from '@/game/ui/focus';
+
+/**
+ * Implemented by the EditorScene so S1/S2 can embed the shared bottom nav bar in
+ * their own scope as a trailing focusable. `enterContent` is the screen's hook
+ * for the nav to return focus to real content, and `requestFocus` the hook for
+ * the nav's own pointer events to pull focus onto it — both bound to that
+ * screen's router, so mouse and keyboard never disagree about where focus is.
+ */
+export interface NavHost {
+  buildNavFocusable(
+    enterContent: (edge: 'first' | 'last') => void,
+    requestFocus: () => void,
+  ): Focusable;
+}
+
 export interface ImageItem {
   id: string;
   fileName: string;

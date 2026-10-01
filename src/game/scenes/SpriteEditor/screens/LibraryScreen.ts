@@ -4,18 +4,17 @@ import {
   GridSelector,
   ButtonBar,
   ConfirmDialog,
-  ScreenKeyboard,
   OptionMenu,
   OptionMenuItem,
 } from '../elements';
+import { ScreenKeyboard } from '@/game/ui';
 import {
   FocusRouter,
   FocusScope,
   Focusable,
-  NavHost,
   createScope,
   makeFocusable,
-} from '../elements/focus';
+} from '@/game/ui/focus';
 import { AtlasImportScreen } from './AtlasImportScreen';
 import { EditorScreen } from './EditorScreen';
 import { importAtlasTrio, ImportAtlasTrioResult } from '../utils/import';
@@ -35,6 +34,7 @@ import {
 import {
   ImageItem,
   LibraryProceedPayload,
+  NavHost,
   SpriteData,
   WorkspaceAtlasEntry,
 } from '../types';
@@ -206,6 +206,14 @@ export class LibraryScreen extends EditorScreen {
     this.nameInput.on('nav-up', () => this.router.moveFocus('UP'));
     this.nameInput.on('nav-down', () => this.router.moveFocus('DOWN'));
 
+    // Pointer events on a widget take router focus first, so the keyboard always
+    // resumes from what the mouse last touched (the name input's nav-up/nav-down
+    // bridges in particular resolve directions from the router's focused member).
+    this.nameInput.on('request-focus', () => this.router.focusId('name'));
+    this.grid.on('request-focus', () => this.router.focusId('grid'));
+    this.optionMenu.on('request-focus', () => this.router.focusId('menu'));
+    this.buttonBar.on('request-focus', () => this.router.focusId('selection-bar'));
+
     this.grid.on('add-request', () => this.fileInput.click());
     this.grid.on('selection-change', (selected: unknown[]) => {
       this.updateButtonsForSelection(selected.length);
@@ -242,36 +250,20 @@ export class LibraryScreen extends EditorScreen {
   pause() { this.router.pause(); this.keyboard.pause(); }
   resume() { this.keyboard.resume(); this.router.resume(); }
 
-  /** Build + emit the proceed payload (invoked by the scene's SPRITES nav). */
-  requestProceed() { this.proceedToSpriteEdit(); }
+  /** Build + emit the proceed payload (invoked by the scene's SPRITES nav).
+   *  Refused with a hint while the library is empty — S2 has nothing to frame. */
+  requestProceed() {
+    if (this.images.length === 0) {
+      this.showError('Import images before editing sprites');
+      return;
+    }
+    this.proceedToSpriteEdit();
+  }
 
   // ── Focus model ─────────────────────────────────────────────────────────────
 
   private setupFocus() {
-    this.menuFocusable = makeFocusable({
-      id: 'menu',
-      object: this.optionMenu,
-      onFocus: (from) => {
-        this.optionMenu.activate();
-        if (from === 'DOWN') this.optionMenu.setCursor(0);
-        else if (from === 'UP') this.optionMenu.setCursor(this.optionMenu.itemCount - 1);
-      },
-      onBlur: () => this.optionMenu.deactivate(),
-      onSelect: () => this.optionMenu.selectCurrent(),
-      handleDirection: (dir) => {
-        if (dir === 'UP') {
-          if (this.optionMenu.cursorIndex <= 0) return false;
-          this.optionMenu.moveCursor(-1);
-          return true;
-        }
-        if (dir === 'DOWN') {
-          if (this.optionMenu.cursorIndex >= this.optionMenu.itemCount - 1) return false;
-          this.optionMenu.moveCursor(1);
-          return true;
-        }
-        return false;
-      },
-    });
+    this.menuFocusable = this.optionMenu.asFocusable('menu');
 
     this.nameFocusable = makeFocusable({
       id: 'name',
@@ -280,16 +272,7 @@ export class LibraryScreen extends EditorScreen {
       onBlur: () => this.nameInput.blur(),
     });
 
-    this.gridFocusable = makeFocusable({
-      id: 'grid',
-      object: this.grid,
-      onFocus: (from) => {
-        this.grid.activate();
-        if (from === 'DOWN') this.grid.setCursor(0);
-        else if (from === 'UP') this.grid.setCursor(Math.max(0, this.grid.cellCount - 1));
-      },
-      onBlur: () => this.grid.deactivate(),
-      onSelect: () => this.grid.activateCurrent(),
+    this.gridFocusable = this.grid.asFocusable('grid', {
       handleKey: (code) => {
         if (code !== 'Escape') return false;
         if (this.selectionActive) {
@@ -298,24 +281,11 @@ export class LibraryScreen extends EditorScreen {
         }
         return true; // consume Escape (no back from the grid)
       },
-      handleDirection: (dir) => {
-        switch (dir) {
-          case 'LEFT':  this.grid.moveCursorLeft();  return true;
-          case 'RIGHT': this.grid.moveCursorRight(); return true;
-          case 'UP':    return this.grid.moveCursorUp();   // false at top row → router bridges to name
-          case 'DOWN':  return this.grid.moveCursorDown(); // false at last row → router bridges to bar/nav
-          default:      return false;
-        }
-      },
     });
 
-    this.selectionFocusable = makeFocusable({
-      id: 'selection-bar',
-      object: this.buttonBar,
+    this.selectionFocusable = this.buttonBar.asFocusable('selection-bar', {
       isEnabled: () => this.selectionActive,
-      onFocus: () => { this.buttonBar.activate(); this.buttonBar.setCursorToFirst(); },
-      onBlur: () => this.buttonBar.deactivate(),
-      onSelect: () => this.buttonBar.executeCursor(),
+      homeOnEnter: 'first',
       handleKey: (code) => {
         if (code !== 'Escape') return false;
         this.grid.clearAllSelections();
@@ -323,18 +293,20 @@ export class LibraryScreen extends EditorScreen {
         this.router.focusId('grid');
         return true;
       },
-      handleDirection: (dir) => {
-        if (dir === 'LEFT') { this.buttonBar.moveCursor(-1); return true; }
-        if (dir === 'RIGHT') { this.buttonBar.moveCursor(1); return true; }
-        return false;
-      },
     });
 
-    this.navFocusable = this.navHost.buildNavFocusable((edge) => this.router.focusEdge(edge, 'nav'));
+    this.navFocusable = this.navHost.buildNavFocusable(
+      (edge) => this.router.focusEdge(edge, 'nav'),
+      () => this.router.focusId('nav'),
+    );
 
+    // Wraps must carry the travel direction: without it the landed widget's
+    // onFocus(from) can't tell which edge it was entered from and keeps whatever
+    // internal cursor it had (e.g. wrapping down onto the menu would land on the
+    // row you last walked to, not the first).
     const wrap = {
-      UP: () => this.router.focusEdge('last'),   // top content ↑ → bottom (nav / selection bar)
-      DOWN: () => this.router.focusEdge('first'), // bottom ↓ → top content (wrap)
+      UP: () => this.router.focusEdge('last', undefined, 'UP'),    // top content ↑ → bottom (nav / selection bar)
+      DOWN: () => this.router.focusEdge('first', undefined, 'DOWN'), // bottom ↓ → top content (wrap)
     };
 
     this.menuScope = createScope({
@@ -350,14 +322,10 @@ export class LibraryScreen extends EditorScreen {
     });
 
     // Depose confirmation: modal scope forwarding every key to the dialog.
-    const deposeDialog = makeFocusable({
-      id: 'depose-dialog',
-      object: this.confirmDialog,
-      onFocus: () => undefined,
-      onBlur: () => undefined,
-      handleKey: (code) => { this.confirmDialog.handleKey(code); return true; },
+    this.deposeScope = createScope({
+      id: 'depose',
+      members: () => [this.confirmDialog.asFocusable('depose-dialog')],
     });
-    this.deposeScope = createScope({ id: 'depose', members: () => [deposeDialog] });
   }
 
   // ── Mode switching ───────────────────────────────────────────────────────
@@ -382,6 +350,10 @@ export class LibraryScreen extends EditorScreen {
     this.grid.deactivate();
     this.grid.setVisible(false);
     this.optionMenu.setItems(this.buildMenuItems());
+    // buildMenuItems() changes length (a leading '{name}(current)' row appears
+    // once a project exists), so a carried-over cursor index would point at a
+    // different action than last time. Always open on the first row.
+    this.optionMenu.setCursor(0);
     this.optionMenu.setVisible(true);
     this.updateButtonsForSelection(0);
     this.errorText.setVisible(false);

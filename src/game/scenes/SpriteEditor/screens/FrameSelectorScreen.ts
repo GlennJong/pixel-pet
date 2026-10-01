@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { GridSelector, GridCellData, ButtonBar, ScreenKeyboard } from '../elements';
-import { FocusRouter, createScope, makeFocusable } from '../elements/focus';
+import { GridSelector, GridCellData, ButtonBar } from '../elements';
+import { ScreenKeyboard } from '@/game/ui';
+import { FocusRouter, createScope } from '@/game/ui/focus';
 import { EditorScreen } from './EditorScreen';
 import {
   COLORS,
@@ -92,54 +93,28 @@ export class FrameSelectorScreen extends EditorScreen {
   }
 
   private setupFocus() {
-    const grid = makeFocusable({
-      id: 'grid',
-      object: this.grid,
-      onFocus: (from) => {
-        this.grid.activate();
-        // Entered from below (up out of the bar) → last row; from above → first.
-        if (from === 'UP') this.grid.setCursor(Math.max(0, this.grid.cellCount - 1));
-        else if (from === 'DOWN') this.grid.setCursor(0);
-      },
-      onBlur: () => this.grid.deactivate(),
-      onSelect: () => this.grid.activateCurrent(),
+    // Pointer events take router focus first, so mouse and keyboard agree.
+    this.grid.on('request-focus', () => this.router.focusId('grid'));
+    this.buttonBar.on('request-focus', () => this.router.focusId('bar'));
+
+    const grid = this.grid.asFocusable('grid', {
       // Enter confirms the whole selection from within the grid.
       handleKey: (code) => {
         if (code !== 'Enter') return false;
         this.emit('confirm', { frameIds: this.grid.selectedIds });
         return true;
       },
-      handleDirection: (dir) => {
-        switch (dir) {
-          case 'LEFT':  this.grid.moveCursorLeft();  return true;
-          case 'RIGHT': this.grid.moveCursorRight(); return true;
-          case 'UP':    return this.grid.moveCursorUp();   // false at top row → router bridges
-          case 'DOWN':  return this.grid.moveCursorDown(); // false at last row → router bridges
-          default:      return false;
-        }
-      },
     });
 
-    const bar = makeFocusable({
-      id: 'bar',
-      object: this.buttonBar,
-      onFocus: () => this.buttonBar.activate(),
-      onBlur: () => this.buttonBar.deactivate(),
-      onSelect: () => this.buttonBar.executeCursor(),
-      handleDirection: (dir) => {
-        if (dir === 'LEFT') { this.buttonBar.moveCursor(-1); return true; }
-        if (dir === 'RIGHT') { this.buttonBar.moveCursor(1); return true; }
-        return false; // UP/DOWN → router move/bridge
-      },
-    });
+    const bar = this.buttonBar.asFocusable('bar', { homeOnEnter: 'none' });
 
     const scope = createScope({
       id: 'frame-selector',
       members: () => [grid, bar],
       onCancel: () => this.emit('cancel'),
       boundaryOverride: {
-        UP: () => this.router.focusId('bar'),                                 // grid-top ↑ → bar
-        DOWN: () => { this.grid.setCursor(0); this.router.focusId('grid'); }, // bar ↓ → grid-top
+        UP: () => this.router.focusId('bar', 'UP'),     // grid-top ↑ → bar
+        DOWN: () => this.router.focusId('grid', 'DOWN'), // bar ↓ → grid-top
       },
     });
 

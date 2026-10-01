@@ -21,7 +21,7 @@
     "animation": "arrow"
   },
   "frame": {
-    "textureFrame": "frame",
+    "textureFrame": "frame_1",
     "leftWidth": 8,
     "rightWidth": 8,
     "topHeight": 8,
@@ -124,7 +124,7 @@
         },
         {
           "min": 0,
-          "frame": "hp-empty"
+          "frame": "hp-empty_1"
         }
       ]
     },

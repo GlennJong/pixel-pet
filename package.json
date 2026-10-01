@@ -13,7 +13,9 @@
     "serve": "vite --config vite.config.js serve ./dist",
     "format": "prettier . --write",
     "build:dev": "vite build --config vite.config.js --mode dev",
-    "build:prod": "vite build --config vite.config.js --mode prod"
+    "build:prod": "vite build --config vite.config.js --mode prod",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "leva": "^0.10.1",
@@ -38,6 +40,7 @@
     "typescript": "^5.3.3",
     "vite": "^5.1.4",
     "vite-plugin-eruda": "^1.0.1",
-    "vite-plugin-mkcert": "^1.17.5"
+    "vite-plugin-mkcert": "^1.17.5",
+    "vitest": "^2"
   }
 }
