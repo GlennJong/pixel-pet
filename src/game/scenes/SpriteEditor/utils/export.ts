@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { frameName as toFrameName } from '@/game/assets';
 import { AnimationItem, EditorState, ImageItem, SpriteData } from '../types';
 
 interface FrameInput {
@@ -65,7 +66,7 @@ export async function buildSpriteEditorExport(
 
     frames.forEach((img, idx) => {
       frameInputs.push({
-        frameName: `${sprite.prefix}_${idx + 1}`,
+        frameName: toFrameName(sprite.prefix, idx + 1),
         image: img,
       });
     });

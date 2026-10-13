@@ -18,7 +18,7 @@ export default class TestScene extends Scene {
 
     this.dialogue = new PrimaryDialogue(this);
     const core = (runtimeData("system.core") as any)?.get();
-    const dialogueConfig = core?.dialogue || { frameKey: "ui_dialogue_frame", frameFrame: "frame_1" };
+    const dialogueConfig = core?.dialogue || { frameKey: "ui_frame", frameFrame: "frame_1" };
     this.dialogue.initDialogue({
       ...dialogueConfig,
       sceneWidth: core?.canvas?.width || 160,

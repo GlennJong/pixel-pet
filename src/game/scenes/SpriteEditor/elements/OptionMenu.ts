@@ -6,9 +6,18 @@ import { FocusableCursorList } from './FocusableCursorList';
 export interface OptionMenuItem {
   key: string;
   label: string;
+  /**
+   * Optional second line, in a dimmer colour. Use it to say what the row
+   * *does*, when the label alone is a name rather than an explanation.
+   * Giving any item a description makes every row in the list taller, so the
+   * rows stay a uniform size.
+   */
+  description?: string;
 }
 
 const ROW_H = 16;
+/** Row height once any item carries a description (two stacked text lines). */
+const ROW_H_WITH_DESC = 24;
 const ROW_TEXT_PAD_X = 4;
 
 /**
@@ -33,12 +42,17 @@ export class OptionMenu extends FocusableCursorList {
   // Labels don't change between cursor moves, so refreshVisuals must not rebuild
   // them — it only recolours rows.
   private displayLabels: string[] = [];
+  private displayDescs: string[] = [];
+
+  private rowDescs: Phaser.GameObjects.Text[] = [];
 
   private _cursorIndex = 0;
   private scrollOffset = 0;
   private visibleRows = 1;
+  private rowH = ROW_H;
+  private maxVisibleRows = 1;
 
-  private readonly maxVisibleRows: number;
+  private readonly maxHeight: number;
   private readonly rowWidth: number;
   private readonly rowTextMaxW: number;
 
@@ -51,7 +65,7 @@ export class OptionMenu extends FocusableCursorList {
     items: OptionMenuItem[],
   ) {
     super(scene, x, y);
-    this.maxVisibleRows = Math.max(1, Math.floor(maxHeight / ROW_H));
+    this.maxHeight = maxHeight;
     this.rowWidth = width;
     this.rowTextMaxW = Math.max(10, this.rowWidth - ROW_TEXT_PAD_X * 2);
 
@@ -67,6 +81,10 @@ export class OptionMenu extends FocusableCursorList {
   setItems(items: OptionMenuItem[]) {
     this.clearRows();
     this.items = [...items];
+    // One row height for the whole list: a list of mixed-height rows reads as a
+    // layout bug, and the cursor would jump by varying amounts.
+    this.rowH = this.items.some((item) => item.description) ? ROW_H_WITH_DESC : ROW_H;
+    this.maxVisibleRows = Math.max(1, Math.floor(this.maxHeight / this.rowH));
     this.computeDisplayLabels();
     this._cursorIndex = Phaser.Math.Clamp(this._cursorIndex, 0, Math.max(0, items.length - 1));
     this.scrollOffset = 0;
@@ -74,20 +92,32 @@ export class OptionMenu extends FocusableCursorList {
     // Show as many rows as fit; scroll once they exceed maxHeight.
     this.visibleRows = Math.min(this.maxVisibleRows, Math.max(1, items.length));
 
+    const twoLine = this.rowH !== ROW_H;
+
     for (let i = 0; i < this.visibleRows; i += 1) {
-      const rowY = i * ROW_H;
+      const rowY = i * this.rowH;
       const bg = this.scene.add
-        .rectangle(0, rowY, this.rowWidth, ROW_H - 2, COLORS.GRID_AREA_BG)
+        .rectangle(0, rowY, this.rowWidth, this.rowH - 2, COLORS.GRID_AREA_BG)
         .setOrigin(0, 0)
         .setInteractive({ cursor: 'pointer' });
       const text = this.scene.add
-        .text(ROW_TEXT_PAD_X, rowY + ROW_H / 2, '', {
+        .text(ROW_TEXT_PAD_X, rowY + (twoLine ? 5 : this.rowH / 2), '', {
           fontFamily: FONT.FAMILY,
           fontSize: FONT.SIZE,
           color: hex(COLORS.TEXT),
           resolution: 1,
         })
         .setOrigin(0, 0.5);
+      const desc = twoLine
+        ? this.scene.add
+            .text(ROW_TEXT_PAD_X, rowY + 15, '', {
+              fontFamily: FONT.FAMILY,
+              fontSize: FONT.SIZE,
+              color: hex(COLORS.TEXT_DISABLED),
+              resolution: 1,
+            })
+            .setOrigin(0, 0.5)
+        : undefined;
 
       const rowIndex = i;
       // 'request-focus' first: the owner pulls router focus onto this menu, then
@@ -111,6 +141,10 @@ export class OptionMenu extends FocusableCursorList {
       this.add(text);
       this.rowBgs.push(bg);
       this.rowTexts.push(text);
+      if (desc) {
+        this.add(desc);
+        this.rowDescs.push(desc);
+      }
     }
 
     this.ensureCursorVisible();
@@ -168,8 +202,10 @@ export class OptionMenu extends FocusableCursorList {
   private clearRows() {
     this.rowBgs.forEach(b => b.destroy());
     this.rowTexts.forEach(t => t.destroy());
+    this.rowDescs.forEach(t => t.destroy());
     this.rowBgs = [];
     this.rowTexts = [];
+    this.rowDescs = [];
   }
 
   private ensureCursorVisible() {
@@ -186,19 +222,23 @@ export class OptionMenu extends FocusableCursorList {
   private refreshVisuals() {
     const focusedTextColor = hex(COLORS.TEXT_BUTTON);
     const textColor = hex(COLORS.TEXT);
+    const dimTextColor = hex(COLORS.TEXT_DISABLED);
 
     this.rowBgs.forEach((bg, rowIdx) => {
       const itemIdx = this.scrollOffset + rowIdx;
       const item = this.items[itemIdx];
       const text = this.rowTexts[rowIdx];
+      const desc = this.rowDescs[rowIdx];
       if (!item || !text) {
         bg.setVisible(false);
         if (text) text.setVisible(false);
+        if (desc) desc.setVisible(false);
         return;
       }
 
       bg.setVisible(true);
       text.setVisible(true);
+      desc?.setVisible(true);
 
       const isCursor = this._hasFocus && itemIdx === this._cursorIndex;
       if (isCursor) {
@@ -214,6 +254,13 @@ export class OptionMenu extends FocusableCursorList {
       // Precomputed; setText early-returns when the value is unchanged, so
       // recolouring a row doesn't re-measure/re-render its (fixed) text.
       text.setText(this.displayLabels[itemIdx] ?? item.label);
+
+      if (desc) {
+        desc.setText(this.displayDescs[itemIdx] ?? '');
+        // On the cursor row the background is dark, so the dimmed grey would be
+        // unreadable; fall back to the same colour as the label.
+        desc.setColor(isCursor ? focusedTextColor : dimTextColor);
+      }
     });
   }
 
@@ -223,6 +270,9 @@ export class OptionMenu extends FocusableCursorList {
       .text(0, 0, '', { fontFamily: FONT.FAMILY, fontSize: FONT.SIZE, resolution: 1 })
       .setVisible(false);
     this.displayLabels = this.items.map(item => this.ellipsize(probe, item.label));
+    this.displayDescs = this.items.map(item =>
+      item.description ? this.ellipsize(probe, item.description) : '',
+    );
     probe.destroy();
   }
 

@@ -1,5 +1,9 @@
 import Phaser from "phaser";
 import { getStaticData } from "@/game/staticData";
+import { AtlasEntry, animationKey } from "@/game/assets";
+
+/** Historical alias kept for callers; an overlay entry *is* an atlas entry. */
+type AtlasCustomization = AtlasEntry;
 
 type JsonObject = Record<string, unknown>;
 
@@ -9,16 +13,14 @@ interface SaveAtlasCustomizationInput {
   spritesheetJson: JsonObject;
   // animations.json is an array of AnimationItem; stringified verbatim.
   animations: unknown;
+  /** The factory entry's pick-list fields, carried onto the overlay. */
+  displayName?: string;
+  description?: string;
 }
 
 interface PreloadConfig {
   assets?: {
-    atlases?: Array<{
-      atlasId: string;
-      png: string;
-      json: string;
-      animations?: string;
-    }>;
+    atlases?: AtlasEntry[];
     fonts?: Array<{ key: string; url: string; format: string }>;
   };
   [key: string]: unknown;
@@ -48,12 +50,7 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-export interface AtlasCustomization {
-  atlasId: string;
-  png: string;
-  json: string;
-  animations?: string;
-}
+export type { AtlasEntry as AtlasCustomization };
 
 function readCustomConfig(): PreloadConfig {
   if (typeof window === "undefined") return {};
@@ -105,7 +102,9 @@ export function getAtlasCustomizations(): AtlasCustomization[] {
 }
 
 export async function saveAtlasCustomization(input: SaveAtlasCustomizationInput): Promise<void> {
-  const { atlasId, spritesheetPng, spritesheetJson, animations } = input;
+  const {
+    atlasId, spritesheetPng, spritesheetJson, animations, displayName, description,
+  } = input;
 
   const [pngDataUrl, jsonDataUrl, animationsDataUrl] = await Promise.all([
     blobToDataUrl(spritesheetPng),
@@ -117,11 +116,20 @@ export async function saveAtlasCustomization(input: SaveAtlasCustomizationInput)
   const assets = (config.assets ||= {});
   const atlases = (assets.atlases ||= []);
 
-  const nextAtlas = {
+  // Keep the whitelist flag on the overlay: an overlay of an editable atlas is
+  // still editable, and the Preloader replaces the manifest entry wholesale.
+  const nextAtlas: AtlasEntry = {
     atlasId,
     png: pngDataUrl,
     json: jsonDataUrl,
     animations: animationsDataUrl,
+    // Only an editable atlas can reach this call (the editor's APPLY gates on
+    // the whitelist), and the Preloader replaces the manifest entry wholesale —
+    // so anything that is not regenerated here has to be carried, or the
+    // overlay would look non-editable and nameless.
+    editable: true,
+    ...(displayName ? { displayName } : {}),
+    ...(description ? { description } : {}),
   };
 
   const existingIndex = atlases.findIndex((item) => item.atlasId === atlasId);
@@ -151,8 +159,9 @@ function removeAtlasAnimations(scene: Phaser.Scene, atlasId: string): void {
   const map = (scene.anims as unknown as { anims?: { keys?: () => string[]; entries?: Record<string, unknown> } }).anims;
   if (!map) return;
   const keys = typeof map.keys === "function" ? map.keys() : Object.keys(map.entries || {});
+  const ownPrefix = animationKey(atlasId, "");
   keys
-    .filter((key) => key.startsWith(`${atlasId}_`))
+    .filter((key) => key.startsWith(ownPrefix))
     .forEach((key) => scene.anims.remove(key));
 }
 

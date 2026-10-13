@@ -1,4 +1,7 @@
 import Phaser from "phaser";
+import { firstEnabledIndex, nearestEnabledIndex, stepSelection } from "./selection";
+
+export { firstEnabledIndex, nearestEnabledIndex, stepSelection };
 
 export interface SelectorBarInset {
   left: number;
@@ -8,7 +11,7 @@ export interface SelectorBarInset {
 }
 
 export interface SelectorBarStyle {
-  /** Texture atlas key holding the nineslice frame (and optional arrow). */
+  /** Texture atlas key holding the nineslice frame. */
   atlas: string;
   /** Nineslice frame name within the atlas. */
   frame: string;
@@ -16,8 +19,14 @@ export interface SelectorBarStyle {
   inset: number | SelectorBarInset;
   /** Flat fill color used when the atlas/frame is unavailable. */
   fallbackColor?: number;
-  /** Selection-arrow frame within the atlas. Omit to disable the arrow. */
+  /** Selection-arrow frame name. Omit to disable the arrow. */
   arrowFrame?: string;
+  /**
+   * Atlas holding the arrow, when it is not the frame's own. The window frame
+   * is shared chrome and lives in a common atlas; the arrow is usually part of
+   * the owner's own art. Defaults to {@link atlas}.
+   */
+  arrowAtlas?: string;
 }
 
 export interface SelectorBarLayout {
@@ -36,6 +45,13 @@ export interface SelectorBarItem {
   object: Phaser.GameObjects.Container;
   /** Measured width of the item (px), used for pagination + placement. */
   width: number;
+  /**
+   * Unavailable right now. A disabled item still takes its place in the layout
+   * (so the bar does not reflow as availability changes) but the selection
+   * cannot land on it: moving the cursor steps over it, and the caller renders
+   * it greyed. Owners supply the greying; SelectorBar owns the skipping.
+   */
+  disabled?: boolean;
 }
 
 interface Placed {
@@ -43,6 +59,7 @@ interface Placed {
   width: number;
   page: number;
   x: number;
+  disabled: boolean;
 }
 
 /**
@@ -118,9 +135,14 @@ export class SelectorBar extends Phaser.GameObjects.Container {
         .setOrigin(0, 0);
       this.add(nine);
 
-      if (style.arrowFrame && scene.textures.get(style.atlas).has(style.arrowFrame)) {
+      const arrowAtlas = style.arrowAtlas ?? style.atlas;
+      if (
+        style.arrowFrame &&
+        scene.textures.exists(arrowAtlas) &&
+        scene.textures.get(arrowAtlas).has(style.arrowFrame)
+      ) {
         this.arrow = scene.make
-          .image({ key: style.atlas, frame: style.arrowFrame }, false)
+          .image({ key: arrowAtlas, frame: style.arrowFrame }, false)
           // Anchor by the arrow's right edge so it sits just left of its target.
           .setOrigin(1, 0.5)
           .setVisible(false);
@@ -150,20 +172,66 @@ export class SelectorBar extends Phaser.GameObjects.Container {
   /** Replace all items; recomputes pagination and re-renders the current view. */
   setItems(items: SelectorBarItem[]) {
     this.items.forEach((it) => it.cell.destroy());
-    this.items = items.map((it) => ({ cell: it.object, width: it.width, page: 0, x: 0 }));
+    this.items = items.map((it) => ({
+      cell: it.object,
+      width: it.width,
+      page: 0,
+      x: 0,
+      disabled: it.disabled === true,
+    }));
     this.items.forEach((it) => this.add(it.cell));
     // Keep the arrow above the item cells so it stays visible.
     if (this.arrow) this.bringToTop(this.arrow);
 
     this.paginate();
-    this._selectedIndex = Phaser.Math.Clamp(this._selectedIndex, 0, Math.max(0, this.items.length - 1));
+    const clamped = Phaser.Math.Clamp(this._selectedIndex, 0, Math.max(0, this.items.length - 1));
+    this._selectedIndex = this.nearestEnabled(clamped) ?? clamped;
     this._currentPage = this.items[this._selectedIndex]?.page ?? 0;
+    this.render();
+  }
+
+  /** Whether the item at `index` is currently unavailable. */
+  isDisabledAt(index: number): boolean {
+    return this.items[index]?.disabled === true;
+  }
+
+  /** True when no item can be selected (every one is disabled, or there are none). */
+  get allDisabled(): boolean {
+    return this.items.length === 0 || this.items.every((it) => it.disabled);
+  }
+
+  /**
+   * Update availability in place — no re-layout, so the bar does not jump as
+   * buttons come and go. If the selection is sitting on an item that just became
+   * disabled it moves to the nearest available one.
+   */
+  setDisabledFlags(flags: boolean[]) {
+    let changed = false;
+    this.items.forEach((it, i) => {
+      const next = flags[i] === true;
+      if (it.disabled !== next) { it.disabled = next; changed = true; }
+    });
+    if (!changed) return;
+
+    if (this.items[this._selectedIndex]?.disabled) {
+      const rescue = this.nearestEnabled(this._selectedIndex);
+      if (rescue !== null) {
+        this._selectedIndex = rescue;
+        this._currentPage = this.items[rescue].page;
+        this.render();
+        this.emit("select", this._selectedIndex);
+        return;
+      }
+    }
     this.render();
   }
 
   setSelectedIndex(index: number) {
     if (this.items.length === 0) return;
     const next = Phaser.Math.Clamp(index, 0, this.items.length - 1);
+    // A disabled item is not a selection target; callers (pointer hover, a direct
+    // index) are simply ignored rather than silently landing somewhere else.
+    if (this.items[next].disabled) return;
     if (next === this._selectedIndex && this.items[next].page === this._currentPage) return;
     this._selectedIndex = next;
     this._currentPage = this.items[next].page;
@@ -171,12 +239,20 @@ export class SelectorBar extends Phaser.GameObjects.Container {
     this.emit("select", this._selectedIndex);
   }
 
+  /** Move the selection by `delta` steps, stepping over disabled items. */
   moveSelection(delta: number) {
-    this.setSelectedIndex(this._selectedIndex + delta);
+    this.setSelectedIndex(stepSelection(this.disabledFlags(), this._selectedIndex, delta));
   }
 
-  selectFirst() { this.setSelectedIndex(0); }
-  selectLast() { this.setSelectedIndex(this.items.length - 1); }
+  selectFirst() {
+    const target = this.firstEnabled(0, 1);
+    if (target !== null) this.setSelectedIndex(target);
+  }
+
+  selectLast() {
+    const target = this.firstEnabled(this.items.length - 1, -1);
+    if (target !== null) this.setSelectedIndex(target);
+  }
 
   /** Focus shows the arrow (framed) — callers own any non-framed affordance. */
   setFocused(focused: boolean) {
@@ -193,6 +269,18 @@ export class SelectorBar extends Phaser.GameObjects.Container {
   }
 
   // ── Private ────────────────────────────────────────────────────────────────
+
+  private disabledFlags(): boolean[] {
+    return this.items.map((it) => it.disabled);
+  }
+
+  private firstEnabled(from: number, step: number): number | null {
+    return firstEnabledIndex(this.disabledFlags(), from, step);
+  }
+
+  private nearestEnabled(from: number): number | null {
+    return nearestEnabledIndex(this.disabledFlags(), from);
+  }
 
   /** Greedily pack items into pages by width, then place each page's items. */
   private paginate() {
@@ -240,7 +328,7 @@ export class SelectorBar extends Phaser.GameObjects.Container {
 
     if (this.arrow) {
       const sel = this.items[this._selectedIndex];
-      if (this._focused && sel && sel.page === this._currentPage) {
+      if (this._focused && sel && !sel.disabled && sel.page === this._currentPage) {
         this.arrow.setPosition(sel.x - 1, this.centerY).setVisible(true);
       } else {
         this.arrow.setVisible(false);

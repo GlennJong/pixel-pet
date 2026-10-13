@@ -1,47 +1,66 @@
 import Phaser from 'phaser';
-import { ButtonBar, OptionMenu } from '../elements';
+import { OptionMenu } from '../elements';
 import { ScreenKeyboard } from '@/game/ui';
 import { FocusRouter, createScope } from '@/game/ui/focus';
 import { COLORS, BUTTON_BAR_HEIGHT } from '../constants';
-import { WorkspaceAtlasEntry } from '../types';
+import { NavHost, WorkspaceAtlasEntry } from '../types';
 import { EditorScreen } from './EditorScreen';
 
+export interface AtlasPickerOptions {
+  /**
+   * Root mode drops the dimmed blocker and labels the bottom action EXIT: the
+   * screen is not covering anything, so pretending to be a modal would promise
+   * a thing to go back to that does not exist.
+   */
+  root?: boolean;
+  initialIndex?: number;
+}
+
 /**
- * S1 modal overlay – pick an existing workspace atlas to import.
+ * S0 – pick which shipped atlas to edit.
  *
- * A scrolling {@link OptionMenu} list above a single CANCEL bar. Navigation is
+ * Two roles, one screen: the editor's first screen (`root: true`), and the
+ * modal "load other data" overlay reached from the library. The list is the
+ * same either way — the editable atlases from `assets.json` — so the two cannot
+ * show different things.
+ *
+ * A scrolling {@link OptionMenu} list above a single action bar. Navigation is
  * driven by the shared {@link FocusRouter}: the list and the bar are two
  * focusables; geometry moves between them and boundary overrides wrap
- * (list-top ↑ → CANCEL, CANCEL ↓ → list-top).
+ * (list-top ↑ → bar, bar ↓ → list-top).
  *
  * Events emitted:
- *   'cancel'
+ *   'cancel'                 – EXIT (root) or CANCEL (overlay)
  *   'confirm' ({ atlas })
  */
-export class AtlasImportScreen extends EditorScreen {
+export class AtlasPickerScreen extends EditorScreen {
   private readonly screenW: number;
   private readonly screenH: number;
   private readonly atlasList: WorkspaceAtlasEntry[];
+  private readonly opts: AtlasPickerOptions;
 
   private optionMenu!: OptionMenu;
-  private buttonBar!: ButtonBar;
   private readonly router = new FocusRouter();
+  private readonly navHost: NavHost;
 
   constructor(
     scene: Phaser.Scene,
     width: number,
     height: number,
     atlasList: WorkspaceAtlasEntry[],
-    initialIndex = 0,
+    navHost: NavHost,
+    opts: AtlasPickerOptions = {},
   ) {
     super(scene);
+    this.navHost = navHost;
 
     this.screenW = width;
     this.screenH = height;
     this.atlasList = [...atlasList];
+    this.opts = opts;
 
     this.buildUI();
-    this.optionMenu.setCursor(initialIndex);
+    this.optionMenu.setCursor(opts.initialIndex ?? 0);
     this.setupFocus();
     this.installKeyboard();
 
@@ -50,8 +69,9 @@ export class AtlasImportScreen extends EditorScreen {
   }
 
   private buildUI() {
+    // Opaque as a root screen, dimmed-but-blocking as an overlay.
     const blocker = this.scene.add
-      .rectangle(0, 0, this.screenW, this.screenH, COLORS.BG, 0.92)
+      .rectangle(0, 0, this.screenW, this.screenH, COLORS.BG, this.opts.root ? 1 : 0.92)
       .setOrigin(0, 0)
       .setInteractive({ cursor: 'default' });
     blocker.on('pointerdown', () => undefined);
@@ -65,37 +85,39 @@ export class AtlasImportScreen extends EditorScreen {
       8,
       this.screenW - 16,
       listMaxH,
-      this.atlasList.map((atlas, i) => ({ key: String(i), label: `${i + 1}. ${atlas.atlasId}` })),
+      // The user picks what they want to change, so the row says what changes:
+      // a readable name over a line naming the thing they will see differ. The
+      // atlasId is an internal identifier and only surfaces when an entry has
+      // no display name of its own.
+      this.atlasList.map((atlas, i) => ({
+        key: String(i),
+        label: `${i + 1}. ${atlas.displayName || atlas.atlasId}`,
+        description: atlas.description,
+      })),
     );
     this.optionMenu.on('select', (key: string) => this.confirmSelection(Number(key)));
     this.add(this.optionMenu);
-
-    // Bottom nav: a single CANCEL action (Escape also cancels via the scope).
-    this.buttonBar = new ButtonBar(
-      this.scene,
-      this.screenH - BUTTON_BAR_HEIGHT,
-      this.screenW,
-      [{ key: 'cancel', label: 'CANCEL' }],
-    );
-    this.buttonBar.on('action', () => this.emit('cancel'));
-    this.add(this.buttonBar);
   }
 
   private setupFocus() {
     // Pointer events take router focus first, so mouse and keyboard agree.
     this.optionMenu.on('request-focus', () => this.router.focusId('list'));
-    this.buttonBar.on('request-focus', () => this.router.focusId('cancel'));
 
     const list = this.optionMenu.asFocusable('list');
-    const cancel = this.buttonBar.asFocusable('cancel', { homeOnEnter: 'none' });
+    // The bottom bar belongs to the scene — see navigation/registry.ts for its
+    // buttons. We only borrow it as a focusable.
+    const cancel = this.navHost.buildNavFocusable(
+      (edge) => this.router.focusEdge(edge, 'nav'),
+      () => this.router.focusId('nav'),
+    );
 
     const scope = createScope({
-      id: 'atlas-import',
+      id: 'atlas-picker',
       members: () => [list, cancel],
       onCancel: () => this.emit('cancel'),
       boundaryOverride: {
-        UP: () => this.router.focusId('cancel', 'UP'),   // list-top ↑ → CANCEL
-        DOWN: () => this.router.focusId('list', 'DOWN'), // CANCEL ↓ → list-top
+        UP: () => this.router.focusId('nav', 'UP'),     // list-top ↑ → action bar
+        DOWN: () => this.router.focusId('list', 'DOWN'), // action bar ↓ → list-top
       },
     });
 

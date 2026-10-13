@@ -10,6 +10,13 @@ export interface FocusableConfig {
   id: string;
   /** The GameObject whose world bounds position this focusable for routing. */
   object: HasBounds;
+  /**
+   * Bounds to route by, when the object's own are not what the user sees.
+   * A scrolling list reports the size of its *content*, so a long one reaches
+   * far below its viewport and its centre can end up past its neighbours —
+   * which silently removes it from spatial navigation.
+   */
+  bounds?: () => Phaser.Geom.Rectangle;
   isEnabled?: () => boolean;
   onFocus: (from?: Direction) => void;
   onBlur: () => void;
@@ -30,7 +37,7 @@ export function makeFocusable(cfg: FocusableConfig): Focusable {
     id: cfg.id,
     isEnabled: cfg.isEnabled ?? (() => true),
     getBounds(): Bounds {
-      const r = cfg.object.getBounds();
+      const r = cfg.bounds ? cfg.bounds() : cfg.object.getBounds();
       return { x: r.x, y: r.y, width: r.width, height: r.height, center: { x: r.centerX, y: r.centerY } };
     },
     onFocus: cfg.onFocus,

@@ -200,7 +200,7 @@ describe('S2 SpriteEditScreen [card column, nav]', () => {
   });
 });
 
-describe('S3 FrameSelectorScreen / AtlasImportScreen [list, bar]', () => {
+describe('S3 FrameSelectorScreen / AtlasPickerScreen [list, bar]', () => {
   const build = () => {
     const r = new FocusRouter();
     const grid = list('grid', 0, 100, 8);
@@ -241,5 +241,50 @@ describe('regression guard: boundary bridges must carry the travel direction', (
     keys(r, 'ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowDown');
     expect(r.focused?.id).toBe('menu');
     expect(menu.cursor).toBe(2); // lands on the LAST row — the reported symptom
+  });
+});
+
+describe('a scrolling list is routed by its viewport, not its content', () => {
+  /**
+   * The frame selector is a grid above a bottom bar. The grid scrolls, so the
+   * container holding its cells is as tall as the library — far taller than the
+   * slot it occupies. Routing by that taller rectangle puts the grid's centre
+   * *below* the bar, and a neighbour that is not above you cannot be reached by
+   * pressing up: focus sticks on the bar.
+   *
+   * The boundary override cannot paper over it either. It is scope-wide, so the
+   * same UP handler serves "grid-top ↑ → bar", which means it aims at the bar —
+   * and firing it while already on the bar does nothing at all.
+   */
+  const build = (gridHeight: number) => {
+    const grid = list('grid', 0, gridHeight, 12);
+    const navBar = bar('nav', 122, 22);
+    const r = new FocusRouter();
+    r.setBaseScope(
+      scope('frame-selector', [grid, navBar], {
+        UP: () => r.focusId('nav', 'UP'),
+        DOWN: () => r.focusId('grid', 'DOWN'),
+      }),
+      'grid',
+    );
+    return { grid, r };
+  };
+
+  it('reaches the grid from the bar, landing on the last cell', () => {
+    const { grid, r } = build(100); // viewport-sized: centre at y=50, above the bar
+    r.focusId('nav');
+
+    r.handleKey('ArrowUp');
+    expect(r.focused?.id).toBe('grid');
+    expect(grid.cursor).toBe(11);   // entered travelling UP → last cell
+  });
+
+  it('cannot reach it when the list reports its content height', () => {
+    // 12 cells of scrolled content: centre at y=200, below the bar at y=122.
+    const { r } = build(400);
+    r.focusId('nav');
+
+    r.handleKey('ArrowUp');
+    expect(r.focused?.id).toBe('nav'); // stuck — this is the bug being guarded
   });
 });

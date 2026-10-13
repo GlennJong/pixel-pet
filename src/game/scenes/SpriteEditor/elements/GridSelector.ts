@@ -46,6 +46,9 @@ export class GridSelector extends FocusableCursorList {
 
   private readonly cellSize: number;
   private readonly visibleH: number;
+  /** The grid's own size, kept for focus routing — see focusBounds(). */
+  private readonly viewW: number;
+  private readonly viewH: number;
 
   constructor(scene: Phaser.Scene, config: GridSelectorConfig) {
     super(scene, config.x, config.y);
@@ -54,6 +57,8 @@ export class GridSelector extends FocusableCursorList {
     const innerW = config.width - GRID_OUTER_PAD * 2;
     this.cellSize = config.cellSize ?? Math.floor((innerW - (cols - 1) * GRID_GAP) / cols);
     this.visibleH = config.height - GRID_OUTER_PAD * 2;
+    this.viewW = config.width;
+    this.viewH = config.height;
 
     // Gray background area
     this.areaBg = scene.add
@@ -75,6 +80,19 @@ export class GridSelector extends FocusableCursorList {
     this.contentContainer.setMask(this.viewportMask.createGeometryMask());
 
     scene.add.existing(this);
+  }
+
+  /**
+   * Route by the visible area, not by the content.
+   *
+   * `getBounds()` on the container spans every cell, including those scrolled
+   * out of sight. A library of any size therefore reports a rectangle reaching
+   * far below the grid, putting its centre *below* the bottom bar — and a
+   * neighbour that is not above you cannot be reached by pressing up.
+   */
+  protected focusBounds(): Phaser.Geom.Rectangle {
+    const origin = this.getWorldTransformMatrix();
+    return new Phaser.Geom.Rectangle(origin.tx, origin.ty, this.viewW, this.viewH);
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────
@@ -193,7 +211,11 @@ export class GridSelector extends FocusableCursorList {
   /** Replace all cells (used by S3 to show images without add cell) */
   setCells(cells: GridCellData[]) {
     this.cells = cells.map(c => ({ ...c }));
+    // A replacement list can be shorter than the last one; a cursor left past
+    // the end would index undefined on the next redraw.
+    this._cursorIndex = Phaser.Math.Clamp(this._cursorIndex, 0, Math.max(0, this.cells.length - 1));
     this.rebuildCellViews();
+    this.scrollToCursor();
     this.refreshVisuals();
   }
 

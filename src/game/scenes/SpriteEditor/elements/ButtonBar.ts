@@ -17,6 +17,12 @@ import {
 export interface ButtonConfig {
   key: string;
   label: string;
+  /**
+   * Unavailable right now: greyed out, skipped by the cursor, and inert to both
+   * Space and the pointer. The button keeps its place so the bar does not reflow
+   * as availability changes — a moving target is worse than a greyed one.
+   */
+  disabled?: boolean;
 }
 
 interface ButtonCell {
@@ -42,6 +48,9 @@ const ARROW_RESERVE = 8;
  * Events emitted:
  *   'action' (key: string) – button was activated
  *   'request-focus'        – pointer entered/pressed; owner should focus this bar
+ *
+ * Buttons can be disabled, either up front via {@link ButtonConfig.disabled} or
+ * later via {@link setDisabledKeys} when availability depends on live state.
  */
 export class ButtonBar extends FocusableCursorList {
   private bar: SelectorBar;
@@ -75,6 +84,7 @@ export class ButtonBar extends FocusableCursorList {
         inset: UI_FRAME.INSET,
         fallbackColor: COLORS.BUTTON_BAR_BG,
         arrowFrame: UI_FRAME.ARROW_TEXTURE,
+        arrowAtlas: UI_FRAME.ARROW_ATLAS,
       },
       {
         align,
@@ -106,7 +116,9 @@ export class ButtonBar extends FocusableCursorList {
 
   setButtons(buttons: ButtonConfig[]) {
     this.cells = [];
-    this.buttonConfigs = [...buttons];
+    // Copy each config: setDisabledKeys mutates these, and callers routinely pass
+    // a shared module-level constant.
+    this.buttonConfigs = buttons.map((cfg) => ({ ...cfg }));
 
     // Framed: plain dark text, arrow is the focus affordance.
     // Fallback: classic grey box + red border.
@@ -118,7 +130,7 @@ export class ButtonBar extends FocusableCursorList {
     };
     const midY = Math.floor(BUTTON_BAR_HEIGHT / 2);
 
-    const items: SelectorBarItem[] = buttons.map((cfg, i) => {
+    const items: SelectorBarItem[] = this.buttonConfigs.map((cfg, i) => {
       // Measure the label to size the cell (reusing the shared probe).
       this.probe.setText(cfg.label);
       const btnW = this.probe.width + BUTTON_PADDING_X * 2;
@@ -134,25 +146,50 @@ export class ButtonBar extends FocusableCursorList {
         .setOrigin(0, 0.5);
       cell.add([bg, border, text]);
 
-      // 'request-focus' first: the owner pulls router focus onto this bar (which
-      // homes the cursor), then we place the cursor on the hovered button.
+      // A disabled button swallows pointer events entirely — no focus steal, no
+      // selection. Taking focus would move the highlight to a *different* button
+      // than the one under the cursor, which reads as a glitch.
       bg.on('pointerover', () => {
+        if (this.bar.isDisabledAt(i)) return;
+        // 'request-focus' first: the owner pulls router focus onto this bar
+        // (which homes the cursor), then we place the cursor on the hovered one.
         this.emit('request-focus');
         this.bar.setSelectedIndex(i);
       });
       bg.on('pointerdown', () => {
+        if (this.bar.isDisabledAt(i)) return;
         this.emit('request-focus');
         this.bar.setSelectedIndex(i);
         this.executeCursor();
       });
 
       this.cells.push({ bg, border, text });
-      return { object: cell, width: btnW };
+      return { object: cell, width: btnW, disabled: cfg.disabled === true };
     });
 
     this.bar.setItems(items);
     this.bar.setFocused(this._hasFocus);
+    this.refreshTextColors();
     this.refreshFallbackBorder();
+  }
+
+  /**
+   * Mark exactly these keys unavailable, leaving the layout alone. Call it
+   * whenever the state a button depends on changes; unknown keys are ignored, so
+   * a caller can pass one list for several bar configurations.
+   */
+  setDisabledKeys(keys: readonly string[]) {
+    const disabled = new Set(keys);
+    const flags = this.buttonConfigs.map((cfg) => disabled.has(cfg.key));
+    this.buttonConfigs.forEach((cfg, i) => { cfg.disabled = flags[i]; });
+    this.bar.setDisabledFlags(flags);
+    this.refreshTextColors();
+    this.refreshFallbackBorder();
+  }
+
+  /** Whether the button under the cursor can currently be executed. */
+  get cursorEnabled(): boolean {
+    return !this.bar.isDisabledAt(this.bar.selectedIndex);
   }
 
   protected onFocusChange() {
@@ -197,7 +234,8 @@ export class ButtonBar extends FocusableCursorList {
 
   executeCursor() {
     const btn = this.buttonConfigs[this.bar.selectedIndex];
-    if (btn) this.emit('action', btn.key);
+    if (!btn || btn.disabled) return;
+    this.emit('action', btn.key);
   }
 
   destroy(fromScene?: boolean) {
@@ -213,6 +251,15 @@ export class ButtonBar extends FocusableCursorList {
    * No-op when the frame (and its arrow) is available. Off-page cells are hidden
    * by SelectorBar, so only the selected (on-page) cell's border is ever visible.
    */
+  /** Grey the label of every disabled button, restore the rest. */
+  private refreshTextColors() {
+    const normal = hex(this.framed ? COLORS.TEXT : COLORS.TEXT_BUTTON);
+    const dimmed = hex(COLORS.TEXT_DISABLED);
+    this.cells.forEach(({ text }, i) => {
+      text.setColor(this.buttonConfigs[i]?.disabled ? dimmed : normal);
+    });
+  }
+
   private refreshFallbackBorder() {
     if (this.framed) return;
     this.cells.forEach(({ bg, border }, i) => {

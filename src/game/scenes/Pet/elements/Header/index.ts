@@ -63,7 +63,7 @@ export class Header extends Phaser.GameObjects.Container {
 
     this.background = this.scene.make
       .nineslice({
-        key: this.config.atlasId,
+        key: frameConfig.atlasId || this.config.atlasId,
         frame: frameConfig.textureFrame,
         x: 0,
         y: 0,

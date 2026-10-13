@@ -1,33 +1,33 @@
 {
   "textures": [
     {
-      "image": "frame.png",
+      "image": "spritesheet.png",
       "format": "RGBA8888",
       "size": {
-        "w": 32,
-        "h": 32
+        "w": 21,
+        "h": 20
       },
       "scale": 1,
       "frames": [
         {
-          "filename": "example",
+          "filename": "frame_1",
           "rotated": false,
           "trimmed": false,
           "sourceSize": {
-            "w": 32,
-            "h": 32
+            "w": 21,
+            "h": 20
           },
           "spriteSourceSize": {
             "x": 0,
             "y": 0,
-            "w": 32,
-            "h": 32
+            "w": 21,
+            "h": 20
           },
           "frame": {
             "x": 0,
             "y": 0,
-            "w": 32,
-            "h": 32
+            "w": 21,
+            "h": 20
           }
         }
       ]

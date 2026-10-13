@@ -6,10 +6,11 @@ import { ProgressBar } from "../components/ProgressBar";
 import { PROGRESS_BAR_CONFIG } from "../constants";
 import { runtimeData } from "../runtimeData";
 import { getAtlasCustomizations } from "../customization";
+import { AtlasEntry } from "@/game/assets";
 
 interface PreloadConfig extends Partial<StaticDataSchema> {
   assets?: {
-    atlases?: Array<{ atlasId: string; png: string; json: string; animations?: string }>;
+    atlases?: AtlasEntry[];
     fonts?: Array<{ key: string; url: string; format: string }>;
     animationsByAtlas?: Record<string, any>;
   };

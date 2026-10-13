@@ -15,6 +15,14 @@ export abstract class EditorScreen extends Phaser.GameObjects.Container {
     super(scene, 0, 0);
   }
 
+  /**
+   * Stop/resume reacting to keys, without otherwise disturbing the screen.
+   * Used when something in front of it takes over the keyboard — a confirm
+   * dialog, say. Two live keydown listeners would both act on the same press.
+   */
+  pauseInput() { this.keyboard?.pause(); }
+  resumeInput() { this.keyboard?.resume(); }
+
   destroy(fromScene?: boolean) {
     this.keyboard?.destroy();
     super.destroy(fromScene);

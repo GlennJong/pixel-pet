@@ -15,13 +15,12 @@ import {
   createScope,
   makeFocusable,
 } from '@/game/ui/focus';
-import { AtlasImportScreen } from './AtlasImportScreen';
 import { EditorScreen } from './EditorScreen';
 import { importAtlasTrio, ImportAtlasTrioResult } from '../utils/import';
+import { loadWorkspaceAtlasProject } from '../utils/workspaceAtlas';
+import { resolveDefaultAtlas } from '../utils/template';
 import { parseSmartFileName } from '../utils/smartInput';
-import { loadTextureFromDataUrl } from '../utils/texture';
-import { isRecord } from '../utils/json';
-import { assetUrl } from '@/utils/assetUrl';
+import { importImageFiles } from '../utils/imageLibrary';
 import {
   COLORS,
   FONT,
@@ -36,7 +35,6 @@ import {
   LibraryProceedPayload,
   NavHost,
   SpriteData,
-  WorkspaceAtlasEntry,
 } from '../types';
 
 // This screen's own bottom bar carries only the contextual multi-select actions,
@@ -66,8 +64,6 @@ interface LocalAtlasTrio {
  *   'exit'
  */
 export class LibraryScreen extends EditorScreen {
-  private readonly screenW: number;
-  private readonly screenH: number;
   private readonly navHost: NavHost;
 
   private nameInput: TextInput;
@@ -86,8 +82,6 @@ export class LibraryScreen extends EditorScreen {
   private importedSprites: SpriteData[] | undefined;
   /** True once CREATE NEW starts a fresh project: proceed must reset sprites. */
   private isNewProject = false;
-  private atlasImportScreen: AtlasImportScreen | undefined;
-  private nextImageId = 1;
 
   // Hidden file input – the only allowed DOM element
   private fileInput: HTMLInputElement;
@@ -113,11 +107,16 @@ export class LibraryScreen extends EditorScreen {
     height: number,
     initialState: { projectName: string; images: ImageItem[] } | undefined,
     navHost: NavHost,
+    /**
+     * Where to open. 'edit' goes straight to the material view — the normal
+     * case now that a project always arrives pre-loaded, so the entry menu
+     * would be a question with an obvious answer. 'menu' is still reachable
+     * from the LIBRARY nav button, which is what LOAD DATA / CREATE NEW live on.
+     */
+    startIn: 'menu' | 'edit' = 'edit',
   ) {
     super(scene);
 
-    this.screenW = width;
-    this.screenH = height;
     this.navHost = navHost;
 
     const PAD = 8;
@@ -155,10 +154,6 @@ export class LibraryScreen extends EditorScreen {
     // Restore previously imported images if returning from S2
     if (initialState && initialState.images.length > 0) {
       this.images = [...initialState.images];
-      this.nextImageId = initialState.images.reduce((max, img) => {
-        const n = parseInt(img.id.replace('img_', ''), 10);
-        return isNaN(n) ? max : Math.max(max, n + 1);
-      }, 1);
       this.grid.prependImageCells(initialState.images.map(img => ({ id: img.id, textureKey: img.textureKey })));
     }
     // ── Selection action bar (DELETE/CANCEL) — shown only during multi-select;
@@ -238,8 +233,10 @@ export class LibraryScreen extends EditorScreen {
 
     scene.add.existing(this);
 
-    // Start on the entry menu (shows {name}(current) when returning with a project).
-    this.showMenu();
+    // An empty library has nothing to edit, so it falls back to the menu
+    // whatever the caller asked for.
+    if (startIn === 'edit' && this.images.length > 0) this.showEdit();
+    else this.showMenu();
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────
@@ -249,6 +246,17 @@ export class LibraryScreen extends EditorScreen {
   /** Pause/resume the focus router + keyboard (around the atlas-import overlay). */
   pause() { this.router.pause(); this.keyboard.pause(); }
   resume() { this.keyboard.resume(); this.router.resume(); }
+
+  /**
+   * Whether SPRITES can do anything right now. S2 frames images, so an empty
+   * library has nothing to show. The scene polls this to grey the nav button —
+   * polling rather than an event because `images` is mutated from five places
+   * (import, delete, replace, atlas import, restore-on-return) and a missed
+   * notification would leave a button lying about its availability.
+   */
+  get canProceed(): boolean {
+    return this.images.length > 0;
+  }
 
   /** Build + emit the proceed payload (invoked by the scene's SPRITES nav).
    *  Refused with a hint while the library is empty — S2 has nothing to frame. */
@@ -373,12 +381,36 @@ export class LibraryScreen extends EditorScreen {
     this.router.setBaseScope(this.editScope, 'name');
   }
 
-  private enterCreateNew() {
+  /**
+   * CREATE NEW restarts from the factory copy of the current sprite set, not
+   * from a blank library.
+   *
+   * A blank start would require the user to know the shape of the thing they are
+   * building — which animations exist and how many frames each wants. That
+   * knowledge lives in the atlas's animations.json, so the editor supplies it:
+   * the new project arrives with every slot filled and editing is replacement.
+   *
+   * If the default cannot be loaded, fall back to the blank project rather than
+   * refusing — the user can still build one by hand.
+   */
+  private async enterCreateNew() {
+    // Read before clearing: the project name is the atlasId picked on S0, and
+    // "start over" means start over on *this* sprite set, not on another one.
+    const currentAtlasId = this.nameInput.value.trim();
+
     this.clearLibraryForReplace();
     this.nameInput.setValue('');
     // Fresh project — its sprite configs start empty (drop any prior project's).
     this.isNewProject = true;
     this.showEdit();
+
+    try {
+      const atlas = await resolveDefaultAtlas(currentAtlasId);
+      if (!atlas) return; // nothing editable to copy; the blank project stands
+      this.applyImportedAtlas(await loadWorkspaceAtlasProject(this.scene, atlas));
+    } catch (error) {
+      console.warn('[SpriteEditor] CREATE NEW could not copy the factory atlas', error);
+    }
   }
 
   private handleMenuSelect(key: string) {
@@ -390,11 +422,11 @@ export class LibraryScreen extends EditorScreen {
         break;
       case 'load':
         if (this.hasProject()) this.askDeposeConfirm('load');
-        else void this.openAtlasImportScreen();
+        else this.emit('load-data');
         break;
       case 'create':
         if (this.hasProject()) this.askDeposeConfirm('create');
-        else this.enterCreateNew();
+        else void this.enterCreateNew();
         break;
     }
   }
@@ -423,9 +455,9 @@ export class LibraryScreen extends EditorScreen {
     // showMenu / enterCreateNew reset the base scope (dropping the modal).
     if (action === 'load') {
       this.showMenu();
-      void this.openAtlasImportScreen();
+      this.emit('load-data');
     } else if (action === 'create') {
-      this.enterCreateNew();
+      void this.enterCreateNew();
     }
     this.emitNavSuppress();
   }
@@ -489,9 +521,7 @@ export class LibraryScreen extends EditorScreen {
 
   /** Emit the combined nav-suppress signal (modal or contextual bar is up). */
   private emitNavSuppress() {
-    const suppressed = this.selectionActive
-      || this.confirmDialog.isOpen
-      || this.atlasImportScreen !== undefined;
+    const suppressed = this.selectionActive || this.confirmDialog.isOpen;
     this.emit('nav-suppress', suppressed);
   }
 
@@ -537,7 +567,6 @@ export class LibraryScreen extends EditorScreen {
 
     this.images = [];
     this.importedSprites = undefined;
-    this.nextImageId = 1;
 
     this.grid.setCells([{ id: '__add__', type: 'add', selected: false }]);
     this.grid.setCursor(0);
@@ -585,9 +614,14 @@ export class LibraryScreen extends EditorScreen {
     this.importedSprites = [];
 
     try {
-      await Promise.all(imageFiles.map(file => this.importImageFile(file)));
+      // Shared with the frame selector, which imports material too — see
+      // utils/imageLibrary.ts. Two copies of "allocate an id, load a texture"
+      // would drift.
+      const added = await importImageFiles(this.scene, imageFiles, this.images);
+      this.images = [...this.images, ...added];
+      added.forEach(img => this.grid.addImageCell({ id: img.id, textureKey: img.textureKey }));
       // Derive the project name once after the whole batch — doing it per image
-      // (inside the map above) re-parsed every filename O(n) times per import.
+      // re-parsed every filename O(n) times per import.
       this.autoFillProjectNameFromParsedImages();
       // Stay on the Library so the imported thumbnails show in the grid; the user
       // advances to the sprite editor via the SPRITES nav when ready.
@@ -600,50 +634,6 @@ export class LibraryScreen extends EditorScreen {
 
     // Reset so the same file can be re-selected
     this.fileInput.value = '';
-  }
-
-  private importImageFile(file: File): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-
-      reader.onerror = () => {
-        reject(new Error(`Failed to read image file: ${file.name}`));
-      };
-
-      reader.onload = async (evt) => {
-        const dataUrl = evt.target?.result as string | undefined;
-        if (!dataUrl) {
-          reject(new Error(`Failed to decode image file: ${file.name}`));
-          return;
-        }
-
-        try {
-          await this.importImageFromDataUrl(dataUrl, file.name);
-          resolve();
-        } catch (error) {
-          reject(error instanceof Error ? error : new Error(String(error)));
-        }
-      };
-
-      reader.readAsDataURL(file);
-    });
-  }
-
-  private async importImageFromDataUrl(dataUrl: string, fileName: string): Promise<void> {
-    const id = `img_${this.nextImageId++}`;
-    const textureKey = `editor_img_${id}`;
-
-    const frame = await loadTextureFromDataUrl(this.scene, textureKey, dataUrl);
-
-    const item: ImageItem = {
-      id,
-      fileName,
-      textureKey,
-      width: frame.realWidth,
-      height: frame.realHeight,
-    };
-    this.images.push(item);
-    this.grid.addImageCell({ id, textureKey });
   }
 
   private findLocalAtlasTrio(files: File[]): LocalAtlasTrio | null {
@@ -662,119 +652,10 @@ export class LibraryScreen extends EditorScreen {
     };
   }
 
-  private async openAtlasImportScreen() {
-    if (this.atlasImportScreen) return;
-
-    try {
-      const configResponse = await fetch(assetUrl('configs/assets.json'));
-      if (!configResponse.ok) {
-        throw new Error('Failed to load configs/assets.json');
-      }
-
-      const configData = await configResponse.json() as unknown;
-      const atlasList = this.parseWorkspaceAtlasList(configData);
-
-      if (atlasList.length === 0) {
-        this.showError('No atlas entries found in assets config');
-        return;
-      }
-
-      // Pause this screen's router + keyboard; the overlay has its own.
-      this.pause();
-
-      this.atlasImportScreen = new AtlasImportScreen(this.scene, this.screenW, this.screenH, atlasList);
-      this.emitNavSuppress();
-      this.atlasImportScreen.once('cancel', () => {
-        this.closeAtlasImportScreen();
-      });
-      this.atlasImportScreen.once('confirm', (payload: { atlas: WorkspaceAtlasEntry }) => {
-        this.closeAtlasImportScreen();
-        void this.importAtlasFromWorkspace(payload.atlas);
-      });
-    } catch (error) {
-      this.showError(
-        `Import failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-  }
-
-  private closeAtlasImportScreen() {
-    if (!this.atlasImportScreen) return;
-
-    this.atlasImportScreen.destroy();
-    this.atlasImportScreen = undefined;
-    // Resume restores focus to exactly where it was before the overlay.
-    this.resume();
-    this.emitNavSuppress();
-  }
-
-  private async importAtlasFromWorkspace(atlas: WorkspaceAtlasEntry) {
-    try {
-      const [pngResponse, spritesheetResponse, animationsResponse] = await Promise.all([
-        fetch(assetUrl(atlas.png)),
-        fetch(assetUrl(atlas.json)),
-        atlas.animations ? fetch(assetUrl(atlas.animations)) : Promise.resolve(null),
-      ]);
-
-      if (!pngResponse.ok) {
-        throw new Error(`Failed to load atlas PNG at ${atlas.png}`);
-      }
-      if (!spritesheetResponse.ok) {
-        throw new Error(`Failed to load atlas JSON at ${atlas.json}`);
-      }
-      if (animationsResponse && !animationsResponse.ok) {
-        throw new Error(`Failed to load animations JSON at ${atlas.animations}`);
-      }
-
-      const result = await importAtlasTrio({
-        scene: this.scene,
-        pngBlob: await pngResponse.blob(),
-        spritesheetJsonText: await spritesheetResponse.text(),
-        animationsJsonText: animationsResponse ? await animationsResponse.text() : undefined,
-        projectNameHint: atlas.atlasId,
-      });
-
-      this.applyImportedAtlas(result);
-      this.proceedToSpriteEdit();
-    } catch (error) {
-      this.showError(
-        `Import failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-  }
-
-  private parseWorkspaceAtlasList(configData: unknown): WorkspaceAtlasEntry[] {
-    if (!isRecord(configData)) return [];
-    if (!Array.isArray(configData.atlases)) return [];
-
-    return configData.atlases.reduce<WorkspaceAtlasEntry[]>((list, entry) => {
-      if (!isRecord(entry)) return list;
-
-      const atlasId = typeof entry.atlasId === 'string' ? entry.atlasId.trim() : '';
-      const png = typeof entry.png === 'string' ? entry.png.trim() : '';
-      const json = typeof entry.json === 'string' ? entry.json.trim() : '';
-      const animationsRaw = entry.animations;
-      const animations = typeof animationsRaw === 'string' && animationsRaw.trim()
-        ? animationsRaw.trim()
-        : undefined;
-
-      if (!atlasId || !png || !json) return list;
-
-      list.push({
-        atlasId,
-        png,
-        json,
-        animations,
-      });
-      return list;
-    }, []);
-  }
-
   private applyImportedAtlas(result: ImportAtlasTrioResult) {
     this.images = [...result.images];
     this.importedSprites = [...result.sprites];
     this.isNewProject = false;
-    this.nextImageId = result.images.length + 1;
 
     this.grid.setCells([
       ...result.images.map(img => ({
@@ -823,8 +704,6 @@ export class LibraryScreen extends EditorScreen {
   // ── Cleanup ────────────────────────────────────────────────────────────────
 
   destroy(fromScene?: boolean) {
-    this.atlasImportScreen?.destroy();
-    this.atlasImportScreen = undefined;
     this.errorTimer?.remove();
     this.errorTimer = undefined;
     this.fileInput.removeEventListener('change', this.onFileInputChange);

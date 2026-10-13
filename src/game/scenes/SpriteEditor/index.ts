@@ -1,79 +1,60 @@
 import Phaser, { Scene } from 'phaser';
-import { LibraryScreen } from './screens/LibraryScreen';
 import { SpriteEditScreen } from './screens/SpriteEditScreen';
-import { FrameSelectorScreen } from './screens/FrameSelectorScreen';
-import { ButtonBar } from './elements';
-import { Focusable } from '@/game/ui/focus';
-import { EditorState, LibraryProceedPayload, NavHost } from './types';
+import { EditorState, WorkspaceAtlasEntry } from './types';
+import { ScreenHost } from './navigation/ScreenHost';
+import { NAV_MODES, SCREENS } from './navigation/registry';
+import { EditorApp } from './navigation/types';
 import { buildSpriteEditorExport, downloadSpriteEditorExport } from './utils/export';
-import { buildPresetSpritesFromImages } from './utils/smartInput';
 import { removeEditorImageTextures } from './utils/texture';
+import { loadEditableAtlasList } from './utils/template';
+import { loadWorkspaceAtlasProject } from './utils/workspaceAtlas';
 import { saveAtlasCustomization, setCustomizationActive, reloadAtlasIntoScene } from '@/game/customization';
 import { getStaticData } from '@/game/staticData';
-import { COLORS, FONT, BUTTON_BAR_HEIGHT, BANNER_AUTOHIDE_MS, hex } from './constants';
+import { AtlasEntry } from '@/game/assets';
+import { COLORS, FONT, BANNER_AUTOHIDE_MS, hex } from './constants';
+
+const describeError = (error: unknown) =>
+  error instanceof Error ? error.message : String(error);
 
 interface EditorSceneStartData {
   returnSceneKey?: string;
   targetAtlasId?: string;
 }
 
-// Persistent bottom navigation shared by the Library (S1) and Sprite Edit (S2)
-// screens. This scene owns it so screen-switching is centralized here; the
-// keyboard reaches it by arrowing down past a screen's content ('nav-down').
-const NAV_BUTTONS = [
-  { key: 'library', label: 'LIBRARY' },
-  { key: 'sprites', label: 'SPRITES' },
-  { key: 'save', label: 'SAVE' },
-  { key: 'exit', label: 'EXIT' },
-];
-
-// Sub-menu shown in place of NAV_BUTTONS after SAVE is chosen. APPLY writes the
-// customization into the running game; EXPORT downloads the artifacts; CANCEL
-// returns to the default nav.
-const SAVE_BUTTONS = [
-  { key: 'apply', label: 'APPLY' },
-  { key: 'export', label: 'EXPORT' },
-  { key: 'cancel', label: 'CANCEL' },
-];
-
 /**
  * EditorScene – Sprite Editor
  *
  * Renders at the live game canvas size (this.scale.width/height), so the UI
  * always matches whatever resolution the host game runs at — no canvas resize.
- * Screens receive that width/height and lay out relative to it; the fixed
- * element sizes live in constants.ts.
  *
- * Screen flow: S1 LibraryScreen ↔ S2 SpriteEditScreen ↔ S3 FrameSelectorScreen
+ * The scene no longer decides what is on screen. It owns the *project* (the
+ * atlas being edited, its images and sprite configs) and the operations on it —
+ * load, apply, export — and hands them to a {@link ScreenHost}, which runs the
+ * navigation described in `navigation/registry.ts`. To change which screen
+ * follows which, or which buttons a screen offers, edit that file; this one only
+ * gains code when the editor learns to *do* something new.
  *
  * Scene key: 'SpriteEditor'
  */
-export default class EditorScene extends Scene implements NavHost {
-  private libraryScreen?: LibraryScreen;
-  private spriteEditScreen?: SpriteEditScreen;
-  private frameSelectorScreen?: FrameSelectorScreen;
+export default class EditorScene extends Scene implements EditorApp {
+  private host?: ScreenHost;
   private returnSceneKey?: string;
   private targetAtlasId?: string;
 
   private errorBanner?: Phaser.GameObjects.Text;
+  private bootText?: Phaser.GameObjects.Text;
+  /** Set on SHUTDOWN so async work drops its result instead of touching a dead scene. */
+  private disposed = false;
 
-  // Persistent bottom navigation (owned here, shared by S1/S2). Keyboard focus is
-  // driven by the active screen's FocusRouter, which embeds this bar as a
-  // trailing focusable (see buildNavFocusable); the scene only owns the bar,
-  // its actions, the SAVE sub-menu, and visibility.
-  private navBar?: ButtonBar;
-  private navSuppressed = false; // a screen has a modal/contextual bar up
-  private navSaveMode = false; // nav is showing the SAVE sub-menu (APPLY/EXPORT/CANCEL)
-  private currentScreen: 'library' | 'sprites' | 'frames' | 'none' = 'none';
+  private atlasList: WorkspaceAtlasEntry[] = [];
+  /**
+   * The atlas the user picked. Authoritative for APPLY: `targetAtlasId` only
+   * says which atlas the caller *launched* the editor for, and the picker lets
+   * them choose another.
+   */
+  private selectedAtlas?: WorkspaceAtlasEntry;
 
-  // Pending frame-selector context (used when returning from S3 → S2)
-  private pendingFrameTarget?: string;
-
-  private state: EditorState = {
-    projectName: '',
-    images: [],
-    sprites: [],
-  };
+  private state: EditorState = { projectName: '', images: [], sprites: [] };
 
   constructor() {
     super('SpriteEditor');
@@ -82,323 +63,146 @@ export default class EditorScene extends Scene implements NavHost {
   init(data: EditorSceneStartData) {
     this.returnSceneKey = data?.returnSceneKey;
     this.targetAtlasId = data?.targetAtlasId;
-    this.state = {
-      projectName: this.targetAtlasId || '',
-      images: [],
-      sprites: [],
-    };
+    this.disposed = false;
+    this.atlasList = [];
+    this.selectedAtlas = undefined;
+    this.state = { projectName: this.targetAtlasId || '', images: [], sprites: [] };
   }
 
   create() {
-    // Match the live canvas size so the editor UI fits the host game exactly.
     const w = this.scale.width;
     const h = this.scale.height;
     this.add.rectangle(0, 0, w, h, COLORS.BG).setOrigin(0, 0);
-    this.buildNavBar(w, h);
-    this.showLibraryScreen(w, h);
-
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
-  }
-
-  // ── Shared navigation (bottom bar) ───────────────────────────────────────────
-
-  private buildNavBar(w: number, h: number) {
-    // Rendered above the screen containers (they're recreated on every switch,
-    // so a high depth keeps the nav on top). Hidden while a screen shows a modal
-    // (its own bar sits at the same y) and on the frame-selector sub-screen.
-    this.navBar = new ButtonBar(this, h - BUTTON_BAR_HEIGHT, w, NAV_BUTTONS, 'left');
-    this.navBar.setDepth(500);
-    this.navBar.on('action', (key: string) => this.handleNavAction(key));
-  }
-
-  /** True when the nav bar can currently take focus (visible + not suppressed). */
-  private navShowable(): boolean {
-    const showable = this.currentScreen === 'library' || this.currentScreen === 'sprites';
-    return showable && !this.navSuppressed;
-  }
-
-  /**
-   * Build the shared nav bar as a Focusable for the active screen's router. It
-   * sits as the trailing (bottom) member of the screen's scope: geometry reaches
-   * it going down and the screen's boundary overrides wrap top↔nav. `enterContent`
-   * is the screen's hook to return focus to real content (Escape / bridges).
-   */
-  buildNavFocusable(
-    enterContent: (edge: 'first' | 'last') => void,
-    requestFocus: () => void,
-  ): Focusable {
-    // The nav bar outlives the screens, so re-bind (never stack) the pointer
-    // hook each time a screen builds its focusable.
-    this.navBar?.off('request-focus');
-    this.navBar?.on('request-focus', requestFocus);
-
-    return this.navBar!.asFocusable('nav', {
-      isEnabled: () => this.navShowable(),
-      homeOnEnter: 'first',
-      onBlur: () => {
-        // Losing focus closes the SAVE sub-menu. Escape is not the only way out
-        // of the bar (clicking screen content or the SPRITES action also move
-        // focus away), and leaving APPLY/EXPORT/CANCEL up would put APPLY under
-        // the cursor the next time the nav is focused.
-        if (this.navSaveMode) this.exitSaveMenu(false);
-      },
-      handleKey: (code) => {
-        if (code !== 'Escape') return false;
-        if (this.navSaveMode) { this.exitSaveMenu(); return true; }
-        enterContent('last');
-        return true;
-      },
-      // UP/DOWN: trap inside the bar while the SAVE sub-menu is open; otherwise
-      // undefined → the bar's own contract (no vertical movement) lets the router
-      // move out (up → content via geometry, down → wrap boundary).
-      handleDirection: (dir) =>
-        (dir === 'UP' || dir === 'DOWN') ? this.navSaveMode : undefined,
-    });
-  }
-
-  private handleNavAction(key: string) {
-    const w = this.scale.width;
-    const h = this.scale.height;
-
-    // SAVE sub-menu actions keep focus on the nav — handle before the shared
-    // "leaving the nav" teardown below.
-    switch (key) {
-      case 'save':
-        this.enterSaveMenu();
-        return;
-      case 'apply':
-        this.commitSpritesFromScreen();
-        void this.handleApply();
-        return;
-      case 'export':
-        this.commitSpritesFromScreen();
-        void this.handleExport();
-        return;
-      case 'cancel':
-        this.exitSaveMenu();
-        return;
-    }
-
-    switch (key) {
-      case 'library':
-        if (this.currentScreen === 'library') {
-          // Already here — re-open the entry menu (it takes focus itself).
-          this.libraryScreen?.showMenu();
-        } else {
-          if (this.spriteEditScreen) this.state.sprites = this.spriteEditScreen.collectSprites();
-          this.showLibraryScreen(w, h);
-        }
-        break;
-      case 'sprites':
-        if (this.currentScreen === 'library') {
-          // Emits 'proceed' with the library payload → showSpriteEditScreen.
-          this.libraryScreen?.requestProceed();
-        } else {
-          // Already on S2 — move focus from the nav back into the card content.
-          this.spriteEditScreen?.focusContent('last');
-        }
-        break;
-      case 'exit':
-        this.exitEditor();
-        break;
-    }
-  }
-
-  /** Swap the nav to the SAVE sub-menu (APPLY / EXPORT / CANCEL). Focus stays on
-   *  the 'nav' focusable in the active router; only the buttons change. */
-  private enterSaveMenu() {
-    this.navSaveMode = true;
-    this.navBar?.setButtons(SAVE_BUTTONS);
-    this.navBar?.activate();
-    this.navBar?.setCursorToFirst();
-  }
-
-  /** Restore the default nav buttons after the SAVE sub-menu. `refocus` re-homes
-   *  the bar's cursor; pass false when the bar is losing focus anyway. */
-  private exitSaveMenu(refocus = true) {
-    this.navSaveMode = false;
-    this.navBar?.setButtons(NAV_BUTTONS);
-    if (!refocus) return;
-    this.navBar?.activate();
-    this.navBar?.setCursorToFirst();
-  }
-
-  /** Snapshot the live sprite configs before a SAVE action, when on S2. */
-  private commitSpritesFromScreen() {
-    if (this.spriteEditScreen) this.state.sprites = this.spriteEditScreen.collectSprites();
-  }
-
-  /** Recompute nav visibility from the current screen + suppression state. */
-  private refreshNav() {
-    this.navBar?.setVisible(this.navShowable());
-  }
-
-  /** Wire the shared nav-suppress signal (a screen has a modal/contextual bar up). */
-  private wireScreenNav(screen: Phaser.GameObjects.Container) {
-    screen.on('nav-suppress', (suppressed: boolean) => {
-      this.navSuppressed = suppressed;
-      this.refreshNav();
-    });
+    void this.boot(w, h);
   }
 
   update() {
-    this.libraryScreen?.update();
-    this.spriteEditScreen?.update();
-    this.frameSelectorScreen?.update();
+    this.host?.update();
   }
 
-  private handleShutdown() {
-    this.libraryScreen?.destroy();
-    this.spriteEditScreen?.destroy();
-    this.frameSelectorScreen?.destroy();
-    this.navBar?.destroy();
-    this.libraryScreen = undefined;
-    this.spriteEditScreen = undefined;
-    this.frameSelectorScreen = undefined;
-    this.navBar = undefined;
-    // Final teardown: free every editor_img_* texture. This is done here (not in
-    // a screen's destroy) because screens are destroyed/recreated on navigation
-    // round-trips where the textures must survive.
-    removeEditorImageTextures(this);
-  }
+  // ── Boot ───────────────────────────────────────────────────────────────────
 
-  /** Leave the editor, returning to the scene that launched it. */
-  private exitEditor() {
-    this.scene.start(this.returnSceneKey || 'MainScene');
-  }
+  /**
+   * The atlas list has to exist before the first screen can be built — the
+   * picker *is* that list — so it is loaded here rather than inside a screen.
+   */
+  private async boot(w: number, h: number) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
+    this.showBootText(w, h);
+    try {
+      this.atlasList = await loadEditableAtlasList();
+    } catch (error) {
+      console.error('[SpriteEditor] Could not read the atlas list', error);
+      this.clearBootText();
+      this.showBanner(`Could not read the atlas list: ${describeError(error)}`);
+      return;
+    }
+    if (this.disposed) return;
+    this.clearBootText();
 
-  // ── S1 – Library ───────────────────────────────────────────────────────────
-
-  private showLibraryScreen(w: number, h: number) {
-    this.frameSelectorScreen?.destroy();
-    this.frameSelectorScreen = undefined;
-    this.spriteEditScreen?.destroy();
-    this.spriteEditScreen = undefined;
-    this.libraryScreen?.destroy();
-
-    this.libraryScreen = new LibraryScreen(this, w, h, {
-      projectName: this.state.projectName,
-      images: this.state.images,
-    }, this);
-    this.libraryScreen.on('exit', () => this.exitEditor());
-    this.libraryScreen.on('proceed', (data: LibraryProceedPayload) => {
-      this.state.projectName = data.projectName;
-      this.state.images = data.images;
-      if (typeof data.sprites !== 'undefined') {
-        this.state.sprites = data.sprites;
-      }
-      this.showSpriteEditScreen(w, h);
-    });
-    this.wireScreenNav(this.libraryScreen);
-
-    this.currentScreen = 'library';
-    this.navSuppressed = false;
-    this.navSaveMode = false;
-    this.navBar?.setButtons(NAV_BUTTONS);
-    this.navBar?.deactivate(); // focus starts on the screen content, not the nav
-    this.refreshNav();
-  }
-
-  // ── S2 – Sprite Edit ───────────────────────────────────────────────────────
-
-  private showSpriteEditScreen(w: number, h: number) {
-    this.frameSelectorScreen?.destroy();
-    this.frameSelectorScreen = undefined;
-    this.libraryScreen?.destroy();
-    this.libraryScreen = undefined;
-    this.spriteEditScreen?.destroy();
-
-    // Purge orphan frame refs before showing S2
-    const validIds = new Set(this.state.images.map(img => img.id));
-    this.state.sprites = this.state.sprites.map(sp => ({
-      ...sp,
-      frames: sp.frames.filter(fid => validIds.has(fid)),
-    }));
-
-    // Smart preset: create initial sprite configs from imported file names
-    // (e.g. currycat_idle_0.png) only when no sprite config exists yet.
-    if (this.state.sprites.length === 0) {
-      const preset = buildPresetSpritesFromImages(this.state.images);
-      if (preset.sprites.length > 0) {
-        this.state.sprites = preset.sprites;
-        console.log('[SpriteEditor] Smart preset applied', {
-          spriteCount: preset.sprites.length,
-          parsedImageCount: preset.parsedImageCount,
-          skippedImageCount: preset.skippedImageCount,
-          detectedKeys: preset.detectedKeys,
-        });
-      }
+    if (this.atlasList.length === 0) {
+      this.showBanner('No editable atlas in configs/assets.json');
+      return;
     }
 
-    this.spriteEditScreen = new SpriteEditScreen(
-      this, w, h, this.state.images, this.state.sprites, this,
-    );
-    this.wireScreenNav(this.spriteEditScreen);
+    // Not a choice, just a hint: the picker opens with the cursor on the atlas
+    // the caller targeted, and the user is free to pick another.
+    this.selectedAtlas = this.atlasList.find((a) => a.atlasId === (this.targetAtlasId || '').trim());
 
-    this.currentScreen = 'sprites';
-    this.navSuppressed = false;
-    this.navSaveMode = false;
-    this.navBar?.setButtons(NAV_BUTTONS);
-    this.navBar?.deactivate(); // focus starts on the screen content, not the nav
-    this.refreshNav();
-
-    this.spriteEditScreen.on('back', () => {
-      this.state.sprites = this.spriteEditScreen!.collectSprites();
-      this.showLibraryScreen(w, h);
-    });
-
-    this.spriteEditScreen.on(
-      'go-to-frames',
-      (payload: { spriteId: string; currentFrames: string[] }) => {
-        this.state.sprites = this.spriteEditScreen!.collectSprites();
-        this.pendingFrameTarget = payload.spriteId;
-        this.showFrameSelectorScreen(w, h, payload.currentFrames);
+    this.host = new ScreenHost(
+      {
+        scene: this,
+        width: w,
+        height: h,
+        registry: SCREENS,
+        navModes: NAV_MODES,
+        context: {
+          scene: this,
+          width: w,
+          height: h,
+          data: this.state,
+          atlasList: this.atlasList,
+          // A getter, not a snapshot: the picker sets it mid-session.
+          get selectedAtlas() { return self.selectedAtlas; },
+          app: this,
+          exitEditor: () => this.exitEditor(),
+          banner: (message, isError) => this.showBanner(message, isError),
+        },
       },
+      { screen: 'picker' },
     );
   }
 
-  // ── S3 – Frame Selector ────────────────────────────────────────────────────
+  // ── EditorApp — what the editor knows how to do ────────────────────────────
 
-  private showFrameSelectorScreen(w: number, h: number, currentFrames: string[]) {
-    this.spriteEditScreen?.setVisible(false);
-    this.spriteEditScreen?.pause(); // mute S2's keyboard while S3 is open
-    this.frameSelectorScreen?.destroy();
+  /**
+   * Load a picked atlas into the project and show the sprite editor.
+   *
+   * Failure is not fatal: fall back to the library, which can still build a
+   * project by hand, and say why on the banner.
+   */
+  async openAtlas(atlas: WorkspaceAtlasEntry): Promise<void> {
+    const w = this.scale.width;
+    const h = this.scale.height;
+    this.showBootText(w, h);
 
-    // S3 is a modal sub-screen with its own nav; hide the shared bottom nav.
-    this.currentScreen = 'frames';
-    this.refreshNav();
+    try {
+      const project = await loadWorkspaceAtlasProject(this, atlas);
+      if (this.disposed) return;
 
-    this.frameSelectorScreen = new FrameSelectorScreen(
-      this, w, h, this.state.images, currentFrames,
-    );
+      this.selectedAtlas = atlas;
+      this.state.projectName = project.projectName || atlas.atlasId;
+      this.state.images = project.images;
+      this.state.sprites = project.sprites;
 
-    const returnToSpriteEdit = () => {
-      this.currentScreen = 'sprites';
-      this.refreshNav();
-    };
+      if (project.warnings.length > 0) {
+        console.warn(`[SpriteEditor] ${atlas.atlasId} loaded with warnings:`, project.warnings);
+      }
 
-    this.frameSelectorScreen.on('cancel', () => {
-      this.frameSelectorScreen?.destroy();
-      this.frameSelectorScreen = undefined;
-      this.pendingFrameTarget = undefined;
-      this.spriteEditScreen?.setVisible(true);
-      this.spriteEditScreen?.resume();
-      returnToSpriteEdit();
-    });
+      this.clearBootText();
+      this.host?.go({ screen: 'sprites' });
+    } catch (error) {
+      if (this.disposed) return;
+      console.error(`[SpriteEditor] Could not load ${atlas.atlasId}`, error);
+      this.clearBootText();
+      this.host?.go({ screen: 'library' });
+      this.showBanner(`Could not load ${atlas.displayName || atlas.atlasId}: ${describeError(error)}`);
+    }
+  }
 
-    this.frameSelectorScreen.on('confirm', (payload: { frameIds: string[] }) => {
-      const targetId = this.pendingFrameTarget;
-      this.frameSelectorScreen?.destroy();
-      this.frameSelectorScreen = undefined;
-      this.pendingFrameTarget = undefined;
-      this.spriteEditScreen?.setVisible(true);
-      if (targetId) this.spriteEditScreen?.applyFrames(targetId, payload.frameIds);
-      this.spriteEditScreen?.resume();
-      returnToSpriteEdit();
+  commitSprites(): void {
+    const screen = this.host?.activeScreen as SpriteEditScreen | undefined;
+    if (screen instanceof SpriteEditScreen) this.state.sprites = screen.collectSprites();
+  }
+
+  canLeaveLibrary(): boolean {
+    const screen = this.host?.activeScreen as { canProceed?: boolean } | undefined;
+    return screen?.canProceed === true;
+  }
+
+  /**
+   * Re-point the sprite cards at the current image pool.
+   *
+   * Covers the parked screen as well as the active one: the frame selector
+   * deletes images while the sprite list sits behind it, and that list's preview
+   * animations hold the textures being destroyed. They are rebuilt the moment
+   * the pool changes, not when the user comes back — a hidden sprite still
+   * advances its animation.
+   */
+  syncImages(): void {
+    [this.host?.activeScreen, this.host?.coveredScreen()].forEach((screen) => {
+      if (screen instanceof SpriteEditScreen) screen.setImages(this.state.images);
     });
   }
 
-  private async handleExport() {
+  applyFrames(spriteId: string, frameIds: string[]): void {
+    const screen = this.host?.activeScreen as SpriteEditScreen | undefined;
+    if (screen instanceof SpriteEditScreen) screen.applyFrames(spriteId, frameIds);
+  }
+
+  async exportArtifacts(): Promise<void> {
     try {
       const artifacts = await buildSpriteEditorExport(this, this.state);
       downloadSpriteEditorExport(artifacts);
@@ -406,21 +210,101 @@ export default class EditorScene extends Scene implements NavHost {
       if (artifacts.renamedPrefixes.length > 0) {
         console.warn('[SpriteEditor] Duplicate prefixes were renamed for export.', artifacts.renamedPrefixes);
       }
-
       console.log('[SpriteEditor] Exported spritesheet.png, spritesheet.json, animations.json');
     } catch (error) {
       console.error('[SpriteEditor] Export failed', error);
-      const msg = error instanceof Error ? error.message : 'Unknown export error';
-      this.showBanner(`Export failed: ${msg}`);
+      this.showBanner(`Export failed: ${describeError(error)}`);
     }
   }
 
+  async applyCustomization(): Promise<void> {
+    try {
+      const atlasId = this.resolveApplyAtlasId();
+      if (!atlasId) {
+        throw new Error('Apply requires atlasId. Set project name to the target atlasId.');
+      }
+
+      const configuredAtlases = getStaticData<AtlasEntry[]>('assets.atlases') || [];
+      if (configuredAtlases.length > 0) {
+        const target = configuredAtlases.find((item) => item?.atlasId === atlasId);
+        if (!target) {
+          throw new Error(`Unknown atlasId: ${atlasId}. Set project name to a valid assets.atlases atlasId.`);
+        }
+        // The whitelist is the last line of defence: an atlas can also be reached
+        // by typing its id into the project name, not just by picking it from the
+        // (already filtered) list.
+        if (target.editable !== true) {
+          throw new Error(`Atlas "${atlasId}" is not editable.`);
+        }
+      }
+
+      const artifacts = await buildSpriteEditorExport(this, this.state);
+      await saveAtlasCustomization({
+        atlasId,
+        spritesheetPng: artifacts.spritesheetPng,
+        spritesheetJson: artifacts.spritesheetJson as unknown as Record<string, unknown>,
+        animations: artifacts.animations,
+        displayName: this.selectedAtlas?.displayName,
+        description: this.selectedAtlas?.description,
+      });
+      setCustomizationActive(true, atlasId);
+
+      if (artifacts.renamedPrefixes.length > 0) {
+        console.warn('[SpriteEditor] Duplicate prefixes were renamed for apply.', artifacts.renamedPrefixes);
+      }
+      console.log(`[SpriteEditor] Applied customization for atlas: ${atlasId}`);
+
+      if (this.returnSceneKey) {
+        // Hot-reload the atlas into the running game so the change is visible
+        // immediately; the localStorage write still covers a manual page reload.
+        try {
+          await reloadAtlasIntoScene(this, atlasId);
+        } catch (reloadError) {
+          console.warn(
+            '[SpriteEditor] Live reload failed; change will apply on next page load.',
+            reloadError,
+          );
+        }
+        this.scene.start(this.returnSceneKey, { statusMessage: `Applied: ${atlasId}` });
+        return;
+      }
+
+      this.showBanner(`Applied customization for atlas: ${atlasId}`, false);
+    } catch (error) {
+      console.error('[SpriteEditor] Apply failed', error);
+      this.showBanner(`Apply failed: ${describeError(error)}`);
+    }
+  }
+
+  // ── Private ────────────────────────────────────────────────────────────────
+
   private resolveApplyAtlasId(): string {
-    // When launched from the Pet the target atlas is authoritative; the free-text
-    // project name is only a display label. Fall back to it for standalone use.
+    // What the user picked wins: `targetAtlasId` is only the atlas the caller
+    // launched the editor for, and the picker lets them choose another —
+    // preferring the launch hint would write the edit into the wrong atlas.
+    const picked = (this.selectedAtlas?.atlasId || '').trim();
+    if (picked) return picked;
     const target = (this.targetAtlasId || '').trim();
     if (target) return target;
     return this.state.projectName.trim();
+  }
+
+  private exitEditor() {
+    this.scene.start(this.returnSceneKey || 'MainScene');
+  }
+
+  private showBootText(w: number, h: number) {
+    if (this.bootText) return;
+    this.bootText = this.add.text(w / 2, h / 2, 'Loading…', {
+      fontFamily: FONT.FAMILY,
+      fontSize: FONT.SIZE,
+      color: hex(COLORS.TEXT),
+    }).setOrigin(0.5).setDepth(400);
+  }
+
+  private clearBootText() {
+    this.bootText?.destroy();
+    this.bootText = undefined;
   }
 
   /** In-canvas banner at the bottom of the screen; auto-hides after a moment. */
@@ -443,58 +327,14 @@ export default class EditorScene extends Scene implements NavHost {
     this.time.delayedCall(BANNER_AUTOHIDE_MS, () => this.errorBanner?.setVisible(false));
   }
 
-  private async handleApply() {
-    try {
-      const atlasId = this.resolveApplyAtlasId();
-      if (!atlasId) {
-        throw new Error('Apply requires atlasId. Set project name to the target atlasId.');
-      }
-
-      const configuredAtlases = getStaticData<Array<{ atlasId?: string }>>('assets.atlases') || [];
-      if (
-        configuredAtlases.length > 0 &&
-        !configuredAtlases.some((item) => item?.atlasId === atlasId)
-      ) {
-        throw new Error(`Unknown atlasId: ${atlasId}. Set project name to a valid assets.atlases atlasId.`);
-      }
-
-      const artifacts = await buildSpriteEditorExport(this, this.state);
-      await saveAtlasCustomization({
-        atlasId,
-        spritesheetPng: artifacts.spritesheetPng,
-        spritesheetJson: artifacts.spritesheetJson as unknown as Record<string, unknown>,
-        animations: artifacts.animations,
-      });
-      setCustomizationActive(true, atlasId);
-
-      if (artifacts.renamedPrefixes.length > 0) {
-        console.warn('[SpriteEditor] Duplicate prefixes were renamed for apply.', artifacts.renamedPrefixes);
-      }
-
-      console.log(`[SpriteEditor] Applied customization for atlas: ${atlasId}`);
-
-      if (this.returnSceneKey) {
-        // Hot-reload the atlas into the running game so the change is visible
-        // immediately; the localStorage write still covers a manual page reload.
-        try {
-          await reloadAtlasIntoScene(this, atlasId);
-        } catch (reloadError) {
-          console.warn(
-            '[SpriteEditor] Live reload failed; change will apply on next page load.',
-            reloadError,
-          );
-        }
-        this.scene.start(this.returnSceneKey, {
-          statusMessage: `Applied: ${atlasId}`,
-        });
-        return;
-      }
-
-      this.showBanner(`Applied customization for atlas: ${atlasId}`, false);
-    } catch (error) {
-      console.error('[SpriteEditor] Apply failed', error);
-      const msg = error instanceof Error ? error.message : 'Unknown apply error';
-      this.showBanner(`Apply failed: ${msg}`);
-    }
+  private handleShutdown() {
+    this.disposed = true;
+    this.clearBootText();
+    this.host?.destroy();
+    this.host = undefined;
+    // Final teardown: free every editor_img_* texture. This is done here (not in
+    // a screen's destroy) because screens are destroyed/recreated on navigation
+    // round-trips where the textures must survive.
+    removeEditorImageTextures(this);
   }
 }

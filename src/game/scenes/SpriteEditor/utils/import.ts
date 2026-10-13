@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { parseFrameName } from '@/game/assets';
 import { ImageItem, SpriteData } from '../types';
 import { parseSmartFileName, stripExtension } from './smartInput';
 import { isRecord, toInteger } from './json';
@@ -429,9 +430,9 @@ function buildFallbackSprites(frameImages: FrameImageResult[]): SpriteData[] {
   const groups = new Map<string, Array<{ frameId: string; order: number; frameName: string }>>();
 
   frameImages.forEach((entry, index) => {
-    const match = /^(.*)_(\d+)$/.exec(entry.frameName);
-    const prefix = match && match[1] ? match[1] : entry.frameName;
-    const order = match ? Number.parseInt(match[2], 10) : index;
+    const parsed = parseFrameName(entry.frameName);
+    const prefix = parsed?.prefix || entry.frameName;
+    const order = parsed ? parsed.index : index;
 
     const existing = groups.get(prefix);
     if (existing) {

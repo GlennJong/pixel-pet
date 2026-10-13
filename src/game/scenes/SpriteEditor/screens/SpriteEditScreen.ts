@@ -118,6 +118,16 @@ export class SpriteEditScreen extends EditorScreen {
 
   // ── Public API ──────────────────────────────────────────────────────────────
 
+  /**
+   * Swap in a new image pool. The frame selector can delete images while this
+   * screen is parked underneath it, and each card holds its own reference —
+   * left stale, a card would try to animate a texture that no longer exists.
+   */
+  setImages(images: ImageItem[]) {
+    this.images = images;
+    this.cards.forEach((card) => card.setImages(images));
+  }
+
   applyFrames(spriteId: string, frameIds: string[]) {
     const card = this.cards.find(c => c.spriteId === spriteId);
     card?.setFrames(frameIds);

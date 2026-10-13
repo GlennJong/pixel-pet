@@ -212,10 +212,25 @@ export class SpriteCard extends Phaser.GameObjects.Container {
     return `FRAMES:${this._spriteData.frames.length}`;
   }
 
-  /** Update the image pool (e.g. after returning from S1 with purged images). */
+  /**
+   * Update the image pool (after returning from the library or the frame
+   * selector, either of which can delete images).
+   *
+   * Frames whose image is gone are dropped and the preview is rebuilt. Both are
+   * required: the running `editor_preview_*` animation still holds the removed
+   * textures, and playing it after they are destroyed is an error — skipping
+   * them at build time only helps the *next* build.
+   */
   setImages(images: ImageItem[]) {
     this._images = images;
     this.rebuildImageIndex();
+
+    const kept = this._spriteData.frames.filter((id) => this.imageById.has(id));
+    if (kept.length !== this._spriteData.frames.length) {
+      this.setFrames(kept);
+      return; // setFrames rebuilds the animation
+    }
+    this.rebuildAnimation();
   }
 
   private rebuildImageIndex() {

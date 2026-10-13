@@ -1,7 +1,7 @@
 # SpriteEditor 作用範圍與資產架構
 
-> **狀態**：設計討論結論，**尚未實作**。
-> **日期**：2026-10-01
+> **狀態**：第一批（L1–L3）已實作，第二批（L4/L6 介面）未開始。
+> **日期**：2026-10-01（2026-10-02 更新實作進度）
 > **範圍**：SpriteEditor 該管什麼、不該管什麼，以及使用者自訂角色的資料模型。
 > 不含鍵盤導航系統（見 `Spatial Navigator.md`）。
 
@@ -11,7 +11,7 @@
 
 記錄一次設計討論的結論：釐清 SpriteEditor 的作用範圍，以及它與 Pet 執行期設定之間的分工。
 
-文件中的「調查」章節是從程式碼與設定檔實際跑出來的事實；「決定」章節是討論的共識；「尚未決定」是還沒結論的部分。**沒有任何一項已經實作。**
+文件中的「調查」章節是從程式碼與設定檔實際跑出來的事實；「決定」章節是討論的共識；「尚未決定」是還沒結論的部分。實作進度見第七節。
 
 ---
 
@@ -256,6 +256,8 @@ room      : atlasId + stages(watch: level) + 用名字引用動畫 + 素材純�
 
 > **SpriteEditor 只碰「一個名字對應一串圖」的東西。意義需要靠圖以外的數字才完整的，一律不碰。**
 
+這條規則是針對**素材包**，不是針對整個畫面。一個素材包若同時含有動畫與 nineslice，正確的做法是把 nineslice 搬到共用的外框 atlas，讓這一包回到「純動畫」——而不是把整包鎖起來。D10 就是這樣把 HEADER 解鎖的。
+
 ### D8：atlas 的 id 與顯示名
 
 **standard 不需要產生任何新 id。**
@@ -283,6 +285,69 @@ displayName = "橘貓"                    另一個欄位，隨時可改，只�
 這也不違反底線規則：該規則管的是 **prefix**，而 atlasId 本來就用底線當分隔（`pet_character_afk`）。動畫 key 會變成 `user_character_1759…_walk-left`，沒有程式碼會把它拆回來（`removeAtlasAnimations` 用 `startsWith` 比對）。
 
 > 顯示名是純 metadata，不需要碰行為設定，所以照 D5 的邏輯它其實不算 advanced。放進 advanced 可以，但不是必須。
+
+---
+
+### D9：第一個畫面是「要編哪一包」，不是空圖庫
+
+**決定（2026-10-07）**：SpriteEditor 開啟即顯示 S0——可編 atlas 的清單（LOAD SPRITES）。使用者挑一項，載入它的出廠資料，直接進 S2，格子全滿。S1 圖庫從「必經的第一站」降級為「重整目前這包素材」的畫面。CREATE NEW 也不是空白開始，而是把目前這包還原成出廠版本。
+
+**為什麼**：空白起手要求使用者先知道他要做的東西長什麼樣——有哪些動畫、每個要幾幀。這份知識在 `animations.json` 裡，不該要使用者記得。改成「挑一包 → 看到填滿的格子 → 編輯即替換」之後，第一個問題是「要改哪個」，而不是「要匯入哪些檔案」。
+
+這同時解掉了 D3（不需要命名）的最後一哩：專案名稱由挑選的 atlasId 決定，使用者不必輸入。
+
+**顯示名與 id 分離（D8 的落實）**：清單顯示 `displayName`（PET CHARACTER / ROOM / HEADER），atlasId 仍是內部識別碼。`assets.json` 的排列順序就是清單順序，不另設一份排序設定。
+
+**每一列再加一行 `description`，說明「改了會看到什麼不一樣」**。atlasId 命名的是檔案，使用者要選的是「我想改哪裡」，這兩件事不是同一個問題。對照表就放在 `assets.json` 的條目上，與 `displayName` 同一處——顯示資訊散成兩個地方比多一個欄位糟。
+
+| 列 | 說明 |
+|---|---|
+| PET CHARACTER | Pet poses and expressions |
+| ROOM | Room background and objects |
+| HEADER | Top bar icons and HP |
+
+（字型 Tiny5 只有拉丁字母，所以說明文字用英文。）
+
+**呼叫端的 `targetAtlasId` 不再決定寫入目標**。它只把游標預先停在那一列；真正決定 APPLY 寫到哪裡的是使用者在 S0 挑的那一項。（若沿用舊行為，使用者挑了 ROOM 卻會把編輯結果存進 character。）
+
+**失敗不致命**：清單讀不到就停在 S0 並顯示原因；某一包載不起來（檔案缺失、spritesheet 壞掉）就退回 S1，手動建一包仍然做得到。
+
+| | 改前 | 改後 |
+|---|---|---|
+| S0 清單 | 不存在（只有圖庫裡的 LOAD DATA 覆蓋層） | **第一個畫面**；與覆蓋層共用同一個元件 |
+| 底部選單 | S1/S2 共用 LIBRARY／SPRITES／SAVE／EXIT | 按畫面分：S1 維持四顆；**S2 只留 SAVE／EXIT** |
+| S1 圖庫 | 必經的第一站 | 重整目前這包素材 |
+| S2 精靈編輯 | 第二站 | **主畫面**，挑選後即進入 |
+| S3 選幀 | 挑圖 | 挑圖（後續加「匯入新圖」） |
+
+**目前清單上有三項**：PET CHARACTER、ROOM、HEADER（見 D10）。
+
+**S2 的底部選單縮成兩顆**：在 S2 按 SPRITES 的意思是「前往你正在看的畫面」，而 LIBRARY 有 Escape 可達。160px 寬的選單列上，這兩顆都不值得一個常駐位置。S1 仍是四顆——圖庫是中繼站，需要往前（SPRITES）與回到自己的進入選單（LIBRARY）。
+
+---
+
+### D10：nineslice 集中到一包共用 atlas，素材包只留動畫
+
+**決定（2026-10-07）**：所有 nineslice 視窗外框都從 `ui_frame`（`sprites/ui/frame`）取用。素材包自己不再持有外框，於是變成「純粹的具名動畫集合」，符合 D7 的可編條件。
+
+**為什麼 HEADER 原本進不了清單**，以及這個改動怎麼解掉：
+
+| 阻礙 | 解法 |
+|---|---|
+| `frame_1` 是 nineslice，四邊 inset 寫在 `configs/pet/header/core.json`——編輯器改得了圖、改不了那四個數字 | 外框移出 header atlas，改指 `ui_frame`。header 不再擁有它，自然不會被半套地編輯 |
+| `hp-empty_1` 不在 `animations.json` 裡，被 config 當單張 frame 引用。APPLY 整包重建時會消失，空血量圖示就壞了 | 在 `animations.json` 補上 `hp-empty`（qty 1）。這本來就是該檔案既有的慣用寫法——`arrow`、`water-unselected` 都是 1 幀動畫 |
+
+**合併是純去重**：四份 `frame_1`（header、sprite_editor、ui_dialogue_frame、ui_frame）經位元組比對**完全相同**，都是 21×20。外觀零變化。
+
+**`ui_dialogue_frame` 已從 `assets.json` 移除註冊**——它只含那一張重複的外框，改指 `ui_frame` 後無人引用。檔案留在磁碟上。
+
+**外框與箭頭可以分屬不同 atlas**：`SelectorBarStyle.arrowAtlas` 新增。視窗外框是共用 chrome，選取箭頭是各自的美術，兩者本來就不該被綁在同一包。編輯器因此外框取自 `ui_frame`、箭頭仍取自 `sprite_editor`。
+
+**Header 的 `frame.atlasId` 為選填**，省略時沿用該元件自己的 `atlasId`，舊設定不受影響。
+
+**新的不變量（已寫成測試）**：**可編 atlas 不得有任何幀落在 `animations.json` 之外。** 理由是 APPLY 會整包重建——沒被宣告的幀不只是在編輯器裡看不到，而是會在第一次存檔時被刪除。這正是 header 原本的兩個地雷。不可編的 atlas 不適用此規則，因為沒有東西會重建它們。
+
+**nineslice 本身的編輯**（調整那四個 inset）留給 advanced，不在此階段。
 
 ---
 
@@ -352,39 +417,119 @@ setCustomizationActive(true, atlasId)   // 寫進 localStorage 的 customization
 
 ## 六、尚未決定
 
-1. **第三層的畫面長什麼樣**——角色櫃的排版、18 個格子怎麼陳列、缺圖怎麼標、一個格子要選多張圖（一個動畫有多幀）的互動。這是整個案子最大也最模糊的一塊。
+1. ~~**第三層的畫面長什麼樣**~~——已解除（2026-10-07）。現有 `GridSelector` 的排版可用，不另設計。剩下的只有「缺圖怎麼標」，屬於 L4 施工細節。
 2. **`stages` 怎麼處理**——`core.json` 的 `stages` 允許不同等級用不同 atlas（character 2 階、room 6 階）。目前都指向同一包所以看不出來。若未來要用，「一個角色」其實是「一組 atlas」，資料結構要留路。
-3. **新角色從哪裡複製**——從出廠預設，還是從「目前使用中的」？後者對反覆微調好用很多。建議兩個都給。（只在 advanced 有多版本時才成立）
+3. **新角色從哪裡複製**——已定案為「目前這包的出廠版本」（D9）；「從目前使用中的版本複製」留給 advanced 有多版本時再談。
 4. **room 的介面是否該與 character 不同**——資料模型相同（D6），但使用者對房間的期待可能是「換一張背景」而非「填 9 個動畫格」。
 
 ---
 
-## 七、實作順序
+## 七、實作順序與進度
 
-**這不是一次能做完的。** L6 等於重寫 `LibraryScreen`（865 行）與 `SpriteEditScreen`（489 行）。
+### 第一批——資料跑通 ✅ 已完成（2026-10-02）
 
-分成兩批，中間可以停下來驗證：
-
-**第一批——資料跑通（無 UI 改動，可獨立落地）**
-
-| 層 | 內容 | 規模 |
+| 層 | 內容 | 落點 |
 |---|---|---|
-| L2 | `assets.json` 加 `editable`，編輯器只列可編的 | 小 |
-| L3 | 從出廠 `animations.json` 讀格子清單與預設參數 | 中 |
-| L1 | 把資產契約收成單一模組，Pet 與 Editor 共用（順手修掉重複的 `repeatDelay`） | 中 |
+| L1 | 資產契約收成單一模組：`AtlasEntry`、`AnimationItem`、`frameName()`、`parseFrameName()`、`animationKey()`、`isValidPrefix()`、驗證函式 | `src/game/assets/contract.ts` |
+| L2 | `assets.json` 加 `editable` 白名單；編輯器的 atlas 清單與 APPLY 都依它過濾 | `configs/assets.json`、`LibraryScreen`、`SpriteEditor/index.ts` |
+| L3 | 從出廠 `animations.json` 建格子模板，附 `reconcileSlots()` 回答「哪些動畫會生效」 | `SpriteEditor/utils/template.ts` |
 
-**第二批——介面重寫**
+消除的重複：`AnimationItem` 兩份 → 一份（Pet 那份重複的 `repeatDelay` 欄位隨之消失，`tsc` 現在零錯誤）；atlas 條目四份 → 一份；幀名規則三處各寫 → 一處。
+
+白名單結果：`pet_character_afk`、`pet_environment_my_room` 可編，其餘皆否。
+
+**測試（38 個，`yarn test`）**：除了單元測試，`contract.test.ts` 會掃 `assets.json` 註冊的每一包真實素材，驗證 atlasId 與路徑一致、幀名符合 `prefix_數字`、prefix 不含底線。慣例從「大家記得遵守」變成「違反會讓測試紅燈」。
+
+**尚未接上介面**：L3 是純資料模組，目前沒有畫面在呼叫它——它是第二批的輸入。
+
+### 第一批之二——流程翻轉 ✅ 已完成（2026-10-07）
+
+落實 D9。
+
+| 內容 | 落點 |
+|---|---|
+| 可編 atlas 清單與挑選抽成純函式（白名單判斷因此可單測） | `utils/template.ts`：`parseEditableAtlasList()`、`pickDefaultAtlas()`、`loadEditableAtlasList()`、`resolveDefaultAtlas()` |
+| 載入一包出廠 atlas 成為專案（唯一一條路徑，S0 挑選／CREATE NEW／手動匯入共用） | `utils/workspaceAtlas.ts`：`loadWorkspaceAtlasProject()` |
+| 清單畫面兼任根畫面與覆蓋層（`root` 模式：不透明、動作鍵改 EXIT） | `screens/AtlasPickerScreen.ts`（原 `AtlasImportScreen`） |
+| 開機進 S0，挑選後載入並進 S2，失敗退回 S1 | `SpriteEditor/index.ts`：`showAtlasPickerScreen()`、`openAtlas()` |
+| APPLY 寫入目標改以使用者挑選為準 | `SpriteEditor/index.ts`：`resolveApplyAtlasId()` |
+| `displayName` 加入資產契約，並隨 overlay 一起保存 | `assets/contract.ts`、`customization.ts` |
+| nineslice 集中到 `ui_frame`；header 的 `hp-empty` 補進 animations；HEADER 進入清單（D10） | `configs/assets.json`、`configs/pet/header/core.json`、`configs/global/dialogue/core.json`、`components/SelectorBar.ts`、`Pet/elements/Header` |
+| CREATE NEW 還原成目前這包的出廠版本，而非清空 | `LibraryScreen.enterCreateNew()` |
+
+消除的重複：atlas 白名單過濾兩份 → 一份；atlas 載入兩份 → 一份；`assets.json` 路徑三處 → 一個常數。
+
+**測試 63 個**（+12）：白名單的否定情境（`editable: 'yes'`、缺路徑、設定檔格式壞掉）、挑選的 fallback、「每個可編 atlas 都要有 displayName」，以及 D10 的不變量「可編 atlas 不得有幀落在 animations.json 之外」。白名單是編輯器能寫到哪裡的邊界，值得有否定測試。
+
+### 第一批之三——導覽收斂成狀態機 🔶 進行中（2026-10-13）
+
+**D11：畫面與底部選單由一張宣告表驅動。**
+
+問題：底部那條原本有 **5 個 `ButtonBar` 實例，4 個在同一個 y**，靠一個叫 `nav-suppress` 的布林協調（LibraryScreen 裡由三個條件 or 起來，要在 6 處記得重算）。那個旗標存在的唯一理由就是所有權是散的。
+
+做法：`navigation/` 三個檔。`registry.ts` 是唯一要讀的——每個畫面四格：`nav`（按鈕，含對齊）、`build`、`actions`（含 `confirm` 守衛）、`events`。
+
+| | 改前 | 改後 |
+|---|---|---|
+| `ButtonBar` 實例 | 5 | 3（剩圖庫多選列、確認對話框） |
+| `EditorScene` | 502 行 | 325 行，且不含任何「該顯示哪個畫面」 |
+| LOAD DATA | 圖庫自己開的 overlay | 就是 picker 這個畫面（`root: false`） |
+
+**三個刻意的設計決定**：
+
+1. **不做 rerender。** Phaser 物件昂貴（全域 keydown、材質、DOM file input）。規則是「screen 身分變了才重建」，而 `go()` 一定重建不違反它——資料變動根本不會呼叫 `go()`。沒有 reconciler、沒有 key。
+2. **`ViewState` 與 `EditorState` 分開。** 前者驅動重建，後者只是 render 的輸入。混在一起的話匯入一張圖會把顯示它的畫面拆掉重建。
+3. **確認是轉移的守衛，不是狀態。** `actions.create.confirm` 回傳問句或 null，執行器統一處理。加十個需要確認的按鈕，狀態圖形狀不變。`pendingMenuAction` 這類平行變數消失。
+
+### D12：素材管理搬進選幀畫面
+
+**決定（2026-10-13）**：S3 自己就能增刪素材，不必為了「缺一張圖」離開畫面。去圖庫的那趟路因此取消（上一版加的 LIBRARY 按鈕隨之移除）。
+
+**兩個模式，底部選單跟著走**：
+
+| 模式 | 按鈕 |
+|---|---|
+| pick | CANCEL / OK(n) / ADD / EDIT |
+| edit | DELETE(n) / CANCEL |
+
+畫面只回報自己在哪個模式，按鈕由 registry 決定——沒有任何地方需要「記得換按鈕」。
+
+**格子有唯一一種「選取」**，所以進 edit 模式會先把選幀結果停泊、出來再還原：勾選要刪的東西不該順手把它從動畫裡拿掉。
+
+**已使用的幀排在最前面**，依幀順序。開啟時第一眼就是「這個動畫現在長什麼樣」，而不是一牆縮圖裡找答案。新匯入的圖接在最後，游標跟著跳過去——使用者剛要的東西要看得見。
+
+**刪除有確認**，而且這是第一個真正跑起來的 overlay：`ScreenHost` 現在會畫出 `ConfirmDialog`，接走鍵盤（螢幕的輸入暫停，否則一次按鍵會同時回答問題和移動底下的游標），答完再還原。D11 設計的 `confirm` 守衛從此不只是宣告。
+
+**共用的素材操作**抽到 `utils/imageLibrary.ts`：`ImageFilePicker`（擁有那個 DOM input 的生命週期）、`importImageFiles`、`deleteImages`。刪除必須三件事一起做——記錄、引用它的 sprite 幀、材質——少做一件就是懸空引用或材質洩漏，所以它是一個函式而不是三行。圖庫也改用同一份匯入，流水號改成從現有 id 推導，不再各自維護計數器。
+
+**圖庫預設直接進素材畫面**（`startIn: 'edit'`）。專案一定是載入好的，進入選單等於問一個答案很明顯的問題。選單沒有廢除——LIBRARY 那顆按鈕仍然打得開，LOAD DATA / CREATE NEW 住在那裡。空圖庫會自動退回選單，因為沒有東西可編。
+
+**快捷鍵也進表**：`shortcuts: { Escape: 'back' }` 和按鈕並列，一眼看得到哪個鍵做什麼。宣告而不強制會說謊，所以 dev 模式下建畫面時會檢查每個宣告的名字確實對應到一個 action 或 event，對不上就警告。
+
+**尚未收進堆疊**：圖庫的多選列與 `ConfirmDialog` 仍自有 bar，`nav-suppress` 作為暫時的橋還在（`ScreenHost.setNavSuppressed`，註解已標明）。
+
+### 第二批——介面重寫 ⬜ 未開始
 
 | 層 | 內容 | 相依 |
 |---|---|---|
-| L4 + L6 | 角色櫃 + 格子表；進入選單、專案名稱、ADD SPRITE 全部移除 | 需先定案第六節第 1 項 |
+| L4 + L6 | 角色櫃 + 格子表；進入選單、專案名稱、ADD SPRITE 移除 | 已解除封鎖（排版沿用 `GridSelector`） |
 | L5 | 接上既有的 overlay 機制（本身不用改） | — |
 
-第二批要連帶處理 2.4 表中的資料遺失問題（APPLY 整包重建、匯入掉幀）。
+要連帶處理 2.4 表中的資料遺失問題（APPLY 整包重建、匯入掉幀）。
 
-**建議先做第一批。** 與介面無關，可以先讓資料跑通；跑通之後 L6 要長什麼樣會清楚很多——你會先在資料上看到「一個角色就是這 18 個格子」這件事成立，再去設計畫面。
+現有 UI 的去留評估（第二批開工時的起點）：
 
-advanced（L3 可寫 + 行為設定）不在這兩批裡，是之後的獨立階段。
+| 畫面 | 現況 | 新架構下 |
+|---|---|---|
+| S3 選幀 | 134 行 | 加格子名標題與預覽；加 add cell，可就地匯入新圖（刪除仍留在 S1——選幀畫面看不到那張圖還被哪些格子用著） |
+| `SpriteCard` | 509 行 | 拿掉 COPY / DELETE 就是格子列（名字本來就是唯讀標籤） |
+| S2 卡片列表 | 489 行 | 大幅變少——新增／刪除／複製／ADD 列都不需要 |
+| `GridSelector` | 435 行 | 完全沿用 |
+| S1 圖庫 | 865 行 | 改動最大：進入選單、專案名稱、proceed、depose 確認都消失；縮圖格與檔案匯入留著 |
+
+淨程式碼大概率變少。
+
+advanced（可寫 L3 + 行為設定）不在這兩批裡，是之後的獨立階段。
 
 ---
 

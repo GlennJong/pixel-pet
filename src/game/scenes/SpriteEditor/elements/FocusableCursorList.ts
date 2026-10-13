@@ -76,6 +76,13 @@ export abstract class FocusableCursorList extends Phaser.GameObjects.Container {
   /** Activate whatever the cursor is on. */
   protected abstract activateCursor(): void;
 
+  /**
+   * The rectangle the router should treat as this widget's position. Defaults
+   * to the object's own bounds; a widget that scrolls overrides it with its
+   * viewport, because its content is taller than the space it occupies.
+   */
+  protected focusBounds(): Phaser.Geom.Rectangle { return this.getBounds(); }
+
   /** Describe this widget to the {@link FocusRouter} as one navigable item. */
   asFocusable(id: string, opts: AsFocusableOptions = {}): Focusable {
     const homing = opts.homeOnEnter ?? 'edge';
@@ -83,6 +90,7 @@ export abstract class FocusableCursorList extends Phaser.GameObjects.Container {
     return makeFocusable({
       id,
       object: this,
+      bounds: () => this.focusBounds(),
       isEnabled: opts.isEnabled,
       onFocus: (from) => {
         this.activate();

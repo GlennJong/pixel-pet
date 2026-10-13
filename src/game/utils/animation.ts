@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { AnimationItem } from "@/game/scenes/Pet/types/common";
+import { AnimationItem, FIRST_FRAME_INDEX, FRAME_SEPARATOR, animationKey } from "@/game/assets";
 import { getStaticData } from "@/game/staticData";
 
 /**
@@ -22,14 +22,14 @@ export function createAnimationsFromConfig(
   animations.forEach((_ani: AnimationItem) => {
     if (!_ani) return;
 
-    const animationName = `${atlasId}_${_ani.prefix}`;
+    const animationName = animationKey(atlasId, _ani.prefix);
     if (scene.anims.exists(animationName)) return;
 
     const data: Phaser.Types.Animations.Animation = {
       key: animationName,
       frames: scene.anims.generateFrameNames(texture, {
-        prefix: `${_ani.prefix}_`,
-        start: 1,
+        prefix: `${_ani.prefix}${FRAME_SEPARATOR}`,
+        start: FIRST_FRAME_INDEX,
         end: _ani.qty,
       }),
       repeat: _ani.repeat,

@@ -43,6 +43,13 @@ export interface HeaderConfig {
   animations: AnimationItem[];
   layout?: HeaderLayout;
   frame: {
+    /**
+     * Atlas holding the nineslice frame. Defaults to this element's own
+     * `atlasId`; name a shared frame atlas here to keep the element's atlas a
+     * pure set of animations, which is what makes it editable (see D7/D10 in
+     * docs/SpriteEditor Scope.md).
+     */
+    atlasId?: string;
     textureFrame: string;
     leftWidth?: number;
     rightWidth?: number;

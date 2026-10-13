@@ -43,18 +43,5 @@ export interface LibraryProceedPayload {
   sprites?: SpriteData[];
 }
 
-export interface WorkspaceAtlasEntry {
-  atlasId: string;
-  png: string;
-  json: string;
-  animations?: string;
-}
-
-export interface AnimationItem {
-  prefix: string;
-  qty: number;
-  freq: number;
-  repeat: number;
-  repeatDelay?: number;
-  duration?: number;
-}
+// Shared with the Pet via the asset contract — see src/game/assets/contract.ts.
+export type { AtlasEntry as WorkspaceAtlasEntry, AnimationItem } from '@/game/assets';

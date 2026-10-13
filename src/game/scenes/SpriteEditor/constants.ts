@@ -43,6 +43,7 @@ export const COLORS = {
   TEXT: 0x333333,
   TEXT_LIGHT: 0x666666,
   TEXT_PLACEHOLDER: 0xaaaaaa,
+  TEXT_DISABLED: 0xaaaaaa,
   TEXT_BUTTON: 0xffffff,
   BADGE_BG: 0xff3333,
   BADGE_TEXT: 0xffffff,
@@ -77,8 +78,11 @@ export const hex = (color: number): string => '#' + color.toString(16).padStart(
  * atlas is ever absent.
  */
 export const UI_FRAME = {
-  ATLAS: 'sprite_editor',
+  // The window frame is shared chrome (one atlas, one copy); the arrow is the
+  // editor's own art and stays in the editor's atlas.
+  ATLAS: 'ui_frame',
   FRAME_TEXTURE: 'frame_1',
+  ARROW_ATLAS: 'sprite_editor',
   ARROW_TEXTURE: 'arrow_1',
   // Nineslice corner insets (frame is 21×20 → 5×4 stretchable middle).
   INSET: 8,

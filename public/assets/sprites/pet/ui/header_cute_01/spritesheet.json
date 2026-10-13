@@ -1199,26 +1199,6 @@
         "w": 11,
         "h": 11
       }
-    },
-    "frame_1": {
-      "rotated": false,
-      "trimmed": false,
-      "sourceSize": {
-        "w": 21,
-        "h": 20
-      },
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 21,
-        "h": 20
-      },
-      "frame": {
-        "x": 0,
-        "y": 88,
-        "w": 21,
-        "h": 20
-      }
     }
   },
   "meta": {

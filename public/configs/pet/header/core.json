@@ -21,6 +21,7 @@
     "animation": "arrow"
   },
   "frame": {
+    "atlasId": "ui_frame",
     "textureFrame": "frame_1",
     "leftWidth": 8,
     "rightWidth": 8,
