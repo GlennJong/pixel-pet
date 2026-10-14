@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 // Layout
 export const BUTTON_BAR_HEIGHT = 22;
 export const BUTTON_HEIGHT = 14;
@@ -62,9 +63,30 @@ export const COLORS = {
 } as const;
 
 export const FONT = {
-  FAMILY: 'Tiny5',
+  // Tiny5 has Latin glyphs only. BoutiqueBitmap (the game's dialogue font)
+  // fills in the CJK labels the basic editor shows, so English text is unchanged.
+  FAMILY: 'Tiny5, BoutiqueBitmap',
   SIZE: 8,
 } as const;
+
+/**
+ * Text that is mostly Chinese — the basic editor's labels and the dialogue.
+ * The same font, size and resolution the game's dialogue box uses, so a line
+ * reads the same here as in play. BoutiqueBitmap is drawn at 3× and sampled
+ * back down; that drops the anti-aliased grey edge that blurs it at 1×.
+ */
+export const FONT_CJK = {
+  FAMILY: 'BoutiqueBitmap',
+  SIZE: 10,
+  RESOLUTION: 4,
+} as const;
+
+export const cjkStyle = (color: number = COLORS.TEXT): Phaser.Types.GameObjects.Text.TextStyle => ({
+  fontFamily: FONT_CJK.FAMILY,
+  fontSize: `${FONT_CJK.SIZE}px`,
+  color: hex(color),
+  resolution: FONT_CJK.RESOLUTION,
+});
 
 /** Convert a 0xRRGGBB color number to a '#rrggbb' CSS string. */
 export const hex = (color: number): string => '#' + color.toString(16).padStart(6, '0');

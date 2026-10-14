@@ -3,6 +3,7 @@ import { ButtonConfig } from '../elements';
 import { Focusable } from '@/game/ui/focus';
 import { EditorScreen } from '../screens/EditorScreen';
 import { EditorState, WorkspaceAtlasEntry } from '../types';
+import type { GameConfigProject } from '../action/GameConfigProject';
 
 /**
  * The editor's navigation model.
@@ -20,19 +21,39 @@ import { EditorState, WorkspaceAtlasEntry } from '../types';
  * never occupy the same strip and nothing needs to be suppressed.
  */
 
-export type ScreenId = 'picker' | 'library' | 'sprites' | 'frames';
+export type ScreenId =
+  // basic editor — what the pet does
+  | 'groups' | 'items' | 'detail' | 'text' | 'sequence' | 'choose'
+  // sprite editor — what it looks like
+  | 'picker' | 'library' | 'sprites' | 'frames';
 
 /** A nav sub-menu that temporarily replaces a screen's own buttons. */
 export type NavModeId = 'save';
 
 /** Transient arguments a screen is opened with, carried in the view state. */
 export type ScreenParams =
+  /** `focus` says where to land, so "back" returns to the row or card left from. */
+  | { screen: 'groups'; focus?: string }
+  | { screen: 'items'; group: string; focus?: number }
+  | { screen: 'detail'; group: string; item: number; focus?: string }
+  /** Writing an action's dialogue line, full screen. */
+  | { screen: 'text'; group: string; item: number; action: string }
+  | { screen: 'sequence'; group: string; item: number; action: string; focus?: string }
+  /** Pick one animation: for one part of a performance, or a speaker's face. */
+  | {
+      screen: 'choose';
+      group: string;
+      item: number;
+      action: string;
+      purpose: 'segment' | 'portrait';
+      segment?: number;
+    }
   /**
    * `root: false` is the picker reached from the library ("load other data"):
    * same screen, but its action bar says CANCEL and leads back rather than out
    * of the editor.
    */
-  | { screen: 'picker'; root?: boolean }
+  | { screen: 'picker'; root?: boolean; returnTo?: ScreenParams }
   | {
       screen: 'library';
       /**
@@ -104,6 +125,14 @@ export interface EditorContext {
   readonly atlasList: readonly WorkspaceAtlasEntry[];
   /** The atlas the user picked, if any. */
   readonly selectedAtlas: WorkspaceAtlasEntry | undefined;
+  /**
+   * The game config the basic editor changes. Undefined when the editor runs
+   * without the game (no preloader, so nothing to edit) — the editor then
+   * opens on the sprite picker instead.
+   */
+  readonly config: GameConfigProject | undefined;
+  /** Animation names in the character's atlas — what a segment can be set to. */
+  characterAnimations(): string[];
   readonly app: EditorApp;
 
   go(params: ScreenParams): void;

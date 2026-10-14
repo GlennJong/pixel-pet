@@ -23,6 +23,18 @@ export interface IPrimaryDialogueConfig {
   autoPageSwitchDelay?: number;
   frameKey: string;
   frameFrame: string;
+  /**
+   * Top-left of the whole box (portrait + text). Absent: along the bottom of
+   * the scene, which is where the game shows it.
+   */
+  x?: number;
+  y?: number;
+  /**
+   * Put the box's parts inside this container, so it moves with whatever
+   * holds it — the editor shows it inside a scrolling form. Absent: the parts
+   * are drawn on the scene directly, above everything, as in play.
+   */
+  embed?: boolean;
 }
 
 const DEFAULT_CONFIG = {
@@ -293,10 +305,13 @@ export class PrimaryDialogue extends Phaser.GameObjects.Container {
     this.onDialogueStart = onDialogueStart;
     this.onDialogueEnd = onDialogueEnd;
 
-    const portraitX = 0;
-    const portraitY = this.config.sceneHeight - this.config.portraitFrameSize;
-    const dialogueX = this.config.sceneWidth - this.config.dialogueWidth;
-    const dialogueY = this.config.sceneHeight - this.config.dialogueHeight;
+    const boxH = Math.max(this.config.portraitFrameSize, this.config.dialogueHeight);
+    const originX = config.x ?? 0;
+    const originY = config.y ?? this.config.sceneHeight - boxH;
+    const portraitX = originX;
+    const portraitY = originY + boxH - this.config.portraitFrameSize;
+    const dialogueX = originX + this.config.sceneWidth - this.config.dialogueWidth;
+    const dialogueY = originY + boxH - this.config.dialogueHeight;
     const textboxX = dialogueX + this.config.dialoguePaddingX;
     const textboxY = dialogueY + this.config.dialoguePaddingY;
     const textboxWidth = this.config.dialogueWidth - this.config.dialoguePaddingX * 2;
@@ -361,6 +376,28 @@ export class PrimaryDialogue extends Phaser.GameObjects.Container {
       .setOrigin(0)
       .setDepth(999)
       .setVisible(false);
+
+    if (config.embed) {
+      this.add([this.textboxBackground, this.portraitBackground, this.portrait, this.textbox]);
+    }
+  }
+
+  /**
+   * Show one line at once, without typing it out — for a line being edited.
+   * The page shown is the last one, where the typing is. Stops any dialogue
+   * in progress; its `runDialogue` promise is abandoned, not resolved.
+   */
+  public preview(portrait: string, text: string) {
+    this.dialogueTimer?.remove();
+    this.dialogueTimer = null;
+    this.autoPageSwitchTimer?.remove();
+    this.autoPageSwitchTimer = null;
+    this.resolvePromise = null;
+
+    this.setShowDialogueBox();
+    this.setPortrait(portrait);
+    const pages = this.paginateDialogue(text);
+    this.textbox!.setText(pages[pages.length - 1] ?? "");
   }
 
   // Destory

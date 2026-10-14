@@ -2,9 +2,17 @@ import { AtlasPickerScreen } from '../screens/AtlasPickerScreen';
 import { LibraryScreen } from '../screens/LibraryScreen';
 import { SpriteEditScreen } from '../screens/SpriteEditScreen';
 import { FrameSelectorScreen } from '../screens/FrameSelectorScreen';
+import { ListScreen } from '../screens/ListScreen';
+import { PreviewGridScreen } from '../screens/PreviewGridScreen';
+import { ActionFormScreen } from '../screens/ActionFormScreen';
+import { TextEditScreen } from '../screens/TextEditScreen';
+import { findGroup, findItem, groupRows, segmentRows } from '../action/rows';
+import { PORTRAIT_PREFIX, portraitLabel } from '../action/catalog';
+import type { EditableStat, GameConfigProject } from '../action/GameConfigProject';
 import {
   EditorContext,
   ScreenId,
+  ScreenParams,
   ScreenSpec,
   NavModeId,
 } from './types';
@@ -74,6 +82,16 @@ export const NAV_MODES: Record<NavModeId, {
 };
 
 /**
+ * Leave the picker: out of the editor when it is the first screen, otherwise
+ * back to whichever screen opened it (the library, or the basic editor).
+ */
+function leavePicker(ctx: EditorContext) {
+  if (isRootPicker(ctx)) { ctx.exitEditor(); return; }
+  const p = paramsOf(ctx, 'picker');
+  ctx.go(p.returnTo ?? { screen: 'library' });
+}
+
+/**
  * Bring the sprite configs in line with the images before showing them: drop
  * frame references whose image is gone (deleting an image must not leave a card
  * pointing at nothing), then, only for a project with no configs at all, guess
@@ -100,18 +118,285 @@ function prepareSprites(ctx: EditorContext) {
   });
 }
 
+// ── Basic editor helpers ─────────────────────────────────────────────────────
+
+const BACK: ButtonConfig = { key: 'back', label: 'BACK' };
+
+/** The current screen's params, narrowed to the screen the caller is on. */
+function paramsOf<S extends ScreenParams['screen']>(ctx: EditorContext, _screen: S) {
+  return ctx.params() as Extract<ScreenParams, { screen: S }>;
+}
+
+function config(ctx: EditorContext): GameConfigProject {
+  if (!ctx.config) throw new Error('No game config loaded');
+  return ctx.config;
+}
+
+/** Re-read the parts list after an edit, without rebuilding the screen. */
+function refreshParts(ctx: EditorContext) {
+  const p = paramsOf(ctx, 'sequence');
+  const item = findItem(p.group, p.item);
+  if (item) ctx.screen<ListScreen>()?.setItems(segmentRows(item, config(ctx).animation(p.action)));
+  ctx.refreshNav();
+}
+
+/** Back from a performance's parts to the settings it was opened from. */
+const backToDetail = (ctx: EditorContext) => {
+  const p = paramsOf(ctx, 'sequence');
+  ctx.go({ screen: 'detail', group: p.group, item: p.item, focus: `anim:${p.action}` });
+};
+
+/** Back from writing a line to the dialogue box it belongs to. */
+const leaveText = (ctx: EditorContext) => {
+  const p = paramsOf(ctx, 'text');
+  ctx.go({ screen: 'detail', group: p.group, item: p.item, focus: 'dialogue:text' });
+};
+
+function saveText(ctx: EditorContext, text: string | undefined) {
+  const p = paramsOf(ctx, 'text');
+  if (text !== undefined) config(ctx).setDialogueText(p.action, text);
+  leaveText(ctx);
+}
+
+/** Back from the animation grid to whatever it was opened for. */
+const leaveChoice = (ctx: EditorContext) => {
+  const p = paramsOf(ctx, 'choose');
+  if (p.purpose === 'portrait') {
+    ctx.go({ screen: 'detail', group: p.group, item: p.item, focus: 'dialogue' });
+  } else {
+    ctx.go({ screen: 'sequence', group: p.group, item: p.item, action: p.action, focus: String(p.segment ?? 0) });
+  }
+};
+
 // ── Screens ──────────────────────────────────────────────────────────────────
 
 export const SCREENS: Record<ScreenId, ScreenSpec<any>> = {
+  // ── Basic editor: what the pet does ────────────────────────────────────────
+
+  /** B1 — the editor's first screen: the groups in action/catalog.ts. */
+  groups: {
+    nav: () => [{ key: 'sprites', label: 'SPRITES' }, EXIT],
+    navAlign: 'right',
+    shortcuts: { Escape: 'cancel' },
+    build: (ctx) => new ListScreen(ctx.scene, ctx.width, ctx.height, groupRows(), navHost(ctx), {
+      title: '編輯角色',
+      focusKey: paramsOf(ctx, 'groups').focus,
+    }),
+    actions: {
+      // The raw sprite editor, for anything the basic editor does not cover.
+      sprites: { run: (ctx) => ctx.go({ screen: 'picker', root: false, returnTo: { screen: 'groups' } }) },
+      exit: { run: (ctx) => ctx.exitEditor() },
+    },
+    events: {
+      select: (ctx, group: string) => ctx.go({ screen: 'items', group }),
+      cancel: (ctx) => ctx.exitEditor(),
+    },
+  },
+
+  /** B2 — the items of one group, each cell playing its performance. */
+  items: {
+    nav: () => [BACK],
+    navAlign: 'right',
+    shortcuts: { Escape: 'cancel' },
+    build: (ctx) => {
+      const p = paramsOf(ctx, 'items');
+      const group = findGroup(p.group);
+      const cfg = config(ctx);
+      return new PreviewGridScreen(
+        ctx.scene, ctx.width, ctx.height, group?.label ?? '', cfg.characterAtlasId,
+        // A left/right pair plays left, then right.
+        (group?.items ?? []).map((item, i) => ({
+          id: String(i),
+          label: item.label,
+          parts: item.actions.flatMap((a) => cfg.animation(a)),
+        })),
+        { focusId: p.focus === undefined ? undefined : String(p.focus) },
+        navHost(ctx),
+      );
+    },
+    actions: {
+      back: { run: (ctx) => ctx.go({ screen: 'groups', focus: paramsOf(ctx, 'items').group }) },
+    },
+    events: {
+      pick: (ctx, index: string) => ctx.go({ screen: 'detail', group: paramsOf(ctx, 'items').group, item: Number(index) }),
+      cancel: (ctx) => ctx.go({ screen: 'groups', focus: paramsOf(ctx, 'items').group }),
+    },
+  },
+
+  /** B3 — one item's settings: its performance, numbers, portrait and line. */
+  detail: {
+    nav: () => [BACK],
+    navAlign: 'right',
+    shortcuts: { Escape: 'cancel' },
+    build: (ctx) => {
+      const p = paramsOf(ctx, 'detail');
+      const group = findGroup(p.group);
+      const item = findItem(p.group, p.item)!;
+      return new ActionFormScreen(
+        ctx.scene, ctx.width, ctx.height, `${group?.label} › ${item.label}`,
+        item, config(ctx), navHost(ctx), p.focus,
+      );
+    },
+    actions: {
+      back: { run: (ctx) => { const p = paramsOf(ctx, 'detail'); ctx.go({ screen: 'items', group: p.group, focus: p.item }); } },
+    },
+    events: {
+      'open-animation': (ctx, action: string) => {
+        const p = paramsOf(ctx, 'detail');
+        ctx.go({ screen: 'sequence', group: p.group, item: p.item, action });
+      },
+      'adjust-stat': (ctx, e: { action: string; stat: EditableStat; delta: number }) => {
+        const cfg = config(ctx);
+        cfg.setEffect(e.action, e.stat, (cfg.effect(e.action, e.stat) ?? 0) + e.delta);
+        ctx.screen<ActionFormScreen>()?.refresh();
+      },
+      'open-portrait': (ctx, action: string) => {
+        const p = paramsOf(ctx, 'detail');
+        ctx.go({ screen: 'choose', group: p.group, item: p.item, action, purpose: 'portrait' });
+      },
+      'open-text': (ctx, action: string) => {
+        const p = paramsOf(ctx, 'detail');
+        ctx.go({ screen: 'text', group: p.group, item: p.item, action });
+      },
+      cancel: (ctx) => { const p = paramsOf(ctx, 'detail'); ctx.go({ screen: 'items', group: p.group, focus: p.item }); },
+    },
+  },
+
+  /**
+   * B3a — writing the dialogue line, full screen. Enter is a line break; the
+   * line is saved or dropped from the bar, as everything else is.
+   */
+  text: {
+    nav: () => [{ key: 'save', label: 'SAVE' }, { key: 'cancel', label: 'CANCEL' }],
+    navAlign: 'right',
+    shortcuts: { Escape: 'cancel' },
+    build: (ctx) => {
+      const p = paramsOf(ctx, 'text');
+      const item = findItem(p.group, p.item);
+      return new TextEditScreen(
+        ctx.scene, ctx.width, ctx.height, `${item?.label ?? ''} › 台詞`,
+        config(ctx).dialogue(p.action)?.text ?? '', navHost(ctx),
+      );
+    },
+    actions: {
+      save: { run: (ctx) => saveText(ctx, ctx.screen<TextEditScreen>()?.draft) },
+      cancel: { run: leaveText },
+    },
+    events: {
+      cancel: leaveText,
+    },
+  },
+
+  /** B4 — the parts of one performance, played in order. */
+  sequence: {
+    nav: (ctx) => {
+      const p = paramsOf(ctx, 'sequence');
+      const parts = ctx.config?.animation(p.action).length ?? 0;
+      return [
+        { key: 'add', label: 'ADD' },
+        // A performance needs at least one part to play.
+        { key: 'delete', label: 'DEL', disabled: parts <= 1 },
+        BACK,
+      ];
+    },
+    navAlign: 'right',
+    shortcuts: { Escape: 'cancel' },
+    build: (ctx) => {
+      const p = paramsOf(ctx, 'sequence');
+      const item = findItem(p.group, p.item)!;
+      return new ListScreen(
+        ctx.scene, ctx.width, ctx.height,
+        segmentRows(item, config(ctx).animation(p.action)), navHost(ctx),
+        { title: `${item.label} › 演出`, focusKey: p.focus },
+      );
+    },
+    actions: {
+      // A new part starts as a copy of the last one, so it plays something
+      // sensible until the user picks what it should be.
+      add: {
+        run: (ctx) => {
+          const p = paramsOf(ctx, 'sequence');
+          const cfg = config(ctx);
+          const seq = cfg.animation(p.action);
+          cfg.setAnimation(p.action, [...seq, seq[seq.length - 1]]);
+          refreshParts(ctx);
+        },
+      },
+      delete: {
+        run: (ctx) => {
+          const p = paramsOf(ctx, 'sequence');
+          const cfg = config(ctx);
+          const seq = cfg.animation(p.action);
+          if (seq.length <= 1) return;
+          const at = Number(ctx.screen<ListScreen>()?.cursorKey ?? seq.length - 1);
+          cfg.setAnimation(p.action, seq.filter((_, i) => i !== at));
+          refreshParts(ctx);
+        },
+      },
+      back: { run: backToDetail },
+    },
+    events: {
+      select: (ctx, index: string) => {
+        const p = paramsOf(ctx, 'sequence');
+        ctx.go({ screen: 'choose', group: p.group, item: p.item, action: p.action, purpose: 'segment', segment: Number(index) });
+      },
+      cancel: backToDetail,
+    },
+  },
+
+  /**
+   * B5 — pick one animation by watching them all play: for one part of a
+   * performance, or for a speaker's face (the atlas's `face-*`, titled 喜/怒/哀).
+   */
+  choose: {
+    nav: () => [BACK],
+    navAlign: 'right',
+    shortcuts: { Escape: 'cancel' },
+    build: (ctx) => {
+      const p = paramsOf(ctx, 'choose');
+      const cfg = config(ctx);
+      const item = findItem(p.group, p.item);
+      const all = ctx.characterAnimations();
+      const portrait = p.purpose === 'portrait';
+      const cells = portrait
+        ? all.filter((a) => a.startsWith(PORTRAIT_PREFIX)).map((a) => ({ id: a, label: portraitLabel(a), parts: [a] }))
+        : all.map((a) => ({ id: a, parts: [a] }));
+      const current = portrait ? cfg.dialogue(p.action)?.portrait : cfg.animation(p.action)[p.segment ?? 0];
+      return new PreviewGridScreen(
+        ctx.scene, ctx.width, ctx.height,
+        `${item?.label ?? ''} › ${portrait ? '選擇頭像' : '選擇動畫'}`, cfg.characterAtlasId,
+        cells, { markedId: current }, navHost(ctx),
+      );
+    },
+    actions: {
+      back: { run: leaveChoice },
+    },
+    events: {
+      pick: (ctx, prefix: string) => {
+        const p = paramsOf(ctx, 'choose');
+        const cfg = config(ctx);
+        if (p.purpose === 'portrait') {
+          cfg.setPortrait(p.action, prefix);
+        } else {
+          const seq = cfg.animation(p.action);
+          seq[p.segment ?? 0] = prefix;
+          cfg.setAnimation(p.action, seq);
+        }
+        leaveChoice(ctx);
+      },
+      cancel: leaveChoice,
+    },
+  },
+
+  // ── Sprite editor: what it looks like ──────────────────────────────────────
+
   /** S0 — which shipped sprite set to edit. The editor's first screen. */
   picker: {
     nav: (ctx) => [{ key: 'cancel', label: isRootPicker(ctx) ? 'EXIT' : 'CANCEL' }],
     navAlign: 'right',
     shortcuts: { Escape: 'cancel' },
     actions: {
-      cancel: {
-        run: (ctx) => isRootPicker(ctx) ? ctx.exitEditor() : ctx.go({ screen: 'library' }),
-      },
+      cancel: { run: (ctx) => leavePicker(ctx) },
     },
     build: (ctx) => {
       // The caller's target does not choose for the user — it only puts the
@@ -126,7 +411,7 @@ export const SCREENS: Record<ScreenId, ScreenSpec<any>> = {
       );
     },
     events: {
-      cancel: (ctx) => ctx.exitEditor(),
+      cancel: (ctx) => leavePicker(ctx),
       confirm: (ctx, p: { atlas: WorkspaceAtlasEntry }) => void ctx.app.openAtlas(p.atlas),
     },
   },

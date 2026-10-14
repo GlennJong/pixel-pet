@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { AnimationPreview } from './AnimationPreview';
 import { COLORS, FONT, GRID_COLS, GRID_GAP, GRID_OUTER_PAD, hex } from '../constants';
 import { Direction } from '@/game/ui/focus';
 import { fitContainNoUpscale, resolveTextureSourceSize } from '../utils/sizing';
@@ -10,6 +11,8 @@ export interface GridCellData {
   textureKey?: string;
   selected: boolean;
   selectionOrder?: number; // 1-indexed order of selection (undefined when not selected)
+  /** Play these animations, in order and looping, instead of a still image. */
+  animation?: { atlasId: string; parts: string[] };
 }
 
 export interface GridSelectorConfig {
@@ -19,6 +22,11 @@ export interface GridSelectorConfig {
   height: number; // visible height
   hasAddCell?: boolean;
   cellSize?: number;
+  /**
+   * Activating a cell picks it (emits 'pick') instead of toggling it into a
+   * multi-selection. For "choose one of these".
+   */
+  pickOne?: boolean;
 }
 
 /**
@@ -31,6 +39,8 @@ export interface GridSelectorConfig {
  *   'add-request'              – '+' cell was activated
  *   'request-focus'            – pointer entered/pressed; owner should focus this grid
  *   'selection-change' (cells) – selection state changed
+ *   'pick' (id)                – a cell was activated, in pickOne mode
+ *   'cursor-change' (index)    – the cursor moved
  */
 export class GridSelector extends FocusableCursorList {
   private areaBg!: Phaser.GameObjects.Rectangle;
@@ -38,6 +48,7 @@ export class GridSelector extends FocusableCursorList {
   private viewportMask!: Phaser.GameObjects.Graphics;
 
   private cells: GridCellData[] = [];
+  private readonly pickOne: boolean;
   private cellContainers: Phaser.GameObjects.Container[] = [];
 
   private _cursorIndex = 0;
@@ -52,6 +63,7 @@ export class GridSelector extends FocusableCursorList {
 
   constructor(scene: Phaser.Scene, config: GridSelectorConfig) {
     super(scene, config.x, config.y);
+    this.pickOne = config.pickOne === true;
 
     const cols = GRID_COLS;
     const innerW = config.width - GRID_OUTER_PAD * 2;
@@ -201,6 +213,8 @@ export class GridSelector extends FocusableCursorList {
     this._cursorIndex = Phaser.Math.Clamp(index, 0, Math.max(0, this.cells.length - 1));
     this.scrollToCursor();
     this.refreshVisuals();
+    this.replayCursorPreview();
+    this.emit('cursor-change', this._cursorIndex);
   }
 
   clearAllSelections() {
@@ -266,6 +280,8 @@ export class GridSelector extends FocusableCursorList {
     if (!cell) return;
     if (cell.type === 'add') {
       this.emit('add-request');
+    } else if (this.pickOne) {
+      this.emit('pick', cell.id);
     } else {
       this.toggleSelection(this._cursorIndex);
     }
@@ -347,6 +363,11 @@ export class GridSelector extends FocusableCursorList {
         })
         .setOrigin(0.5);
       container.add(plus);
+    } else if (cell.animation) {
+      const preview = new AnimationPreview(this.scene, 2, 2, this.cellSize - 4, this.cellSize - 4);
+      preview.setSequence(cell.animation.atlasId, cell.animation.parts);
+      container.add(preview);
+      container.setData('preview', preview);
     } else if (cell.textureKey && this.scene.textures.exists(cell.textureKey)) {
       const source = resolveTextureSourceSize(this.scene, cell.textureKey);
       const fitted = source
@@ -429,6 +450,14 @@ export class GridSelector extends FocusableCursorList {
     this.styleCell(this._cursorIndex);
     this._prevCursorIndex = this._cursorIndex;
     this.clipVisibility();
+    this.replayCursorPreview();
+    this.emit('cursor-change', this._cursorIndex);
+  }
+
+  /** An animated cell plays again when the cursor lands on it. */
+  replayCursorPreview() {
+    const preview = this.cellContainers[this._cursorIndex]?.getData('preview') as AnimationPreview | undefined;
+    preview?.replay();
   }
 
   /** Restyle a single cell's fill / border / badge. */

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Direction } from '@/game/ui/focus';
-import { COLORS, FONT, hex } from '../constants';
+import { COLORS, FONT, cjkStyle, hex } from '../constants';
 import { FocusableCursorList } from './FocusableCursorList';
 
 export interface OptionMenuItem {
@@ -18,6 +18,8 @@ export interface OptionMenuItem {
 const ROW_H = 16;
 /** Row height once any item carries a description (two stacked text lines). */
 const ROW_H_WITH_DESC = 24;
+/** Two lines of the 10px dialogue font need a little more room. */
+const ROW_H_WITH_DESC_CJK = 26;
 const ROW_TEXT_PAD_X = 4;
 
 /**
@@ -53,6 +55,7 @@ export class OptionMenu extends FocusableCursorList {
   private maxVisibleRows = 1;
 
   private readonly maxHeight: number;
+  private readonly cjk: boolean;
   private readonly rowWidth: number;
   private readonly rowTextMaxW: number;
 
@@ -63,8 +66,11 @@ export class OptionMenu extends FocusableCursorList {
     width: number,
     maxHeight: number,
     items: OptionMenuItem[],
+    /** Rows mostly in Chinese: drawn in the dialogue font, rows a little taller. */
+    opts: { cjk?: boolean } = {},
   ) {
     super(scene, x, y);
+    this.cjk = opts.cjk === true;
     this.maxHeight = maxHeight;
     this.rowWidth = width;
     this.rowTextMaxW = Math.max(10, this.rowWidth - ROW_TEXT_PAD_X * 2);
@@ -83,7 +89,8 @@ export class OptionMenu extends FocusableCursorList {
     this.items = [...items];
     // One row height for the whole list: a list of mixed-height rows reads as a
     // layout bug, and the cursor would jump by varying amounts.
-    this.rowH = this.items.some((item) => item.description) ? ROW_H_WITH_DESC : ROW_H;
+    const withDesc = this.cjk ? ROW_H_WITH_DESC_CJK : ROW_H_WITH_DESC;
+    this.rowH = this.items.some((item) => item.description) ? withDesc : ROW_H;
     this.maxVisibleRows = Math.max(1, Math.floor(this.maxHeight / this.rowH));
     this.computeDisplayLabels();
     this._cursorIndex = Phaser.Math.Clamp(this._cursorIndex, 0, Math.max(0, items.length - 1));
@@ -100,22 +107,14 @@ export class OptionMenu extends FocusableCursorList {
         .rectangle(0, rowY, this.rowWidth, this.rowH - 2, COLORS.GRID_AREA_BG)
         .setOrigin(0, 0)
         .setInteractive({ cursor: 'pointer' });
+      const labelY = twoLine ? (this.cjk ? 6 : 5) : this.rowH / 2;
+      const descY = this.cjk ? 18 : 15;
       const text = this.scene.add
-        .text(ROW_TEXT_PAD_X, rowY + (twoLine ? 5 : this.rowH / 2), '', {
-          fontFamily: FONT.FAMILY,
-          fontSize: FONT.SIZE,
-          color: hex(COLORS.TEXT),
-          resolution: 1,
-        })
+        .text(ROW_TEXT_PAD_X, rowY + labelY, '', this.textStyle(COLORS.TEXT))
         .setOrigin(0, 0.5);
       const desc = twoLine
         ? this.scene.add
-            .text(ROW_TEXT_PAD_X, rowY + 15, '', {
-              fontFamily: FONT.FAMILY,
-              fontSize: FONT.SIZE,
-              color: hex(COLORS.TEXT_DISABLED),
-              resolution: 1,
-            })
+            .text(ROW_TEXT_PAD_X, rowY + descY, '', this.textStyle(COLORS.TEXT_DISABLED))
             .setOrigin(0, 0.5)
         : undefined;
 
@@ -199,6 +198,11 @@ export class OptionMenu extends FocusableCursorList {
 
   // ── Private ────────────────────────────────────────────────────────────────
 
+  private textStyle(color: number): Phaser.Types.GameObjects.Text.TextStyle {
+    if (this.cjk) return cjkStyle(color);
+    return { fontFamily: FONT.FAMILY, fontSize: FONT.SIZE, color: hex(color), resolution: 1 };
+  }
+
   private clearRows() {
     this.rowBgs.forEach(b => b.destroy());
     this.rowTexts.forEach(t => t.destroy());
@@ -267,7 +271,7 @@ export class OptionMenu extends FocusableCursorList {
   /** Compute each item's ellipsized display string once, using a single probe. */
   private computeDisplayLabels() {
     const probe = this.scene.add
-      .text(0, 0, '', { fontFamily: FONT.FAMILY, fontSize: FONT.SIZE, resolution: 1 })
+      .text(0, 0, '', this.textStyle(COLORS.TEXT))
       .setVisible(false);
     this.displayLabels = this.items.map(item => this.ellipsize(probe, item.label));
     this.displayDescs = this.items.map(item =>

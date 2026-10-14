@@ -12,6 +12,9 @@ import { saveAtlasCustomization, setCustomizationActive, reloadAtlasIntoScene } 
 import { getStaticData } from '@/game/staticData';
 import { AtlasEntry } from '@/game/assets';
 import { COLORS, FONT, BANNER_AUTOHIDE_MS, hex } from './constants';
+import { GameConfigProject } from './action/GameConfigProject';
+import { gameConfigFromStaticData } from '@/game/gameConfig/fromStaticData';
+import { createAnimationsFromConfig, resolveAtlasAnimations } from '@/game/utils/animation';
 
 const describeError = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
@@ -55,6 +58,11 @@ export default class EditorScene extends Scene implements EditorApp {
   private selectedAtlas?: WorkspaceAtlasEntry;
 
   private state: EditorState = { projectName: '', images: [], sprites: [] };
+  /**
+   * The game config the basic editor changes. Re-read from the loaded game on
+   * every start: edits live in memory only until saving exists.
+   */
+  private config?: GameConfigProject;
 
   constructor() {
     super('Editor');
@@ -67,6 +75,8 @@ export default class EditorScene extends Scene implements EditorApp {
     this.atlasList = [];
     this.selectedAtlas = undefined;
     this.state = { projectName: this.targetAtlasId || '', images: [], sprites: [] };
+    const files = gameConfigFromStaticData();
+    this.config = files ? new GameConfigProject(files) : undefined;
   }
 
   create() {
@@ -111,6 +121,13 @@ export default class EditorScene extends Scene implements EditorApp {
     // the caller targeted, and the user is free to pick another.
     this.selectedAtlas = this.atlasList.find((a) => a.atlasId === (this.targetAtlasId || '').trim());
 
+    // The basic editor previews the character's animations, which the game
+    // only registers once the Pet scene has run. Registering is idempotent.
+    if (this.config) {
+      const atlasId = this.config.characterAtlasId;
+      createAnimationsFromConfig(this, atlasId, resolveAtlasAnimations(atlasId));
+    }
+
     this.host = new ScreenHost(
       {
         scene: this,
@@ -126,12 +143,16 @@ export default class EditorScene extends Scene implements EditorApp {
           atlasList: this.atlasList,
           // A getter, not a snapshot: the picker sets it mid-session.
           get selectedAtlas() { return self.selectedAtlas; },
+          config: this.config,
+          characterAnimations: () => this.characterAnimations(),
           app: this,
           exitEditor: () => this.exitEditor(),
           banner: (message, isError) => this.showBanner(message, isError),
         },
       },
-      { screen: 'picker' },
+      // Without a game config there is nothing for the basic editor to change,
+      // so the sprite picker is the way in.
+      this.config ? { screen: 'groups' } : { screen: 'picker' },
     );
   }
 
@@ -277,6 +298,15 @@ export default class EditorScene extends Scene implements EditorApp {
   }
 
   // ── Private ────────────────────────────────────────────────────────────────
+
+  /** Animation names in the character's atlas, in the order the atlas lists them. */
+  private characterAnimations(): string[] {
+    const atlasId = this.config?.characterAtlasId;
+    if (!atlasId) return [];
+    // The preloader merges every atlas's animations.json in here.
+    const list = getStaticData<{ prefix: string }[] | undefined>(`assets.animationsByAtlas.${atlasId}`);
+    return (list ?? []).map((a) => a.prefix);
+  }
 
   private resolveApplyAtlasId(): string {
     // What the user picked wins: `targetAtlasId` is only the atlas the caller
