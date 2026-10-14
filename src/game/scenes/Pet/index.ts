@@ -36,6 +36,7 @@ import { PetStats } from "./types/runtime";
 import { initRuntimeData } from "@/game/runtimeData";
 import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
 import { getCharacterActionsConfig } from "./utils/resolveActions";
+import { redirectTask } from "./utils/redirectTask";
 
 export default class PetScene extends Scene {
   private header?: Header;
@@ -177,9 +178,14 @@ export default class PetScene extends Scene {
       : null;
   }
 
-  async handleActionQueueTask(task: Task) {
+  async handleActionQueueTask(queued: Task) {
     if (!this.isPetReady) return false;
     let success = false;
+    const task = redirectTask(
+      queued,
+      this.conditionHandler?.getConfig(),
+      getCharacterActionsConfig(),
+    );
     const { action, user, params, dialogues, move } = task;
 
     let effect = task.effect;

@@ -162,6 +162,47 @@ describe('character: condition presentation follows its rule', () => {
   });
 });
 
+describe('condition redirects', () => {
+  type Redirect = { to: string; except?: string[] };
+  const redirects = Object.entries(conditions)
+    .filter(([, def]) => (def as { redirect?: Redirect }).redirect)
+    .map(([name, def]) => [name, (def as { redirect: Redirect }).redirect] as const);
+
+  it('point at a defined action', () => {
+    const bad = redirects.filter(([, r]) => !actionNames.has(r.to)).map(([c, r]) => `${c} → ${r.to}`);
+    expect(bad).toEqual([]);
+  });
+
+  // An exemption that cannot actually leave the condition is a trap: the pet
+  // gets in and every way out is redirected.
+  it('exempt only actions that leave the condition', () => {
+    const bad = redirects.flatMap(([c, r]) =>
+      (r.except ?? []).filter((name) => {
+        const set = effects.find((e) => e.action === name)?.effect.condition;
+        return !actionNames.has(name) || set?.method !== 'set' || set.value === c;
+      }).map((name) => `${c} except ${name}`),
+    );
+    expect(bad).toEqual([]);
+  });
+
+  it('leave a way out of every condition that has one', () => {
+    const stuck = redirects.filter(([, r]) => (r.except ?? []).length === 0).map(([c]) => c);
+    expect(stuck).toEqual([]);
+  });
+
+  // The header writes its own condition branches out in full; they must agree
+  // with the rule the runtime enforces.
+  it('agree with the header menu', () => {
+    const bad = redirects.flatMap(([c, r]) =>
+      (header.menu as { action: Record<string, string> }[])
+        .map((m, i) => ({ i, a: m.action[`condition:${c}`] }))
+        .filter(({ a }) => a !== r.to)
+        .map(({ i, a }) => `menu[${i}] condition:${c} = ${a}, rule says ${r.to}`),
+    );
+    expect(bad).toEqual([]);
+  });
+});
+
 describe('dialogue text exists', () => {
   it('every scriptId resolves in the locale', () => {
     const missing = actions.flatMap(([name, def]) =>

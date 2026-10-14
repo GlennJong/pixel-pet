@@ -27,8 +27,8 @@ export class MainScene extends Scene {
     initRuntimeData("global.transmit", GLOBAL_DEFAULT_TRANSMIT);
     initRuntimeData("global.messageQueue", []);
 
-    // this.scene.start("Pet");
-    this.scene.start("SpriteEditor");
+    this.scene.start("Pet");
+    // this.scene.start("SpriteEditor");
   }
 
   shutdown() {}

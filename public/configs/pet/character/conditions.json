@@ -18,6 +18,10 @@
       "method": "add",
       "value": 1,
       "interval": 5000
+    },
+    "redirect": {
+      "to": "lock",
+      "except": ["revive"]
     }
   }
 }
