@@ -95,7 +95,7 @@
         ]
       },
       "priority": 2,
-      "direction": "left"
+      "direction": "right"
     },
     "walk-left": {
       "animationSet": {
@@ -218,10 +218,16 @@
         "default": [
           "write"
         ],
+        "condition:normal": [
+          "write"
+        ],
         "condition:sleep": [
           "wake-up",
           "write",
           "lay-down"
+        ],
+        "condition:death": [
+          "egg"
         ]
       },
       "user": "system",
@@ -299,6 +305,19 @@
         "default": [
           "idle-left",
           "idle-right"
+        ],
+        "condition:normal": [
+          "idle-left",
+          "idle-right"
+        ],
+        "condition:sleep": [
+          "wake-up",
+          "idle-left",
+          "idle-right",
+          "lay-down"
+        ],
+        "condition:death": [
+          "egg"
         ]
       },
       "dialogues": [
@@ -318,6 +337,19 @@
         "default": [
           "idle-left",
           "idle-right"
+        ],
+        "condition:normal": [
+          "idle-left",
+          "idle-right"
+        ],
+        "condition:sleep": [
+          "wake-up",
+          "idle-left",
+          "idle-right",
+          "lay-down"
+        ],
+        "condition:death": [
+          "egg"
         ]
       },
       "dialogues": [
@@ -335,6 +367,15 @@
     "die": {
       "animationSet": {
         "default": [
+          "lay-down"
+        ],
+        "condition:normal": [
+          "lay-down"
+        ],
+        "condition:sleep": [
+          "lay-down"
+        ],
+        "condition:death": [
           "lay-down"
         ]
       },
@@ -354,6 +395,15 @@
       "animationSet": {
         "default": [
           "revive"
+        ],
+        "condition:normal": [
+          "revive"
+        ],
+        "condition:sleep": [
+          "revive"
+        ],
+        "condition:death": [
+          "revive"
         ]
       },
       "dialogues": [
@@ -371,6 +421,17 @@
     "lock": {
       "animationSet": {
         "default": [
+          "egg"
+        ],
+        "condition:normal": [
+          "egg"
+        ],
+        "condition:sleep": [
+          "wake-up",
+          "egg",
+          "lay-down"
+        ],
+        "condition:death": [
           "egg"
         ]
       },
@@ -391,6 +452,19 @@
         "default": [
           "idle-left",
           "idle-right"
+        ],
+        "condition:normal": [
+          "idle-left",
+          "idle-right"
+        ],
+        "condition:sleep": [
+          "wake-up",
+          "idle-left",
+          "idle-right",
+          "lay-down"
+        ],
+        "condition:death": [
+          "egg"
         ]
       },
       "dialogues": [
@@ -410,6 +484,19 @@
         "default": [
           "idle-left",
           "idle-right"
+        ],
+        "condition:normal": [
+          "idle-left",
+          "idle-right"
+        ],
+        "condition:sleep": [
+          "wake-up",
+          "idle-left",
+          "idle-right",
+          "lay-down"
+        ],
+        "condition:death": [
+          "egg"
         ]
       },
       "dialogues": [
@@ -429,6 +516,19 @@
         "default": [
           "idle-left",
           "idle-right"
+        ],
+        "condition:normal": [
+          "idle-left",
+          "idle-right"
+        ],
+        "condition:sleep": [
+          "wake-up",
+          "idle-left",
+          "idle-right",
+          "lay-down"
+        ],
+        "condition:death": [
+          "egg"
         ]
       },
       "dialogues": [
@@ -448,6 +548,19 @@
         "default": [
           "idle-left",
           "idle-right"
+        ],
+        "condition:normal": [
+          "idle-left",
+          "idle-right"
+        ],
+        "condition:sleep": [
+          "wake-up",
+          "idle-left",
+          "idle-right",
+          "lay-down"
+        ],
+        "condition:death": [
+          "egg"
         ]
       },
       "dialogues": [
@@ -467,6 +580,19 @@
         "default": [
           "idle-left",
           "idle-right"
+        ],
+        "condition:normal": [
+          "idle-left",
+          "idle-right"
+        ],
+        "condition:sleep": [
+          "wake-up",
+          "idle-left",
+          "idle-right",
+          "lay-down"
+        ],
+        "condition:death": [
+          "egg"
         ]
       },
       "dialogues": [
