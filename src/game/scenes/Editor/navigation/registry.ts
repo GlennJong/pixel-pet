@@ -92,7 +92,7 @@ function prepareSprites(ctx: EditorContext) {
   if (preset.sprites.length === 0) return;
 
   ctx.data.sprites = preset.sprites;
-  console.log('[SpriteEditor] Smart preset applied', {
+  console.log('[Editor] Smart preset applied', {
     spriteCount: preset.sprites.length,
     parsedImageCount: preset.parsedImageCount,
     skippedImageCount: preset.skippedImageCount,

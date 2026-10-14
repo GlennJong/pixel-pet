@@ -8,7 +8,7 @@ import { Preloader } from "@/game/scenes/Preloader";
 import { MainScene } from "@/game/scenes/MainScene";
 import TestScene from "@/game/scenes/Test";
 import Pet from "@/game/scenes/Pet";
-import EditorScene from "@/game/scenes/SpriteEditor";
+import EditorScene from "@/game/scenes/Editor";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: AUTO,

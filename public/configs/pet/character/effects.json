@@ -1,6 +1,6 @@
 [
   {
-    "action": "drink",
+    "action": "eat",
     "effect": {
       "hp": {
         "method": "add",
@@ -13,12 +13,8 @@
     }
   },
   {
-    "action": "write",
+    "action": "work",
     "effect": {
-      "hp": {
-        "method": "add",
-        "value": 10
-      },
       "coin": {
         "method": "add",
         "value": 1
@@ -35,7 +31,7 @@
     }
   },
   {
-    "action": "awake",
+    "action": "wake",
     "effect": {
       "condition": {
         "method": "set",
@@ -92,7 +88,7 @@
     }
   },
   {
-    "action": "buyLv1",
+    "action": "buy-lv1",
     "effect": {
       "level": {
         "method": "set",
@@ -105,7 +101,7 @@
     }
   },
   {
-    "action": "buyLv2",
+    "action": "buy-lv2",
     "effect": {
       "level": {
         "method": "set",
@@ -118,7 +114,7 @@
     }
   },
   {
-    "action": "buyLv3",
+    "action": "buy-lv3",
     "effect": {
       "level": {
         "method": "set",
@@ -131,7 +127,7 @@
     }
   },
   {
-    "action": "buyLv4",
+    "action": "buy-lv4",
     "effect": {
       "level": {
         "method": "set",
@@ -144,7 +140,7 @@
     }
   },
   {
-    "action": "buyLv5",
+    "action": "buy-lv5",
     "effect": {
       "level": {
         "method": "set",

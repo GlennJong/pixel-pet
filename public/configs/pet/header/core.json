@@ -35,9 +35,9 @@
         "unselected": "water-unselected"
       },
       "action": {
-        "default": "drink",
-        "condition:normal": "drink",
-        "condition:sleep": "drink",
+        "default": "eat",
+        "condition:normal": "eat",
+        "condition:sleep": "eat",
         "condition:death": "lock"
       }
     },
@@ -47,9 +47,9 @@
         "unselected": "write-unselected"
       },
       "action": {
-        "default": "write",
-        "condition:normal": "write",
-        "condition:sleep": "write",
+        "default": "work",
+        "condition:normal": "work",
+        "condition:sleep": "work",
         "condition:death": "lock"
       }
     },
@@ -59,9 +59,9 @@
         "unselected": "write-unselected"
       },
       "action": {
-        "default": "write",
-        "condition:normal": "write",
-        "condition:sleep": "write",
+        "default": "work",
+        "condition:normal": "work",
+        "condition:sleep": "work",
         "condition:death": "lock"
       }
     },
@@ -71,9 +71,9 @@
         "unselected": "write-unselected"
       },
       "action": {
-        "default": "write",
-        "condition:normal": "write",
-        "condition:sleep": "write",
+        "default": "work",
+        "condition:normal": "work",
+        "condition:sleep": "work",
         "condition:death": "lock"
       }
     },
@@ -83,9 +83,9 @@
         "unselected": "write-unselected"
       },
       "action": {
-        "default": "write",
-        "condition:normal": "write",
-        "condition:sleep": "write",
+        "default": "work",
+        "condition:normal": "work",
+        "condition:sleep": "work",
         "condition:death": "lock"
       }
     },
@@ -97,7 +97,7 @@
       "action": {
         "default": "sleep",
         "condition:normal": "sleep",
-        "condition:sleep": "awake",
+        "condition:sleep": "wake",
         "condition:death": "lock"
       }
     }

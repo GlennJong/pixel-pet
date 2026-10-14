@@ -2,7 +2,7 @@
  * Asset contract — the single definition of what a valid atlas looks like.
  *
  * Both sides of the pipeline import from here: the Pet reads atlases at runtime,
- * the SpriteEditor writes them. Before this module each side carried its own
+ * the Editor writes them. Before this module each side carried its own
  * copy of these shapes (four separate declarations of an atlas entry, two of
  * `AnimationItem`), so a format change could not fail at compile time — and the
  * drift was already visible as a duplicated field in the Pet's copy.
@@ -22,7 +22,7 @@ export interface AtlasEntry {
   json: string;
   animations?: string;
   /**
-   * Whitelist flag: may the SpriteEditor open this atlas? Omitted means **no**.
+   * Whitelist flag: may the Editor open this atlas? Omitted means **no**.
    *
    * Only atlases that are purely named animation sequences qualify. An atlas
    * whose meaning depends on numbers living outside it — a nineslice's corner

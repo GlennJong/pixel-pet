@@ -9,8 +9,8 @@ export const petConditionWording = {
 };
 
 export const triggersWording = {
-  drink: "讓角色喝水",
-  write: "讓角色寫字",
+  eat: "讓角色吃飯",
+  work: "讓角色工作",
   sleep: "讓角色睡覺/起床",
   action: "遊戲內指令",
   matches: "觸發條件",
@@ -19,14 +19,14 @@ export const triggersWording = {
 };
 
 export const idleActionsWording = {
-  "idle-left": "靜止(左邊)",
-  "idle-right": "靜止(右邊)",
-  "stare-left": "偷看(右邊)",
-  "stare-right": "偷看(右邊)",
-  "walk-left": "走路(左邊)",
-  "walk-right": "偷看(右邊)",
-  "wink-left": "眨眼(左邊)",
-  "wink-right": "眨眼(右邊)",
+  "stand-left": "站立(左邊)",
+  "stand-right": "站立(右邊)",
+  "idle1-left": "閒置1(左邊)",
+  "idle1-right": "閒置1(右邊)",
+  "move-left": "移動(左邊)",
+  "move-right": "移動(右邊)",
+  "idle2-left": "閒置2(左邊)",
+  "idle2-right": "閒置2(右邊)",
   priority: "優先度(越高越容易觸發)",
 };
 
@@ -38,7 +38,7 @@ export const actionsWording = {
   text: "對話文字",
   effect: "動作效果",
   priority: "優先度(越高越容易觸發)",
-  drink: "喝水動作",
+  eat: "吃飯動作",
   method: "增加(add)/減少(sub)",
   value: "值",
   op: "比較符號(==,>,<,>=,<=)",
@@ -68,8 +68,8 @@ export const petSceneWording = {
   stare: "偷看",
   walk: "走路",
   wink: "扎眼睛",
-  drink: "讓角色喝水",
-  write: "讓角色寫字",
+  eat: "讓角色吃飯",
+  work: "讓角色工作",
   sleep: "讓角色睡覺（停止自動扣血）",
   awake: "讓角色起床（啟動自動扣血）",
   point: "恢復血量",

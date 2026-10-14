@@ -34,7 +34,7 @@ interface EditorSceneStartData {
  * follows which, or which buttons a screen offers, edit that file; this one only
  * gains code when the editor learns to *do* something new.
  *
- * Scene key: 'SpriteEditor'
+ * Scene key: 'Editor'
  */
 export default class EditorScene extends Scene implements EditorApp {
   private host?: ScreenHost;
@@ -57,7 +57,7 @@ export default class EditorScene extends Scene implements EditorApp {
   private state: EditorState = { projectName: '', images: [], sprites: [] };
 
   constructor() {
-    super('SpriteEditor');
+    super('Editor');
   }
 
   init(data: EditorSceneStartData) {
@@ -94,7 +94,7 @@ export default class EditorScene extends Scene implements EditorApp {
     try {
       this.atlasList = await loadEditableAtlasList();
     } catch (error) {
-      console.error('[SpriteEditor] Could not read the atlas list', error);
+      console.error('[Editor] Could not read the atlas list', error);
       this.clearBootText();
       this.showBanner(`Could not read the atlas list: ${describeError(error)}`);
       return;
@@ -158,14 +158,14 @@ export default class EditorScene extends Scene implements EditorApp {
       this.state.sprites = project.sprites;
 
       if (project.warnings.length > 0) {
-        console.warn(`[SpriteEditor] ${atlas.atlasId} loaded with warnings:`, project.warnings);
+        console.warn(`[Editor] ${atlas.atlasId} loaded with warnings:`, project.warnings);
       }
 
       this.clearBootText();
       this.host?.go({ screen: 'sprites' });
     } catch (error) {
       if (this.disposed) return;
-      console.error(`[SpriteEditor] Could not load ${atlas.atlasId}`, error);
+      console.error(`[Editor] Could not load ${atlas.atlasId}`, error);
       this.clearBootText();
       this.host?.go({ screen: 'library' });
       this.showBanner(`Could not load ${atlas.displayName || atlas.atlasId}: ${describeError(error)}`);
@@ -208,11 +208,11 @@ export default class EditorScene extends Scene implements EditorApp {
       downloadSpriteEditorExport(artifacts);
 
       if (artifacts.renamedPrefixes.length > 0) {
-        console.warn('[SpriteEditor] Duplicate prefixes were renamed for export.', artifacts.renamedPrefixes);
+        console.warn('[Editor] Duplicate prefixes were renamed for export.', artifacts.renamedPrefixes);
       }
-      console.log('[SpriteEditor] Exported spritesheet.png, spritesheet.json, animations.json');
+      console.log('[Editor] Exported spritesheet.png, spritesheet.json, animations.json');
     } catch (error) {
-      console.error('[SpriteEditor] Export failed', error);
+      console.error('[Editor] Export failed', error);
       this.showBanner(`Export failed: ${describeError(error)}`);
     }
   }
@@ -250,9 +250,9 @@ export default class EditorScene extends Scene implements EditorApp {
       setCustomizationActive(true, atlasId);
 
       if (artifacts.renamedPrefixes.length > 0) {
-        console.warn('[SpriteEditor] Duplicate prefixes were renamed for apply.', artifacts.renamedPrefixes);
+        console.warn('[Editor] Duplicate prefixes were renamed for apply.', artifacts.renamedPrefixes);
       }
-      console.log(`[SpriteEditor] Applied customization for atlas: ${atlasId}`);
+      console.log(`[Editor] Applied customization for atlas: ${atlasId}`);
 
       if (this.returnSceneKey) {
         // Hot-reload the atlas into the running game so the change is visible
@@ -261,7 +261,7 @@ export default class EditorScene extends Scene implements EditorApp {
           await reloadAtlasIntoScene(this, atlasId);
         } catch (reloadError) {
           console.warn(
-            '[SpriteEditor] Live reload failed; change will apply on next page load.',
+            '[Editor] Live reload failed; change will apply on next page load.',
             reloadError,
           );
         }
@@ -271,7 +271,7 @@ export default class EditorScene extends Scene implements EditorApp {
 
       this.showBanner(`Applied customization for atlas: ${atlasId}`, false);
     } catch (error) {
-      console.error('[SpriteEditor] Apply failed', error);
+      console.error('[Editor] Apply failed', error);
       this.showBanner(`Apply failed: ${describeError(error)}`);
     }
   }

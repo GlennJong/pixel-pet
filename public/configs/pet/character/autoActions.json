@@ -44,7 +44,7 @@
     }
   },
   {
-    "action": "buyLv1",
+    "action": "buy-lv1",
     "when": {
       "coin": {
         "op": ">=",
@@ -61,7 +61,7 @@
     }
   },
   {
-    "action": "buyLv2",
+    "action": "buy-lv2",
     "when": {
       "coin": {
         "op": ">=",
@@ -78,7 +78,7 @@
     }
   },
   {
-    "action": "buyLv3",
+    "action": "buy-lv3",
     "when": {
       "coin": {
         "op": ">=",
@@ -95,7 +95,7 @@
     }
   },
   {
-    "action": "buyLv4",
+    "action": "buy-lv4",
     "when": {
       "coin": {
         "op": ">=",
@@ -112,7 +112,7 @@
     }
   },
   {
-    "action": "buyLv5",
+    "action": "buy-lv5",
     "when": {
       "coin": {
         "op": ">=",

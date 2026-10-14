@@ -409,7 +409,7 @@ export class LibraryScreen extends EditorScreen {
       if (!atlas) return; // nothing editable to copy; the blank project stands
       this.applyImportedAtlas(await loadWorkspaceAtlasProject(this.scene, atlas));
     } catch (error) {
-      console.warn('[SpriteEditor] CREATE NEW could not copy the factory atlas', error);
+      console.warn('[Editor] CREATE NEW could not copy the factory atlas', error);
     }
   }
 
@@ -675,7 +675,7 @@ export class LibraryScreen extends EditorScreen {
     }
 
     if (result.warnings.length > 0) {
-      console.warn('[SpriteEditor][Import] warnings:', result.warnings);
+      console.warn('[Editor][Import] warnings:', result.warnings);
     }
   }
 

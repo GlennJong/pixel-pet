@@ -24,7 +24,7 @@ function warnOnDanglingShortcuts(id: ScreenId, spec: ScreenSpec<any>) {
   for (const [code, name] of Object.entries(spec.shortcuts ?? {})) {
     const known = Boolean(spec.actions?.[name]) || Boolean((spec.events as Record<string, unknown>)?.[name]);
     if (!known) {
-      console.warn(`[SpriteEditor] ${id}: shortcut ${code} names "${name}", which is neither an action nor an event.`);
+      console.warn(`[Editor] ${id}: shortcut ${code} names "${name}", which is neither an action nor an event.`);
     }
   }
 }
@@ -144,7 +144,7 @@ export class ScreenHost {
     } catch (error) {
       if (this.navErrorScreen !== this.state.screen) {
         this.navErrorScreen = this.state.screen;
-        console.error(`[SpriteEditor] nav refresh failed on "${this.state.screen}"`, error);
+        console.error(`[Editor] nav refresh failed on "${this.state.screen}"`, error);
       }
     }
     (this.current as unknown as { update?: () => void })?.update?.();

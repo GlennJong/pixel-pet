@@ -1,12 +1,12 @@
 {
-  "drink": {
-    "action": "drink",
+  "eat": {
+    "action": "eat",
     "matches": {
       "content": ["補充水分"]
     }
   },
-  "write": {
-    "action": "write",
+  "work": {
+    "action": "work",
     "matches": {
       "content": ["提醒大家存檔"]
     }

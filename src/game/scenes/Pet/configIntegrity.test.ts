@@ -138,14 +138,32 @@ describe('character: every action states every condition', () => {
  * so the first save in the editor changes nothing.
  */
 describe('character: condition presentation follows its rule', () => {
+  // Every rule is read off the actions that define it, so editing those
+  // actions is all it takes to change how every other action is performed:
+  //   睡覺 [倒地, 睡覺中]  → others in sleep: 起身 ▸ action ▸ 倒地; idles: 睡覺中
+  //   睡覺 [睡覺中]        → no bridging, others play as they are
+  //   起床 [起身]
+  //   死亡中 = whatever the death redirect plays
+  const seq = (name: string) => actions.find(([n]) => n === name)?.[1].animationSet.default ?? [];
+  const sleep = seq('sleep');
+  const wake = seq('wake');
+  const dead = seq(conditions.death.redirect.to);
+
   const rule = (section: 'idle' | 'action', name: string, base: string[]) => {
     if (conditionChangers.has(name)) return null;
+    const bridged = sleep.length > 1 ? [...wake, ...base, sleep[0]] : base;
     return {
       'condition:normal': base,
-      'condition:death': ['egg'],
-      'condition:sleep': section === 'idle' ? ['sleep'] : ['wake-up', ...base, 'lay-down'],
+      'condition:death': dead,
+      'condition:sleep': section === 'idle' ? [sleep[sleep.length - 1]] : bridged,
     };
   };
+
+  it('reads its rules from actions that exist', () => {
+    expect(sleep.length).toBeGreaterThan(0);
+    expect(wake.length).toBeGreaterThan(0);
+    expect(dead.length).toBeGreaterThan(0);
+  });
 
   it.each(idleActions)('idle %s', (name, def) => {
     const want = rule('idle', name, def.animationSet.default);
@@ -158,7 +176,7 @@ describe('character: condition presentation follows its rule', () => {
   });
 
   it('exempts the actions that change condition', () => {
-    expect([...conditionChangers].sort()).toEqual(['awake', 'die', 'revive', 'sleep']);
+    expect([...conditionChangers].sort()).toEqual(['die', 'revive', 'sleep', 'wake']);
   });
 });
 
@@ -212,6 +230,28 @@ describe('dialogue text exists', () => {
       ),
     );
     expect(missing).toEqual([]);
+  });
+
+  // A number written into the text drifts the moment someone edits the effect;
+  // a placeholder the action cannot fill is printed raw as `{{name}}`.
+  it('every placeholder is something the action provides', () => {
+    const provided = (action: string) => new Set([
+      'user',
+      ...Object.keys(effects.find((e) => e.action === action)?.effect ?? {}),
+      ...Object.values(commands).filter((c) => c.action === action)
+        .flatMap((c) => Object.keys((c as { params?: object }).params ?? {})),
+    ]);
+    const bad = actions.flatMap(([name, def]) => {
+      const ok = provided(name);
+      return (def.dialogues ?? []).flatMap((d) => d.sentences).flatMap((s) => {
+        const text = s.scriptId ? lookup(locale, s.scriptId) : undefined;
+        if (typeof text !== 'string') return [];
+        return [...text.matchAll(/\{\{(\w+)\}\}/g)]
+          .map((m) => m[1]).filter((k) => !ok.has(k))
+          .map((k) => `${name}: {{${k}}} in ${s.scriptId}`);
+      });
+    });
+    expect(bad).toEqual([]);
   });
 });
 

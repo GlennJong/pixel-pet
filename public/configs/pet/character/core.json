@@ -4,7 +4,7 @@
   "settings": { 
     "width": 32, 
     "height": 32, 
-    "idlePrefix": "idle", 
+    "idlePrefix": "stand", 
     "autoActionDuration": 3000, 
     "moveDistance": 24, 
     "defaultPosition": { 
@@ -25,7 +25,7 @@
     }
   ],
   "idleActions": {
-    "idle-left": {
+    "stand-left": {
       "animationSet": {
         "default": [
           "idle-left"
@@ -43,7 +43,7 @@
       "priority": 5,
       "direction": "left"
     },
-    "idle-right": {
+    "stand-right": {
       "animationSet": {
         "default": [
           "idle-right"
@@ -61,7 +61,7 @@
       "priority": 5,
       "direction": "right"
     },
-    "stare-left": {
+    "idle1-left": {
       "animationSet": {
         "default": [
           "stare-left"
@@ -79,7 +79,7 @@
       "priority": 2,
       "direction": "left"
     },
-    "stare-right": {
+    "idle1-right": {
       "animationSet": {
         "default": [
           "stare-right"
@@ -97,7 +97,7 @@
       "priority": 2,
       "direction": "right"
     },
-    "walk-left": {
+    "move-left": {
       "animationSet": {
         "default": [
           "walk-left"
@@ -121,7 +121,7 @@
       },
       "direction": "left"
     },
-    "walk-right": {
+    "move-right": {
       "animationSet": {
         "default": [
           "walk-right"
@@ -145,7 +145,7 @@
       },
       "direction": "right"
     },
-    "wink-left": {
+    "idle2-left": {
       "animationSet": {
         "default": [
           "wink-left"
@@ -163,7 +163,7 @@
       "priority": 4,
       "direction": "left"
     },
-    "wink-right": {
+    "idle2-right": {
       "animationSet": {
         "default": [
           "wink-right"
@@ -183,7 +183,7 @@
     }
   },
   "actions": {
-    "drink": {
+    "eat": {
       "animationSet": {
         "default": [
           "drink"
@@ -206,14 +206,14 @@
           "sentences": [
             {
               "portrait": "face-normal",
-              "scriptId": "action.drink"
+              "scriptId": "action.eat"
             }
           ],
           "priority": 2
         }
       ]
     },
-    "write": {
+    "work": {
       "animationSet": {
         "default": [
           "write"
@@ -236,7 +236,7 @@
           "sentences": [
             {
               "portrait": "face-sad",
-              "scriptId": "action.write"
+              "scriptId": "action.work"
             }
           ],
           "priority": 2
@@ -246,10 +246,12 @@
     "sleep": {
       "animationSet": {
         "default": [
-          "lay-down"
+          "lay-down",
+          "sleep"
         ],
         "condition:normal": [
-          "lay-down"
+          "lay-down",
+          "sleep"
         ],
         "condition:sleep": [
           "wake-up"
@@ -271,7 +273,7 @@
         }
       ]
     },
-    "awake": {
+    "wake": {
       "animationSet": {
         "default": [
           "wake-up"
@@ -292,7 +294,7 @@
           "sentences": [
             {
               "portrait": "face-normal",
-              "scriptId": "action.awake"
+              "scriptId": "action.wake"
             }
           ],
           "priority": 2
@@ -447,7 +449,7 @@
         }
       ]
     },
-    "buyLv1": {
+    "buy-lv1": {
       "animationSet": {
         "default": [
           "idle-left",
@@ -472,14 +474,14 @@
           "sentences": [
             {
               "portrait": "face-normal",
-              "scriptId": "action.buyLv1"
+              "scriptId": "action.buy-lv1"
             }
           ],
           "priority": 2
         }
       ]
     },
-    "buyLv2": {
+    "buy-lv2": {
       "animationSet": {
         "default": [
           "idle-left",
@@ -504,14 +506,14 @@
           "sentences": [
             {
               "portrait": "face-normal",
-              "scriptId": "action.buyLv2"
+              "scriptId": "action.buy-lv2"
             }
           ],
           "priority": 2
         }
       ]
     },
-    "buyLv3": {
+    "buy-lv3": {
       "animationSet": {
         "default": [
           "idle-left",
@@ -536,14 +538,14 @@
           "sentences": [
             {
               "portrait": "face-normal",
-              "scriptId": "action.buyLv3"
+              "scriptId": "action.buy-lv3"
             }
           ],
           "priority": 2
         }
       ]
     },
-    "buyLv4": {
+    "buy-lv4": {
       "animationSet": {
         "default": [
           "idle-left",
@@ -568,14 +570,14 @@
           "sentences": [
             {
               "portrait": "face-normal",
-              "scriptId": "action.buyLv4"
+              "scriptId": "action.buy-lv4"
             }
           ],
           "priority": 2
         }
       ]
     },
-    "buyLv5": {
+    "buy-lv5": {
       "animationSet": {
         "default": [
           "idle-left",
@@ -600,7 +602,7 @@
           "sentences": [
             {
               "portrait": "face-normal",
-              "scriptId": "action.buyLv5"
+              "scriptId": "action.buy-lv5"
             }
           ],
           "priority": 2

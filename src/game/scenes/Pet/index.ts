@@ -142,7 +142,7 @@ export default class PetScene extends Scene {
   }
 
   private handleOpenEditor = () => {
-    this.scene.start("SpriteEditor", {
+    this.scene.start("Editor", {
       returnSceneKey: "Pet",
       targetAtlasId: this.character?.atlasId,
     });
