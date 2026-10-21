@@ -1,54 +1,56 @@
 import { Scene } from "phaser";
 
-// common components
 import {
   sceneConverter,
   sceneStarter,
 } from "@/game/components/SceneTransition";
-import { setRuntimeData } from "@/game/runtimeData";
-import { EventBus } from "@/game/EventBus";
-
-// partial elements
-import { Header } from "./elements/Header";
-import { PetCharacter } from "./elements/PetCharacter";
-import { PetDialogue } from "./elements/PetCharacter/PetDialogue";
-import { Room } from "./elements/Room";
-
-// services
-import { TaskQueueService } from "./services/TaskQueueService";
-import { ActionEffect, Task } from "./types";
-
-// handlers
-import { KeyboardHandler } from "./handlers/KeyboardHander";
-import { ConditionHandler } from "./handlers/ConditionHandler";
-import { AutoActionHandler } from "./handlers/AutoActionHandler";
-import { StatsHandler } from "./handlers/StatHandler";
-
-// config
+import { initRuntimeData, setRuntimeData } from "@/game/runtimeData";
+import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
 import { getStaticData } from "@/game/staticData";
+
+import { HomeScreen } from "./screens/HomeScreen";
+import {
+  ActionRunner,
+  AutoActionSystem,
+  ConditionSystem,
+  StatSystem,
+  TaskQueue,
+} from "./systems";
+import { Task } from "./types";
+import { StatItem } from "./types/common";
+import { PetStats } from "./types/runtime";
 import {
   getPetRuntimeDataKey,
   PET_STATIC_KEYS,
   PET_TASK_QUEUE_INTERVAL,
 } from "./constants";
-import { StatItem } from "./types/common";
-import { PetStats } from "./types/runtime";
-import { initRuntimeData } from "@/game/runtimeData";
-import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
 import { getCharacterActionsConfig } from "./utils/resolveActions";
-import { redirectTask } from "./utils/redirectTask";
 
+/**
+ * PetScene – the pet game.
+ *
+ * Layered like the editor:
+ *
+ *   this scene  – sets up the runtime data, builds the systems and the screen,
+ *                 and connects the two. No rules and no drawing of its own.
+ *   systems/    – the game's rules (stats, condition, auto actions, the task
+ *                 queue, running one action)
+ *   screens/    – what is on screen and the input on it (HomeScreen)
+ *   elements/   – the parts the screen is made of
+ *
+ * A pick travels: HomeScreen 'select' → here, resolved into a task → TaskQueue
+ * → ActionRunner, which plays it on the HomeScreen.
+ *
+ * Scene key: 'Pet'
+ */
 export default class PetScene extends Scene {
-  private header?: Header;
-  private room?: Room;
-  private character?: PetCharacter;
-  private dialogue?: PetDialogue;
+  private screen?: HomeScreen;
 
-  private stats?: StatsHandler;
-  private keyboardHandler?: KeyboardHandler;
-  private taskQueueService?: TaskQueueService;
-  private conditionHandler?: ConditionHandler;
-  private autoActionHandler?: AutoActionHandler;
+  private stats?: StatSystem;
+  private condition?: ConditionSystem;
+  private taskQueue?: TaskQueue;
+  private autoActions?: AutoActionSystem;
+  private runner?: ActionRunner;
 
   private isPetReady: boolean = false;
 
@@ -61,9 +63,10 @@ export default class PetScene extends Scene {
 
     setRuntimeData("global.is_paused", true);
 
-    this.initViews();
-    this.initSystems();
-    this.initControls();
+    this.screen = new HomeScreen(this);
+    this.initSystems(this.screen);
+    this.screen.on("select", this.handleSelect);
+    this.screen.on("open-editor", this.handleOpenEditor);
 
     this.startScene();
 
@@ -92,27 +95,28 @@ export default class PetScene extends Scene {
     }
   }
 
-  private initViews() {
-    this.character = new PetCharacter(this);
-    this.room = new Room(this);
-    this.room.init();
-    this.header = new Header(this);
+  private initSystems(screen: HomeScreen) {
+    this.stats = new StatSystem(this);
+    this.condition = new ConditionSystem();
 
-    this.dialogue = new PetDialogue(this);
-  }
+    this.runner = new ActionRunner({
+      stage: screen,
+      condition: this.condition,
+      stats: this.stats,
+      onMove: (target, params) => {
+        setRuntimeData("global.transmit", params);
+        sceneConverter(this, target);
+      },
+    });
 
-  private initSystems() {
-    this.stats = new StatsHandler(this);
-    this.conditionHandler = new ConditionHandler();
-
-    this.taskQueueService = new TaskQueueService(this);
-    this.taskQueueService.init({
+    this.taskQueue = new TaskQueue(this);
+    this.taskQueue.init({
       onTask: (task) => this.handleActionQueueTask(task),
       interval: PET_TASK_QUEUE_INTERVAL,
     });
 
-    this.autoActionHandler = new AutoActionHandler();
-    this.autoActionHandler.init({
+    this.autoActions = new AutoActionSystem();
+    this.autoActions.init({
       onTrigger: (action) =>
         this.handleAddEmergencyTask({
           ...action,
@@ -122,51 +126,25 @@ export default class PetScene extends Scene {
     });
   }
 
-  private handleLeftKeyDown = () => this.handleControlButton("left");
-  private handleRightKeyDown = () => this.handleControlButton("right");
-  private handleSelectKeyDown = () => this.handleControlButton("space");
-
-  private initControls() {
-    this.keyboardHandler = new KeyboardHandler(this, {
-      onLeft: this.handleLeftKeyDown,
-      onRight: this.handleRightKeyDown,
-      onSpace: this.handleSelectKeyDown,
-    });
-
-    EventBus.on("game-left-keydown", this.handleLeftKeyDown);
-    EventBus.on("game-right-keydown", this.handleRightKeyDown);
-    EventBus.on("game-select-keydown", this.handleSelectKeyDown);
-
-    // 'E' opens the Sprite Editor targeting the pet's active atlas.
-    this.input.keyboard?.on("keydown-E", this.handleOpenEditor);
-  }
-
-  private handleOpenEditor = () => {
-    this.scene.start("Editor", {
-      returnSceneKey: "Pet",
-      targetAtlasId: this.character?.atlasId,
-    });
-  };
-
   private async startScene() {
     await sceneStarter(this);
-    this.character?.startPet();
+    this.screen?.start();
     this.isPetReady = true;
     setRuntimeData("global.is_paused", false);
   }
 
-  private handleControlButton = (key: string) => {
-    if (key === "left") {
-      this.header?.movePrev();
-    } else if (key === "right") {
-      this.header?.moveNext();
-    } else if (key === "space") {
-      const action = this.header?.select();
-      const task = this.resolveActionTask(action);
-      if (task) {
-        this.taskQueueService?.addTask(task);
-      }
+  private handleSelect = (actionName: string) => {
+    const task = this.resolveActionTask(actionName);
+    if (task) {
+      this.taskQueue?.addTask(task);
     }
+  };
+
+  private handleOpenEditor = () => {
+    this.scene.start("Editor", {
+      returnSceneKey: "Pet",
+      targetAtlasId: this.screen?.atlasId,
+    });
   };
 
   private resolveActionTask(actionName: string): Task | null {
@@ -179,94 +157,36 @@ export default class PetScene extends Scene {
   }
 
   async handleActionQueueTask(queued: Task) {
-    if (!this.isPetReady) return false;
-    let success = false;
-    const task = redirectTask(
-      queued,
-      this.conditionHandler?.getConfig(),
-      getCharacterActionsConfig(),
-    );
-    const { action, user, params, dialogues, move } = task;
-
-    let effect = task.effect;
-    if (!effect) {
-      const effectsConfig = getStaticData(PET_STATIC_KEYS.EFFECTS) || [];
-      const effectEntry = effectsConfig.find((e: any) => e.action === action);
-      if (effectEntry) {
-        effect = effectEntry.effect;
-      }
-    }
-
-    try {
-      await this.character?.runFunctionalActionAsync(action);
-      this.conditionHandler?.runEffect(effect || {});
-      this.stats?.runEffect(effect || {});
-
-      if (this.dialogue && dialogues) {
-        let effectReplacement: Record<string, number | string> = {};
-        if (effect) {
-          effectReplacement = Object.fromEntries(
-            Object.entries(effect).map(([key, obj]) => [
-              key,
-              (obj as ActionEffect).value,
-            ]),
-          );
-        }
-        const replacement = { user, ...effectReplacement, ...params };
-        await this.dialogue.runDialogue(dialogues, replacement);
-      }
-
-      if (move) {
-        setRuntimeData("global.transmit", params);
-        sceneConverter(this, move);
-      }
-
-      success = true;
-    } catch (err) {
-      console.error("handleActionQueueTask error:", err);
-      success = false;
-    }
-    return success;
+    if (!this.isPetReady || !this.runner) return false;
+    return this.runner.run(queued);
   }
 
   handleAddEmergencyTask(task: Task) {
-    this.taskQueueService?.clearQueue();
-    this.character?.interrupt();
-    this.taskQueueService?.addEmergentTask(task);
+    this.taskQueue?.clearQueue();
+    this.screen?.interrupt();
+    this.taskQueue?.addEmergentTask(task);
   }
 
   async handleUpgrade(
-    taskQueueService: TaskQueueService,
+    taskQueue: TaskQueue,
     params: Record<string, string | number>,
   ) {
     if (!this.isPetReady) return false;
-    taskQueueService?.addTask({ action: "buy", user: "system", params });
+    taskQueue?.addTask({ action: "buy", user: "system", params });
     return true;
   }
 
   update() {
-    this.character?.update();
-    this.header?.update();
-    this.keyboardHandler?.update();
+    this.screen?.update();
   }
 
   shutdown = () => {
     this.isPetReady = false;
 
-    this.character?.destroy();
-    this.header?.destroy();
-    this.room?.destroy();
-    this.dialogue?.destroy();
+    this.screen?.destroy();
 
-    this.autoActionHandler?.destroy();
-    this.taskQueueService?.destroy();
+    this.autoActions?.destroy();
+    this.taskQueue?.destroy();
     this.stats?.destroy();
-    this.keyboardHandler?.destroy();
-
-    EventBus.off("game-left-keydown", this.handleLeftKeyDown);
-    EventBus.off("game-right-keydown", this.handleRightKeyDown);
-    EventBus.off("game-select-keydown", this.handleSelectKeyDown);
-
-    this.input.keyboard?.off("keydown-E", this.handleOpenEditor);
   };
 }

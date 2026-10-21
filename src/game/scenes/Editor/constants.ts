@@ -10,6 +10,9 @@ export const GRID_COLS = 3;
 export const GRID_GAP = 2;
 export const GRID_OUTER_PAD = 3;
 
+/** The strip a screen's title line takes along the top. */
+export const TITLE_HEIGHT = 14;
+
 export const TEXT_INPUT_HEIGHT = 11;
 
 export const NUMBER_INPUT_HEIGHT = 9;

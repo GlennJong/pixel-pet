@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { ButtonConfig } from '../elements';
 import { Focusable } from '@/game/ui/focus';
-import { EditorScreen } from '../screens/EditorScreen';
+import { BaseScreen } from '../screens/BaseScreen';
 import { EditorState, WorkspaceAtlasEntry } from '../types';
 import type { GameConfigProject } from '../action/GameConfigProject';
 
@@ -165,7 +165,7 @@ export interface EditorContext {
   refreshNav(): void;
 
   /** The live screen instance, when a callback needs to ask it something. */
-  screen<T extends EditorScreen>(): T | undefined;
+  screen<T extends BaseScreen>(): T | undefined;
   /** Build the shared nav as a focusable for this screen's own router. */
   navFocusable(enterContent: (edge: 'first' | 'last') => void, requestFocus: () => void): Focusable;
 }
@@ -198,7 +198,7 @@ export interface ScreenSpec<Events = Record<string, void>> {
    * rather than in a default they have to remember.
    */
   navAlign: 'left' | 'right';
-  build: (ctx: EditorContext) => EditorScreen;
+  build: (ctx: EditorContext) => BaseScreen;
   /**
    * Keyboard shortcuts this screen honours, as key code → action name, so a
    * shortcut is visible in the same table as the buttons. The screen reports
@@ -211,7 +211,7 @@ export interface ScreenSpec<Events = Record<string, void>> {
    * from another one — picking frames for a sprite card — rebuilding the screen
    * behind would reset its cursor and scroll on every return trip.
    *
-   * The screen must expose `pause()` / `resume()`.
+   * Parking uses the screen's `pause()` / `resume()` (see BaseScreen).
    */
   overlaysPrevious?: boolean;
   /** Nav button key → what it does. */

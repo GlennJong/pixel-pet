@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { ButtonBar, ButtonConfig, ConfirmDialog } from '../elements';
 import { ScreenKeyboard } from '@/game/ui';
 import { createScope, Focusable, FocusRouter } from '@/game/ui/focus';
-import { EditorScreen } from '../screens/EditorScreen';
+import { BaseScreen } from '../screens/BaseScreen';
 import { BUTTON_BAR_HEIGHT } from '../constants';
 import {
   ActionSpec,
@@ -28,11 +28,6 @@ function warnOnDanglingShortcuts(id: ScreenId, spec: ScreenSpec<any>) {
     }
   }
 }
-
-/** Screens that can be parked expose these; everything else ignores them. */
-interface PausableScreen { pause?: () => void; resume?: () => void }
-const pauseScreen = (s: EditorScreen) => (s as unknown as PausableScreen).pause?.();
-const resumeScreen = (s: EditorScreen) => (s as unknown as PausableScreen).resume?.();
 
 
 /**
@@ -68,10 +63,10 @@ export class ScreenHost {
   private readonly navBar: ButtonBar;
 
   private state: ViewState;
-  private current?: EditorScreen;
+  private current?: BaseScreen;
   /** The screen a detour screen is covering, kept alive to return to. */
   private covered?: {
-    screen: EditorScreen;
+    screen: BaseScreen;
     params: ScreenParams;
     spec: ScreenSpec<any>;
     requestFocus?: () => void;
@@ -129,7 +124,7 @@ export class ScreenHost {
   // ── Public surface ─────────────────────────────────────────────────────────
 
   get screenId(): ScreenId { return this.state.screen; }
-  get activeScreen(): EditorScreen | undefined { return this.current; }
+  get activeScreen(): BaseScreen | undefined { return this.current; }
   /** The current view state, for logging. Treat as read-only. */
   get viewState(): Readonly<ViewState> { return this.state; }
 
@@ -147,7 +142,7 @@ export class ScreenHost {
         console.error(`[Editor] nav refresh failed on "${this.state.screen}"`, error);
       }
     }
-    (this.current as unknown as { update?: () => void })?.update?.();
+    this.current?.update();
   }
 
   /**
@@ -155,9 +150,10 @@ export class ScreenHost {
    * the "don't rebuild" rule is about *data* changes — those never call it.
    */
   go(params: ScreenParams) {
+    const leaving = this.state.params;
     this.state = { screen: params.screen, params, overlays: [], navMode: null };
     this.navMode = null;
-    this.buildScreen();
+    this.buildScreen(leaving);
   }
 
   /** Swap the bar to a nav sub-menu, or back to the screen's own buttons. */
@@ -289,7 +285,7 @@ export class ScreenHost {
     parked.screen.setVisible(true);
     // Point the bar back at the restored screen's router before resuming it.
     this.navRequestFocus = parked.requestFocus;
-    resumeScreen(parked.screen);
+    parked.screen.resume();
 
     this.navBar.setAlign(parked.spec.navAlign);
     this.navSignature = null;
@@ -298,7 +294,7 @@ export class ScreenHost {
   }
 
   /** The parked screen, when a caller needs to hand it the detour's result. */
-  coveredScreen<T extends EditorScreen>(): T | undefined {
+  coveredScreen<T extends BaseScreen>(): T | undefined {
     return this.covered?.screen as T | undefined;
   }
 
@@ -386,12 +382,13 @@ export class ScreenHost {
       confirm: (question, onYes) => this.pushOverlay({ kind: 'confirm', question, onYes }),
       closeOverlay: () => { this.popOverlay(); },
       refreshNav: () => { this.navSignature = null; this.refreshNav(); },
-      screen: <T extends EditorScreen>() => this.current as T | undefined,
+      screen: <T extends BaseScreen>() => this.current as T | undefined,
       navFocusable: (enter, request) => this.navFocusable(enter, request),
     };
   }
 
-  private buildScreen() {
+  /** `leaving`: the params of the screen being replaced, kept if it is parked. */
+  private buildScreen(leaving?: ScreenParams) {
     const spec = this.deps.registry[this.state.screen];
     this.suppressed = false;
 
@@ -400,11 +397,13 @@ export class ScreenHost {
       this.covered?.screen.destroy();
       // A detour: park the screen underneath rather than destroying it, so the
       // return trip restores its cursor instead of resetting it.
-      pauseScreen(this.current);
+      this.current.pause();
       this.current.setVisible(false);
       this.covered = {
         screen: this.current,
-        params: this.state.params,
+        // The parked screen's own params: by now the state already names the
+        // detour, and restoring with those would lose where the screen came from.
+        params: leaving ?? this.state.params,
         spec: this.currentSpec,
         requestFocus: this.navRequestFocus,
       };

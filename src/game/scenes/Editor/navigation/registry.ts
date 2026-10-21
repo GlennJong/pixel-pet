@@ -1,11 +1,13 @@
-import { AtlasPickerScreen } from '../screens/AtlasPickerScreen';
-import { LibraryScreen } from '../screens/LibraryScreen';
-import { SpriteEditScreen } from '../screens/SpriteEditScreen';
-import { FrameSelectorScreen } from '../screens/FrameSelectorScreen';
-import { PreviewGridScreen } from '../screens/PreviewGridScreen';
-import { ActionFormScreen } from '../screens/ActionFormScreen';
-import { TextEditScreen } from '../screens/TextEditScreen';
-import { CarouselScreen } from '../screens/CarouselScreen';
+import {
+  ActionFormScreen,
+  CarouselScreen,
+  FrameSelectorScreen,
+  LibraryScreen,
+  ListScreen,
+  PreviewGridScreen,
+  SpriteEditScreen,
+  TextEditScreen,
+} from '../screens';
 import { findGroup, findItem } from '../action/rows';
 import { CATALOG, PORTRAIT_PREFIX, portraitLabel } from '../action/catalog';
 import type { EditableStat, GameConfigProject } from '../action/GameConfigProject';
@@ -18,7 +20,7 @@ import {
 import { ButtonConfig } from '../elements';
 import { buildPresetSpritesFromImages } from '../utils/smartInput';
 import { deleteImages } from '../utils/imageLibrary';
-import { LibraryProceedPayload, WorkspaceAtlasEntry } from '../types';
+import { LibraryProceedPayload } from '../types';
 
 /**
  * The editor's navigation, as data.
@@ -352,23 +354,29 @@ export const SCREENS: Record<ScreenId, ScreenSpec<any>> = {
     actions: {
       cancel: { run: (ctx) => leavePicker(ctx) },
     },
-    build: (ctx) => {
+    build: (ctx) => new ListScreen(
+      ctx.scene, ctx.width, ctx.height,
+      // The user picks what they want to change, so the row says what changes:
+      // a readable name over a line naming the thing they will see differ. The
+      // atlasId is an internal identifier and only surfaces when an entry has
+      // no display name of its own.
+      ctx.atlasList.map((atlas, i) => ({
+        key: atlas.atlasId,
+        label: `${i + 1}. ${atlas.displayName || atlas.atlasId}`,
+        description: atlas.description,
+      })),
+      navHost(ctx),
       // The caller's target does not choose for the user — it only puts the
       // cursor on the row they most likely came to edit.
-      const initialIndex = Math.max(
-        0,
-        ctx.atlasList.findIndex((a) => a.atlasId === ctx.selectedAtlas?.atlasId),
-      );
-      return new AtlasPickerScreen(
-        ctx.scene, ctx.width, ctx.height, [...ctx.atlasList], navHost(ctx),
-        { root: isRootPicker(ctx), initialIndex },
-      );
-    },
+      { focusKey: ctx.selectedAtlas?.atlasId },
+    ),
     events: {
       cancel: (ctx) => leavePicker(ctx),
       // Picked from the basic editor: BACK in the sprite editor returns there.
-      confirm: (ctx, p: { atlas: WorkspaceAtlasEntry }) =>
-        void ctx.app.openAtlas(p.atlas, paramsOf(ctx, 'picker').returnTo),
+      select: (ctx, atlasId: string) => {
+        const atlas = ctx.atlasList.find((a) => a.atlasId === atlasId);
+        if (atlas) void ctx.app.openAtlas(atlas, paramsOf(ctx, 'picker').returnTo);
+      },
     },
   },
 
@@ -431,6 +439,8 @@ export const SCREENS: Record<ScreenId, ScreenSpec<any>> = {
       // Leaving makes the edits live (see EditorApp.publishSprites).
       exit: { run: (ctx) => { ctx.app.commitSprites(); ctx.exitEditor(); } },
       back: { run: (ctx) => leaveSprites(ctx) },
+      // Not on the bar: the yes of the 'delete-request' question below.
+      'delete-sprite': { run: (ctx) => ctx.screen<SpriteEditScreen>()?.deletePending() },
     },
     events: {
       // Escape — see `shortcuts`. Opened from the basic editor, it goes back
@@ -442,6 +452,7 @@ export const SCREENS: Record<ScreenId, ScreenSpec<any>> = {
         ctx.app.commitSprites();
         ctx.go({ screen: 'frames', spriteId: p.spriteId, currentFrames: p.currentFrames });
       },
+      'delete-request': (ctx, name: string) => ctx.confirm(`Are you sure?\nDelete "${name}"?`, 'delete-sprite'),
     },
   },
 
@@ -606,8 +617,9 @@ function leaveFrames(ctx: EditorContext) {
 }
 
 /**
- * Migration note — the library still owns two bars of its own: its multi-select
- * actions (DELETE/CANCEL) and its depose dialog. Both announce themselves with
- * `nav-suppress` so the shared bar steps aside. They become overlays on the
- * stack next, and that signal goes away with them.
+ * Migration note — the library is the last screen with bars of its own: its
+ * multi-select actions (DELETE/CANCEL) and its depose dialog. Both announce
+ * themselves with `nav-suppress` so the shared bar steps aside. They become
+ * overlays on the stack next, as the sprite list's delete question already
+ * has, and that signal goes away with them.
  */

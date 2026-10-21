@@ -1,5 +1,5 @@
 import Phaser, { Scene } from 'phaser';
-import { SpriteEditScreen } from './screens/SpriteEditScreen';
+import { SpriteEditScreen } from './screens';
 import { EditorState, WorkspaceAtlasEntry } from './types';
 import { ScreenHost } from './navigation/ScreenHost';
 import { SCREENS } from './navigation/registry';

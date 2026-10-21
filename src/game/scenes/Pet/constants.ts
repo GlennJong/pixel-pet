@@ -7,6 +7,9 @@ export const PET_HEADER_TEXT_STYLE = {
 };
 export const PET_HEADER_HEIGHT = 25;
 
+/** External commands land here (see systems/TaskQueue). */
+export const MESSAGE_QUEUE_STORE_KEY = "global.messageQueue";
+
 export const PET_TASK_QUEUE_INTERVAL = 150;
 export const PET_TASK_QUEUE_MAX_RETRY = 3;
 export const PET_CHARACTER_DIALOGUE_TYPING_DELAY = 50;
