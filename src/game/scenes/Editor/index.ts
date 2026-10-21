@@ -2,8 +2,8 @@ import Phaser, { Scene } from 'phaser';
 import { SpriteEditScreen } from './screens/SpriteEditScreen';
 import { EditorState, WorkspaceAtlasEntry } from './types';
 import { ScreenHost } from './navigation/ScreenHost';
-import { NAV_MODES, SCREENS } from './navigation/registry';
-import { EditorApp } from './navigation/types';
+import { SCREENS } from './navigation/registry';
+import { EditorApp, ScreenParams } from './navigation/types';
 import { buildSpriteEditorExport, downloadSpriteEditorExport } from './utils/export';
 import { removeEditorImageTextures } from './utils/texture';
 import { loadEditableAtlasList } from './utils/template';
@@ -11,10 +11,16 @@ import { loadWorkspaceAtlasProject } from './utils/workspaceAtlas';
 import { saveAtlasCustomization, setCustomizationActive, reloadAtlasIntoScene } from '@/game/customization';
 import { getStaticData } from '@/game/staticData';
 import { AtlasEntry } from '@/game/assets';
-import { COLORS, FONT, BANNER_AUTOHIDE_MS, hex } from './constants';
+import { COLORS, FONT_CJK, BANNER_AUTOHIDE_MS, hex } from './constants';
 import { GameConfigProject } from './action/GameConfigProject';
 import { gameConfigFromStaticData } from '@/game/gameConfig/fromStaticData';
+import { transition } from '@/game/components/SceneTransition';
 import { createAnimationsFromConfig, resolveAtlasAnimations } from '@/game/utils/animation';
+
+/** Each half of the screen transition — covering, uncovering — ms. */
+const TRANSITION_HALF_MS = 300;
+/** No transition is shorter than this in all, so a quick one is not a flash. */
+const TRANSITION_MIN_MS = 1000;
 
 const describeError = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
@@ -63,6 +69,10 @@ export default class EditorScene extends Scene implements EditorApp {
    * every start: edits live in memory only until saving exists.
    */
   private config?: GameConfigProject;
+  /** A sprite project is loaded and may hold edits the game has not got yet. */
+  private spritesOpen = false;
+  /** A screen transition is running; input waits for it. */
+  private transitioning = false;
 
   constructor() {
     super('Editor');
@@ -134,7 +144,7 @@ export default class EditorScene extends Scene implements EditorApp {
         width: w,
         height: h,
         registry: SCREENS,
-        navModes: NAV_MODES,
+        navModes: {},
         context: {
           scene: this,
           width: w,
@@ -146,7 +156,8 @@ export default class EditorScene extends Scene implements EditorApp {
           config: this.config,
           characterAnimations: () => this.characterAnimations(),
           app: this,
-          exitEditor: () => this.exitEditor(),
+          exitEditor: () => void this.exitEditor(),
+          transition: (work) => this.runTransition(work),
           banner: (message, isError) => this.showBanner(message, isError),
         },
       },
@@ -164,32 +175,55 @@ export default class EditorScene extends Scene implements EditorApp {
    * Failure is not fatal: fall back to the library, which can still build a
    * project by hand, and say why on the banner.
    */
-  async openAtlas(atlas: WorkspaceAtlasEntry): Promise<void> {
-    const w = this.scale.width;
-    const h = this.scale.height;
-    this.showBootText(w, h);
-
-    try {
-      const project = await loadWorkspaceAtlasProject(this, atlas);
-      if (this.disposed) return;
-
-      this.selectedAtlas = atlas;
-      this.state.projectName = project.projectName || atlas.atlasId;
-      this.state.images = project.images;
-      this.state.sprites = project.sprites;
-
-      if (project.warnings.length > 0) {
-        console.warn(`[Editor] ${atlas.atlasId} loaded with warnings:`, project.warnings);
+  async openAtlas(atlas: WorkspaceAtlasEntry, returnTo?: ScreenParams): Promise<void> {
+    await this.runTransition(async () => {
+      // Already loaded: go straight back to it. Reloading would throw away
+      // the edits made on an earlier visit that were not applied yet.
+      if (this.selectedAtlas?.atlasId === atlas.atlasId && this.state.images.length > 0) {
+        this.spritesOpen = true;
+        this.host?.go({ screen: 'sprites', returnTo });
+        return;
       }
 
-      this.clearBootText();
-      this.host?.go({ screen: 'sprites' });
-    } catch (error) {
-      if (this.disposed) return;
-      console.error(`[Editor] Could not load ${atlas.atlasId}`, error);
-      this.clearBootText();
-      this.host?.go({ screen: 'library' });
-      this.showBanner(`Could not load ${atlas.displayName || atlas.atlasId}: ${describeError(error)}`);
+      try {
+        const project = await loadWorkspaceAtlasProject(this, atlas);
+        if (this.disposed) return;
+
+        this.selectedAtlas = atlas;
+        this.state.projectName = project.projectName || atlas.atlasId;
+        this.state.images = project.images;
+        this.state.sprites = project.sprites;
+
+        if (project.warnings.length > 0) {
+          console.warn(`[Editor] ${atlas.atlasId} loaded with warnings:`, project.warnings);
+        }
+
+        this.spritesOpen = true;
+        this.host?.go({ screen: 'sprites', returnTo });
+      } catch (error) {
+        if (this.disposed) return;
+        console.error(`[Editor] Could not load ${atlas.atlasId}`, error);
+        this.host?.go({ screen: 'library' });
+        this.showBanner(`Could not load ${atlas.displayName || atlas.atlasId}: ${describeError(error)}`);
+      }
+    });
+  }
+
+  /**
+   * The game's screen transition around a change of screen. Input on the
+   * screen being left is paused, so a second press cannot start the same work
+   * twice; if `work` stays on that screen (it failed), input comes back.
+   */
+  private async runTransition(work: () => Promise<void> | void): Promise<void> {
+    if (this.transitioning) return;
+    this.transitioning = true;
+    const leaving = this.host?.activeScreen;
+    leaving?.pauseInput();
+    try {
+      await transition(this, work, { duration: TRANSITION_HALF_MS, minTotal: TRANSITION_MIN_MS });
+    } finally {
+      this.transitioning = false;
+      if (!this.disposed && this.host?.activeScreen === leaving) leaving?.resumeInput();
     }
   }
 
@@ -238,11 +272,20 @@ export default class EditorScene extends Scene implements EditorApp {
     }
   }
 
-  async applyCustomization(): Promise<void> {
+  /**
+   * Make the sprite edits live: write them as the atlas's customization and
+   * reload the atlas into the game, animations included, so everything that
+   * plays it — the basic editor's previews, the pet — shows the new art.
+   *
+   * There is no APPLY button: this runs whenever the user leaves the sprite
+   * editor. Returns false, with a banner saying why, when it could not.
+   */
+  async publishSprites(): Promise<boolean> {
+    if (!this.spritesOpen) return true;
     try {
       const atlasId = this.resolveApplyAtlasId();
       if (!atlasId) {
-        throw new Error('Apply requires atlasId. Set project name to the target atlasId.');
+        throw new Error('No atlas to write to. Set project name to the target atlasId.');
       }
 
       const configuredAtlases = getStaticData<AtlasEntry[]>('assets.atlases') || [];
@@ -269,31 +312,23 @@ export default class EditorScene extends Scene implements EditorApp {
         description: this.selectedAtlas?.description,
       });
       setCustomizationActive(true, atlasId);
-
       if (artifacts.renamedPrefixes.length > 0) {
-        console.warn('[Editor] Duplicate prefixes were renamed for apply.', artifacts.renamedPrefixes);
-      }
-      console.log(`[Editor] Applied customization for atlas: ${atlasId}`);
-
-      if (this.returnSceneKey) {
-        // Hot-reload the atlas into the running game so the change is visible
-        // immediately; the localStorage write still covers a manual page reload.
-        try {
-          await reloadAtlasIntoScene(this, atlasId);
-        } catch (reloadError) {
-          console.warn(
-            '[Editor] Live reload failed; change will apply on next page load.',
-            reloadError,
-          );
-        }
-        this.scene.start(this.returnSceneKey, { statusMessage: `Applied: ${atlasId}` });
-        return;
+        console.warn('[Editor] Duplicate prefixes were renamed.', artifacts.renamedPrefixes);
       }
 
-      this.showBanner(`Applied customization for atlas: ${atlasId}`, false);
+      // The reload swaps the texture and the animation list but leaves the
+      // animations unregistered — the Pet builds its own when it starts. The
+      // editor plays them right away, so it builds them here.
+      await reloadAtlasIntoScene(this, atlasId);
+      if (this.disposed) return false;
+      createAnimationsFromConfig(this, atlasId, resolveAtlasAnimations(atlasId));
+      this.spritesOpen = false;
+      console.log(`[Editor] Published atlas: ${atlasId}`);
+      return true;
     } catch (error) {
-      console.error('[Editor] Apply failed', error);
-      this.showBanner(`Apply failed: ${describeError(error)}`);
+      console.error('[Editor] Publishing the sprites failed', error);
+      this.showBanner(`Could not save the animation: ${describeError(error)}`);
+      return false;
     }
   }
 
@@ -319,15 +354,17 @@ export default class EditorScene extends Scene implements EditorApp {
     return this.state.projectName.trim();
   }
 
-  private exitEditor() {
+  /** Leave the editor — with any sprite edits made live first. */
+  private async exitEditor() {
+    if (!(await this.publishSprites())) return;
     this.scene.start(this.returnSceneKey || 'MainScene');
   }
 
   private showBootText(w: number, h: number) {
     if (this.bootText) return;
     this.bootText = this.add.text(w / 2, h / 2, 'Loading…', {
-      fontFamily: FONT.FAMILY,
-      fontSize: FONT.SIZE,
+      fontFamily: FONT_CJK.FAMILY,
+      fontSize: `${FONT_CJK.SIZE}px`, resolution: FONT_CJK.RESOLUTION,
       color: hex(COLORS.TEXT),
     }).setOrigin(0.5).setDepth(400);
   }
@@ -341,8 +378,8 @@ export default class EditorScene extends Scene implements EditorApp {
   private showBanner(message: string, isError = true) {
     if (!this.errorBanner) {
       this.errorBanner = this.add.text(this.scale.width / 2, this.scale.height - 4, '', {
-        fontFamily: FONT.FAMILY,
-        fontSize: FONT.SIZE,
+        fontFamily: FONT_CJK.FAMILY,
+        fontSize: `${FONT_CJK.SIZE}px`, resolution: FONT_CJK.RESOLUTION,
         color: hex(COLORS.TEXT),
         backgroundColor: '#ffffff',
         padding: { x: 4, y: 2 },

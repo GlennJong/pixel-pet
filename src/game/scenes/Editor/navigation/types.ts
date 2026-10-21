@@ -27,8 +27,12 @@ export type ScreenId =
   // sprite editor — what it looks like
   | 'picker' | 'library' | 'sprites' | 'frames';
 
-/** A nav sub-menu that temporarily replaces a screen's own buttons. */
-export type NavModeId = 'save';
+/**
+ * A nav sub-menu that temporarily replaces a screen's own buttons. None at the
+ * moment — SAVE's APPLY/EXPORT menu went when edits started applying on their
+ * own — but the host still supports one.
+ */
+export type NavModeId = never;
 
 /** Transient arguments a screen is opened with, carried in the view state. */
 export type ScreenParams =
@@ -38,16 +42,10 @@ export type ScreenParams =
   | { screen: 'detail'; group: string; item: number; focus?: string }
   /** Writing an action's dialogue line, full screen. */
   | { screen: 'text'; group: string; item: number; action: string }
-  | { screen: 'sequence'; group: string; item: number; action: string; focus?: string }
-  /** Pick one animation: for one part of a performance, or a speaker's face. */
-  | {
-      screen: 'choose';
-      group: string;
-      item: number;
-      action: string;
-      purpose: 'segment' | 'portrait';
-      segment?: number;
-    }
+  /** The parts of a performance, ticked in play order on a grid. */
+  | { screen: 'sequence'; group: string; item: number; action: string }
+  /** A speaker's face, picked from a grid. */
+  | { screen: 'choose'; group: string; item: number; action: string }
   /**
    * `root: false` is the picker reached from the library ("load other data"):
    * same screen, but its action bar says CANCEL and leads back rather than out
@@ -66,7 +64,11 @@ export type ScreenParams =
       /** 'menu' forces the entry menu; omitted goes straight to the material. */
       startIn?: 'menu' | 'edit';
     }
-  | { screen: 'sprites' }
+  /**
+   * `returnTo`: where BACK goes — the basic editor screen the sprite editor was
+   * opened from. Absent: the sprite editor was the way in, and it EXITs.
+   */
+  | { screen: 'sprites'; returnTo?: ScreenParams }
   | { screen: 'frames'; spriteId: string; currentFrames: string[] };
 
 /**
@@ -100,11 +102,18 @@ export interface ViewState {
  * rather than as reach-ins to the scene.
  */
 export interface EditorApp {
-  /** Load a picked atlas into the project and show the sprite editor. */
-  openAtlas(atlas: WorkspaceAtlasEntry): Promise<void>;
+  /**
+   * Load a picked atlas into the project and show the sprite editor; BACK
+   * there leads to `returnTo`.
+   */
+  openAtlas(atlas: WorkspaceAtlasEntry, returnTo?: ScreenParams): Promise<void>;
   /** Snapshot the live sprite configs off the sprite-edit screen. */
   commitSprites(): void;
-  applyCustomization(): Promise<void>;
+  /**
+   * Make the sprite edits live in the game. Runs on leaving the sprite editor;
+   * false (with a banner) when it could not, so the caller can stay put.
+   */
+  publishSprites(): Promise<boolean>;
   exportArtifacts(): Promise<void>;
   /** False while the library has nothing for the sprite editor to frame. */
   canLeaveLibrary(): boolean;
@@ -145,6 +154,12 @@ export interface EditorContext {
   confirm(question: string, onYes?: string): void;
   closeOverlay(): void;
   exitEditor(): void;
+  /**
+   * Run `work` behind the game's screen transition: cover, work, uncover —
+   * at least a second in all, so a quick change still reads as one. Input is
+   * held off meanwhile; a second call while one runs is ignored.
+   */
+  transition(work: () => Promise<void> | void): Promise<void>;
   banner(message: string, isError?: boolean): void;
   /** Re-read the nav (labels/disabled) without rebuilding the screen. */
   refreshNav(): void;

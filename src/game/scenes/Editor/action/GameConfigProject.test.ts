@@ -160,11 +160,4 @@ describe('catalog', () => {
     expect(bad).toEqual([]);
   });
 
-  it('names one segment per part of the shipped performance', () => {
-    const bad = CATALOG.flatMap((g) => g.items)
-      .filter((i) => i.segments)
-      .filter((i) => findAction(shipped, i.actions[0])!.animationSet.default.length !== i.segments!.length)
-      .map((i) => i.label);
-    expect(bad).toEqual([]);
-  });
 });

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { NumberInput } from './NumberInput';
 import {
-  COLORS, FONT,
+  COLORS, FONT_CJK,
   CARD_HEIGHT, CARD_PAD_X, CARD_PAD_Y, PREVIEW_SIZE,
   CARD_FIELD_GAP,
   NUMBER_INPUT_HEIGHT,
@@ -266,8 +266,8 @@ export class SpriteCard extends Phaser.GameObjects.Container {
         CARD_PAD_Y + this.previewSize / 2,
         'preview',
         {
-          fontFamily: FONT.FAMILY,
-          fontSize: FONT.SIZE,
+          fontFamily: FONT_CJK.FAMILY,
+          fontSize: `${FONT_CJK.SIZE}px`, resolution: FONT_CJK.RESOLUTION,
           color: hex(COLORS.TEXT_LIGHT),
         },
       )
@@ -361,10 +361,10 @@ export class SpriteCard extends Phaser.GameObjects.Container {
 
     const text = this.scene.add
       .text(this.configX, y, label, {
-        fontFamily: FONT.FAMILY,
-        fontSize: FONT.SIZE,
+        fontFamily: FONT_CJK.FAMILY,
+        fontSize: `${FONT_CJK.SIZE}px`,
         color: hex(COLORS.X_BTN_TEXT),
-        resolution: 1,
+        resolution: FONT_CJK.RESOLUTION,
       })
       .setOrigin(0, 0);
     this.add(text);

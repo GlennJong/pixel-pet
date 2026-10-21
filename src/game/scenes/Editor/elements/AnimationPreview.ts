@@ -13,6 +13,9 @@ import { COLORS } from '../constants';
  * Each part plays once regardless of its own `repeat`, so a long idle loop
  * does not hold the preview on the first part — the point is to see the whole
  * chain, and how its parts join.
+ *
+ * Emits 'complete' when the last part has finished, or at once when there
+ * is nothing to play.
  */
 export class AnimationPreview extends Phaser.GameObjects.Container {
   private readonly sprite: Phaser.GameObjects.Sprite;
@@ -52,14 +55,14 @@ export class AnimationPreview extends Phaser.GameObjects.Container {
 
   private advance() {
     // The last part stays on its final frame until the next replay.
-    if (this.index >= this.parts.length - 1) return;
+    if (this.index >= this.parts.length - 1) { this.emit('complete'); return; }
     this.index += 1;
     this.playPart();
   }
 
   private playPart() {
     const part = this.parts[this.index];
-    if (!part) { this.sprite.setVisible(false); return; }
+    if (!part) { this.sprite.setVisible(false); this.emit('complete'); return; }
 
     this.sprite.setVisible(true);
     this.sprite.play({ key: animationKey(this.atlasId, part), repeat: 0 });

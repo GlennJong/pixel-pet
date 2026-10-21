@@ -14,7 +14,7 @@ import {
 } from '@/game/ui/focus';
 import {
   COLORS,
-  FONT,
+  FONT_CJK,
   BUTTON_BAR_HEIGHT,
   CARD_HEIGHT, CARD_GAP, CARD_AREA_PAD,
   hex,
@@ -399,10 +399,10 @@ export class SpriteEditScreen extends EditorScreen {
 
     const label = this.scene.add
       .text(Math.floor(this.screenW / 2), Math.floor(ADD_ROW_HEIGHT / 2), '+ ADD SPRITE', {
-        fontFamily: FONT.FAMILY,
-        fontSize: FONT.SIZE,
+        fontFamily: FONT_CJK.FAMILY,
+        fontSize: `${FONT_CJK.SIZE}px`,
         color: hex(COLORS.TEXT_BUTTON),
-        resolution: 1,
+        resolution: FONT_CJK.RESOLUTION,
       })
       .setOrigin(0.5);
 

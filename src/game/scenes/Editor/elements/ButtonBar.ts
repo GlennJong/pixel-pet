@@ -4,7 +4,7 @@ import { Direction } from '@/game/ui/focus';
 import { FocusableCursorList } from './FocusableCursorList';
 import {
   COLORS,
-  FONT,
+  FONT_CJK,
   UI_FRAME,
   BUTTON_BAR_HEIGHT,
   BUTTON_HEIGHT,
@@ -102,7 +102,7 @@ export class ButtonBar extends FocusableCursorList {
 
     // Off the display list — used only to measure label widths.
     this.probe = scene.make.text(
-      { style: { fontFamily: FONT.FAMILY, fontSize: FONT.SIZE } },
+      { style: { fontFamily: FONT_CJK.FAMILY, fontSize: `${FONT_CJK.SIZE}px`, resolution: FONT_CJK.RESOLUTION } },
       false,
     );
 
@@ -123,10 +123,10 @@ export class ButtonBar extends FocusableCursorList {
     // Framed: plain dark text, arrow is the focus affordance.
     // Fallback: classic grey box + red border.
     const textStyle = {
-      fontFamily: FONT.FAMILY,
-      fontSize: FONT.SIZE,
+      fontFamily: FONT_CJK.FAMILY,
+      fontSize: `${FONT_CJK.SIZE}px`,
       color: hex(this.framed ? COLORS.TEXT : COLORS.TEXT_BUTTON),
-      resolution: 1,
+      resolution: FONT_CJK.RESOLUTION,
     };
     const midY = Math.floor(BUTTON_BAR_HEIGHT / 2);
 

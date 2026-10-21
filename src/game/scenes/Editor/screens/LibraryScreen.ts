@@ -23,7 +23,7 @@ import { parseSmartFileName } from '../utils/smartInput';
 import { importImageFiles } from '../utils/imageLibrary';
 import {
   COLORS,
-  FONT,
+  FONT_CJK,
   BUTTON_BAR_HEIGHT,
   TEXT_INPUT_HEIGHT,
   GRID_OUTER_PAD,
@@ -179,8 +179,8 @@ export class LibraryScreen extends EditorScreen {
 
     // ── Error hint ────────────────────────────────────────────────────────────
     this.errorText = scene.add.text(PAD, buttonBarY - 2, '', {
-      fontFamily: FONT.FAMILY,
-      fontSize: FONT.SIZE,
+      fontFamily: FONT_CJK.FAMILY,
+      fontSize: `${FONT_CJK.SIZE}px`, resolution: FONT_CJK.RESOLUTION,
       color: hex(COLORS.ERROR),
     }).setOrigin(0, 1).setVisible(false);
     this.add(this.errorText);

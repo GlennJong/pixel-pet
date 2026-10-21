@@ -4,7 +4,7 @@ import { ButtonBar } from './ButtonBar';
 import { handleButtonBarKey } from './buttonBarNav';
 import {
   COLORS,
-  FONT,
+  FONT_CJK,
   BUTTON_BAR_HEIGHT,
   hex,
 } from '../constants';
@@ -57,10 +57,10 @@ export class ConfirmDialog extends Phaser.GameObjects.Container {
 
     this.messageText = scene.add
       .text(width / 2, buttonBarY / 2, '', {
-        fontFamily: FONT.FAMILY,
-        fontSize: FONT.SIZE,
+        fontFamily: FONT_CJK.FAMILY,
+        fontSize: `${FONT_CJK.SIZE}px`,
         color: hex(COLORS.TEXT),
-        resolution: 1,
+        resolution: FONT_CJK.RESOLUTION,
         align: 'center',
         wordWrap: { width: width - 16 },
         lineSpacing: 2,

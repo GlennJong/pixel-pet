@@ -62,13 +62,6 @@ export const COLORS = {
   X_BTN_TEXT_FOCUSED: 0xffffff,
 } as const;
 
-export const FONT = {
-  // Tiny5 has Latin glyphs only. BoutiqueBitmap (the game's dialogue font)
-  // fills in the CJK labels the basic editor shows, so English text is unchanged.
-  FAMILY: 'Tiny5, BoutiqueBitmap',
-  SIZE: 8,
-} as const;
-
 /**
  * Text that is mostly Chinese — the basic editor's labels and the dialogue.
  * The same font, size and resolution the game's dialogue box uses, so a line

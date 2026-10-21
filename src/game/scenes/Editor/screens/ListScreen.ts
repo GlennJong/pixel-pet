@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { OptionMenu, OptionMenuItem } from '../elements';
+import { OptionMenuItem } from '../elements';
+import { ScrollList } from '../elements/ScrollList';
 import { ScreenKeyboard } from '@/game/ui';
 import { FocusRouter, createScope } from '@/game/ui/focus';
 import { COLORS, BUTTON_BAR_HEIGHT, cjkStyle } from '../constants';
@@ -34,7 +35,7 @@ const TITLE_H = 14;
  *   'cancel'                                     – Escape
  */
 export class ListScreen extends EditorScreen {
-  private readonly menu: OptionMenu;
+  private readonly menu: ScrollList;
   private readonly router = new FocusRouter();
   private readonly opts: ListScreenOptions;
 
@@ -58,7 +59,7 @@ export class ListScreen extends EditorScreen {
     }
 
     const listH = height - BUTTON_BAR_HEIGHT - 4 - top;
-    this.menu = new OptionMenu(scene, PAD, top, width - PAD * 2, listH, items, { cjk: true });
+    this.menu = new ScrollList(scene, PAD, top, width - PAD * 2, listH, items);
     this.menu.on('select', (key: string) => this.emit('select', key));
     this.add(this.menu);
 

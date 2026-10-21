@@ -6,13 +6,24 @@ import { KnownRuntimeDataKey } from "@/game/runtimeData/types";
 import { getPetRuntimeDataKey } from "@/game/scenes/Pet/constants";
 import { createAnimationsFromConfig, resolveAtlasAnimations } from "@/game/utils/animation";
 
-const core = (runtimeData("system.core") as any)?.get() || { canvas: { width: 160, height: 144 } };
-const transitionData = getStaticData<TransitionConfig>("global.transition") || { duration: 1000 };
-const defaultWidth = core.canvas.width;
-const defaultHeight = core.canvas.height;
-const DURATION = transitionData?.duration || 1000;
 const FADE_STEPS = 16;
+const DEFAULT_DURATION = 1000;
 
+/**
+ * Read at call time, not import time: modules load before the preloader has
+ * filled in the config, so a value read up here was always the fallback.
+ */
+function canvasSize(): { width: number; height: number } {
+  const core = (runtimeData("system.core") as any)?.get();
+  return {
+    width: core?.canvas?.width ?? 160,
+    height: core?.canvas?.height ?? 144,
+  };
+}
+
+function configuredDuration(): number {
+  return getStaticData<TransitionConfig>("global.transition")?.duration || DEFAULT_DURATION;
+}
 
 export type TransitionType = "fade" | "circle";
 
@@ -95,111 +106,118 @@ function createTransitionContainer(scene: Phaser.Scene, type: TransitionType, co
 function playStageAnimations(container: Phaser.GameObjects.Container, scene: Phaser.Scene, config?: TransitionConfig, stage?: TransitionStage) {
   if (!config || !stage) return;
   const atlasId = config.atlasId || "";
-  
+  const { width, height } = canvasSize();
+
   const addAndPlay = (key: string, x: number, y: number, depth: number = 100) => {
     if (!key) return;
     const sprite = scene.make.sprite({ key: "" })
       .setPosition(x, y)
       .setDepth(depth);
-      
+
     container.add(sprite);
-    
+
     // Play before setting display size to ensure the stretch correctly ignores ratio based on the newly loaded frame
     sprite.play(`${atlasId}_${key}`);
-    sprite.setDisplaySize(defaultWidth, defaultHeight); // 強制全畫面尺寸
+    sprite.setDisplaySize(width, height); // 強制全畫面尺寸
   };
 
   if (stage.animation) {
-    addAndPlay(stage.animation, defaultWidth / 2, defaultHeight / 2);
+    addAndPlay(stage.animation, width / 2, height / 2);
   }
-  
+
   if (stage.animations) {
     stage.animations.forEach(anim => addAndPlay(anim.key, anim.x, anim.y, anim.depth));
+  }
+}
+
+export interface TransitionOptions {
+  type?: TransitionType;
+  /** Held fully covered before uncovering, ms. Absent: the stage's delay. */
+  delay?: number;
+  /** Each half — covering, uncovering — ms. Absent: the config's duration. */
+  duration?: number;
+}
+
+type Cover = ScreenTransition | CircleScreenTransition;
+
+/**
+ * Build the cover the config asks for, starting open (`covered: false`, about
+ * to cover) or shut (`covered: true`, about to uncover).
+ */
+function makeCover(scene: Phaser.Scene, covered: boolean, options?: TransitionOptions) {
+  // 準備 Data-Driven 設定
+  const config = getStaticData<TransitionConfig>("global.transition");
+  processAnimationsConfig(scene, config);
+  const stageInfo = getCurrentStage(config);
+
+  // Options 優先；否則套用 Stage 設定，最後預設 fade
+  const effect = options?.type ?? stageInfo.effect ?? "fade";
+  const delay = options?.delay ?? stageInfo.delay ?? 0;
+  const duration = options?.duration ?? configuredDuration();
+
+  const color = parseColor(stageInfo.color ?? config?.color);
+  const cover: Cover = createTransitionContainer(scene, effect, color);
+  cover.setDepth(999999);
+  // The two effects start from opposite ends: a fade is covered at full
+  // alpha, a circle when its see-through hole has shrunk to nothing.
+  const atMax = effect === "circle" ? !covered : covered;
+  if (atMax) cover.max();
+  else cover.init();
+
+  // 加入自訂 Sprite 動畫 (如果有)
+  playStageAnimations(cover, scene, config, stageInfo);
+  return { cover, delay, duration };
+}
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Cover the screen, run `work` while it is covered, then uncover — for a
+ * change inside one scene that should read as a scene change (the editor
+ * swapping screens while it loads or saves).
+ *
+ * `minTotal` keeps the whole transition from being a flash when `work` is
+ * quick: the screen stays covered until that long has passed since it began.
+ */
+export async function transition(
+  scene: Phaser.Scene,
+  work: () => Promise<void> | void,
+  options?: TransitionOptions & { minTotal?: number },
+) {
+  const started = Date.now();
+  const { cover, delay, duration } = makeCover(scene, false, options);
+  try {
+    await cover.runMask(duration);
+    await work();
+    if (delay > 0) await wait(delay);
+    const left = (options?.minTotal ?? 0) - duration - (Date.now() - started);
+    if (left > 0) await wait(left);
+    // The scene may have shut down during `work` (it started another).
+    if (cover.scene) await cover.runUnmask(duration);
+  } finally {
+    cover.destroy();
   }
 }
 
 export async function sceneConverter(
   scene: Phaser.Scene,
   nextSceneName: string,
-  options?: {
-    data?: { [key: string]: unknown };
-    type?: TransitionType;
-    delay?: number;
-  }
+  options?: TransitionOptions & { data?: { [key: string]: unknown } },
 ) {
-  const { scene: sceneController } = scene;
-  
-  // 準備 Data-Driven 設定
-  const config = getStaticData<TransitionConfig>("global.transition");
-  processAnimationsConfig(scene, config);
-  const stageInfo = getCurrentStage(config);
-  
-  // 取出套用的參數 (如果使用者有傳 Options，優先用 Options；否則套用 Stage 設定，最後預設 fade)
-  const effectParams = options?.type ?? stageInfo.effect ?? "fade";
-  const delayParams = options?.delay ?? stageInfo.delay ?? 0;
-  const { data } = options ?? {};
-  
-  const colorRaw = stageInfo.color ?? config?.color;
-  const effectColor = parseColor(colorRaw);
-  const cover = createTransitionContainer(scene, effectParams, effectColor);
-  cover.setDepth(999999);
-  
-  // 初始化
-  if (effectParams === "circle") {
-    (cover as CircleScreenTransition).max();
-  } else {
-    (cover as ScreenTransition).init();
-  }
-  
-  // 加入自訂 Sprite 動畫 (如果有)
-  playStageAnimations(cover, scene, config, stageInfo);
-  
-  await cover.runMask();
-
-  if (delayParams > 0) {
-    await new Promise((resolve) => setTimeout(resolve, delayParams));
-  }
+  const { cover, delay, duration } = makeCover(scene, false, options);
+  await cover.runMask(duration);
+  if (delay > 0) await wait(delay);
 
   if (typeof nextSceneName !== "undefined") {
-    sceneController.start(nextSceneName, data);
+    scene.scene.start(nextSceneName, options?.data);
   }
 }
 
-export async function sceneStarter(
-  scene: Phaser.Scene, 
-  options?: {
-    type?: TransitionType;
-    delay?: number;
-  }
-) {
-  // 準備 Data-Driven 設定
-  const config = getStaticData<TransitionConfig>("global.transition");
-  processAnimationsConfig(scene, config);
-  const stageInfo = getCurrentStage(config);
-
-  const effectParams = options?.type ?? stageInfo.effect ?? "fade";
-  const delayParams = options?.delay ?? stageInfo.delay ?? 0;
-
-  const colorRaw = stageInfo.color ?? config?.color;
-  const effectColor = parseColor(colorRaw);
-  const cover = createTransitionContainer(scene, effectParams, effectColor);
-  cover.setDepth(999999);
-  
-  // 反方向初始化：circle 半徑 0，fade 不透明
-  if (effectParams === "circle") {
-    (cover as CircleScreenTransition).init();
-  } else {
-    (cover as ScreenTransition).max();
-  }
-  
-  // 加入自訂 Sprite 動畫 (如果有)
-  playStageAnimations(cover, scene, config, stageInfo);
-
-  if (delayParams > 0) {
-    await new Promise((resolve) => setTimeout(resolve, delayParams));
-  }
-
-  await cover.runUnmask();
+export async function sceneStarter(scene: Phaser.Scene, options?: TransitionOptions) {
+  // 反方向：從遮住開始
+  const { cover, delay, duration } = makeCover(scene, true, options);
+  if (delay > 0) await wait(delay);
+  await cover.runUnmask(duration);
   cover.destroy(); // 避免轉場圖層殘留與動畫持續消耗效能
 }
 
@@ -211,9 +229,10 @@ class ScreenTransition extends Phaser.GameObjects.Container {
 
   constructor(scene: Phaser.Scene, color: number) {
     super(scene);
+    const { width, height } = canvasSize();
 
     const cover = scene.add
-      .rectangle(defaultWidth / 2, defaultHeight / 2, defaultWidth, defaultHeight, color)
+      .rectangle(width / 2, height / 2, width, height, color)
       .setAlpha(1)
       .setOrigin(0.5);
 
@@ -230,12 +249,12 @@ class ScreenTransition extends Phaser.GameObjects.Container {
     this.setAlpha(1);
   }
 
-  public async runMask() {
-    await runTween(this, { alpha: 1 }, DURATION, (v) => Phaser.Math.Easing.Stepped(v, FADE_STEPS));
+  public async runMask(duration: number) {
+    await runTween(this, { alpha: 1 }, duration, (v) => Phaser.Math.Easing.Stepped(v, FADE_STEPS));
   }
 
-  public async runUnmask() {
-    await runTween(this, { alpha: 0 }, DURATION, (v) => Phaser.Math.Easing.Stepped(v, FADE_STEPS));
+  public async runUnmask(duration: number) {
+    await runTween(this, { alpha: 0 }, duration, (v) => Phaser.Math.Easing.Stepped(v, FADE_STEPS));
   }
 }
 
@@ -249,19 +268,20 @@ class CircleScreenTransition extends Phaser.GameObjects.Container {
 
   constructor(scene: Phaser.Scene, color: number) {
     super(scene);
+    const { width, height } = canvasSize();
 
     // 半徑最大為畫面對角線長度加一點緩衝
-    this.circleMaxSize = Math.sqrt(Math.pow(defaultWidth / 2, 2) + Math.pow(defaultHeight / 2, 2)) + 10;
+    this.circleMaxSize = Math.sqrt(Math.pow(width / 2, 2) + Math.pow(height / 2, 2)) + 10;
 
     // 用黑底顏色當作底層
     this.cover = scene.add
-      .rectangle(defaultWidth / 2, defaultHeight / 2, defaultWidth, defaultHeight, color)
+      .rectangle(width / 2, height / 2, width, height, color)
       .setOrigin(0.5)
       .setAlpha(1);
 
     // 建立一個圓形作為遮罩（hole），使用遊戲固定寬高避免多螢幕縮放時計算出界
     this.visibleArea = scene.add
-      .circle(defaultWidth / 2, defaultHeight / 2, 0, color)
+      .circle(width / 2, height / 2, 0, color)
       .setVisible(false);
 
     const mask = this.visibleArea.createGeometryMask();
@@ -282,13 +302,13 @@ class CircleScreenTransition extends Phaser.GameObjects.Container {
     this.visibleArea.setRadius(this.circleMaxSize);
   }
 
-  public async runMask() {
+  public async runMask(duration: number) {
     // 遮罩圓形縮小到 0：圖片向內覆蓋整個畫面
-    await runTween(this.visibleArea, { radius: 0 }, DURATION);
+    await runTween(this.visibleArea, { radius: 0 }, duration);
   }
 
-  public async runUnmask() {
+  public async runUnmask(duration: number) {
     // 遮罩圓形擴大：圖片向外退開，露出畫面
-    await runTween(this.visibleArea, { radius: this.circleMaxSize }, DURATION);
+    await runTween(this.visibleArea, { radius: this.circleMaxSize }, duration);
   }
 }

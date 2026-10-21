@@ -17,14 +17,18 @@ export interface PreviewCell {
 }
 
 /**
- * Choose by watching: a grid where every cell plays its animation.
+ * Choose by watching: a grid where every cell plays its animation. Cells carry
+ * no text; the title names whatever the cursor is on, when the cell has a name.
  *
- * Used twice — the items of a catalog group (each playing its performance),
- * and the animations of the atlas (when picking one part). Cells carry no
- * text; the title names whatever the cursor is on, when the cell has a name.
+ * Two modes:
+ *   pick one – Enter picks the cell (the items of a group; a portrait).
+ *   in order – Enter ticks cells, numbered in the order ticked, and the order
+ *              is the answer (the parts of a performance). Ticked cells come
+ *              first, so the current answer is what the grid opens on.
  *
  * Events emitted:
- *   'pick' (id: string)
+ *   'pick' (id: string)   – pick-one mode
+ *   'selection-change'    – in-order mode
  *   'cancel'
  */
 export class PreviewGridScreen extends EditorScreen {
@@ -39,7 +43,13 @@ export class PreviewGridScreen extends EditorScreen {
     title: string,
     atlasId: string,
     cells: PreviewCell[],
-    opts: { focusId?: string; markedId?: string },
+    opts: {
+      focusId?: string;
+      /** Pick one: the current choice, badged. */
+      markedId?: string;
+      /** In order: the current answer, ticked and numbered. Turns the mode on. */
+      ordered?: string[];
+    },
     navHost: NavHost,
   ) {
     super(scene);
@@ -52,17 +62,20 @@ export class PreviewGridScreen extends EditorScreen {
       y: TITLE_H,
       width,
       height: height - BUTTON_BAR_HEIGHT - TITLE_H - GRID_OUTER_PAD,
-      pickOne: true,
+      pickOne: !opts.ordered,
     });
+    const order = opts.ordered ?? (opts.markedId ? [opts.markedId] : []);
+    const rank = (id: string) => (order.includes(id) ? order.indexOf(id) : Number.MAX_SAFE_INTEGER);
+    if (opts.ordered) cells = [...cells].sort((a, b) => rank(a.id) - rank(b.id));
     this.grid.setCells(cells.map((c) => ({
       id: c.id,
       type: 'image' as const,
-      // The marked cell is the current choice, badged so it is easy to find.
-      selected: c.id === opts.markedId,
-      selectionOrder: c.id === opts.markedId ? 1 : undefined,
+      selected: order.includes(c.id),
+      selectionOrder: order.includes(c.id) ? order.indexOf(c.id) + 1 : undefined,
       animation: { atlasId, parts: c.parts },
     })));
     this.grid.on('pick', (id: string) => this.emit('pick', id));
+    this.grid.on('selection-change', () => this.emit('selection-change'));
     this.grid.on('cursor-change', (i: number) => {
       const label = cells[i]?.label;
       this.titleText.setText(label ? `${title} › ${label}` : title);
@@ -100,6 +113,9 @@ export class PreviewGridScreen extends EditorScreen {
     scene.add.existing(this);
     this.keyboard.attach();
   }
+
+  /** In-order mode: the ticked cells, in the order they were ticked. */
+  get selectedIds(): string[] { return this.grid.selectedIds; }
 
   update() { /* event-driven */ }
 }

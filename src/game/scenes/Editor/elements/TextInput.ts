@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, FONT, TEXT_INPUT_HEIGHT, hex } from '../constants';
+import { COLORS, FONT_CJK, TEXT_INPUT_HEIGHT, hex } from '../constants';
 
 export type TextInputVariant = 'standalone' | 'labeled';
 
@@ -67,8 +67,8 @@ export class TextInput extends Phaser.GameObjects.Container {
     let labelW = 0;
     if (variant === 'labeled' && label) {
       this.labelObj = scene.add.text(0, Math.floor(h / 2), label, {
-        fontFamily: FONT.FAMILY,
-        fontSize: FONT.SIZE,
+        fontFamily: FONT_CJK.FAMILY,
+        fontSize: `${FONT_CJK.SIZE}px`, resolution: FONT_CJK.RESOLUTION,
         color: hex(COLORS.TEXT),
       }).setOrigin(0, 0.5);
       this.add(this.labelObj);
@@ -95,7 +95,7 @@ export class TextInput extends Phaser.GameObjects.Container {
       this.inputOffsetX + 4,
       Math.floor(h / 2),
       this.placeholder,
-      { fontFamily: FONT.FAMILY, fontSize: FONT.SIZE, color: hex(COLORS.TEXT_PLACEHOLDER) }
+      { fontFamily: FONT_CJK.FAMILY, fontSize: `${FONT_CJK.SIZE}px`, resolution: FONT_CJK.RESOLUTION, color: hex(COLORS.TEXT_PLACEHOLDER) }
     ).setOrigin(0, 0.5);
     this.add(this.placeholderObj);
 
@@ -104,7 +104,7 @@ export class TextInput extends Phaser.GameObjects.Container {
       this.inputOffsetX + 4,
       Math.floor(h / 2),
       '',
-      { fontFamily: FONT.FAMILY, fontSize: FONT.SIZE, color: hex(COLORS.TEXT) }
+      { fontFamily: FONT_CJK.FAMILY, fontSize: `${FONT_CJK.SIZE}px`, resolution: FONT_CJK.RESOLUTION, color: hex(COLORS.TEXT) }
     ).setOrigin(0, 0.5);
     this.add(this.textDisplay);
 
@@ -113,7 +113,7 @@ export class TextInput extends Phaser.GameObjects.Container {
       this.inputOffsetX + 4,
       Math.floor(h / 2),
       '|',
-      { fontFamily: FONT.FAMILY, fontSize: FONT.SIZE, color: hex(COLORS.TEXT) }
+      { fontFamily: FONT_CJK.FAMILY, fontSize: `${FONT_CJK.SIZE}px`, resolution: FONT_CJK.RESOLUTION, color: hex(COLORS.TEXT) }
     ).setOrigin(0, 0.5).setVisible(false);
     this.add(this.cursorObj);
 

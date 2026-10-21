@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS, FONT, NUMBER_INPUT_HEIGHT, NUMBER_INPUT_TRACK_WIDTH, hex } from '../constants';
+import { COLORS, FONT_CJK, NUMBER_INPUT_HEIGHT, NUMBER_INPUT_TRACK_WIDTH, hex } from '../constants';
 
 export interface NumberInputConfig {
   x: number;
@@ -60,10 +60,10 @@ export class NumberInput extends Phaser.GameObjects.Container {
 
     // Label
     this.labelText = scene.add.text(0, midY, config.label, {
-      fontFamily: FONT.FAMILY,
-      fontSize: FONT.SIZE,
+      fontFamily: FONT_CJK.FAMILY,
+      fontSize: `${FONT_CJK.SIZE}px`,
       color: dimColor,
-      resolution: 1,
+      resolution: FONT_CJK.RESOLUTION,
     })
     .setOrigin(0, 0.5)
     this.add(this.labelText);
@@ -83,10 +83,10 @@ export class NumberInput extends Phaser.GameObjects.Container {
 
     // Value text (after the track; its width affects no other element)
     this.valueText = scene.add.text(Math.max(MIN_TEXT_WIDTH, this.trackStartX + this.trackWidth + 6), midY, this.formatValue(), {
-      fontFamily: FONT.FAMILY,
-      fontSize: FONT.SIZE,
+      fontFamily: FONT_CJK.FAMILY,
+      fontSize: `${FONT_CJK.SIZE}px`,
       color: dimColor,
-      resolution: 1,
+      resolution: FONT_CJK.RESOLUTION,
     })
     .setOrigin(0, 0.5)
     this.add(this.valueText);

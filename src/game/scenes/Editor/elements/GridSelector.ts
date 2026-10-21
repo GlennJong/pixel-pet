@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { AnimationPreview } from './AnimationPreview';
-import { COLORS, FONT, GRID_COLS, GRID_GAP, GRID_OUTER_PAD, hex } from '../constants';
+import { COLORS, FONT_CJK, GRID_COLS, GRID_GAP, GRID_OUTER_PAD, hex } from '../constants';
 import { Direction } from '@/game/ui/focus';
 import { fitContainNoUpscale, resolveTextureSourceSize } from '../utils/sizing';
 import { FocusableCursorList } from './FocusableCursorList';
@@ -357,8 +357,8 @@ export class GridSelector extends FocusableCursorList {
     if (cell.type === 'add') {
       const plus = this.scene.add
         .text(this.cellSize / 2, this.cellSize / 2, '+', {
-          fontFamily: FONT.FAMILY,
-          fontSize: FONT.SIZE,
+          fontFamily: FONT_CJK.FAMILY,
+          fontSize: `${FONT_CJK.SIZE}px`, resolution: FONT_CJK.RESOLUTION,
           color: hex(COLORS.TEXT),
         })
         .setOrigin(0.5);
@@ -383,8 +383,8 @@ export class GridSelector extends FocusableCursorList {
     // Selection-order badge (top-right)
     const badge = this.scene.add
       .text(this.cellSize - 2, 2, '', {
-        fontFamily: FONT.FAMILY,
-        fontSize: FONT.SIZE,
+        fontFamily: FONT_CJK.FAMILY,
+        fontSize: `${FONT_CJK.SIZE}px`, resolution: FONT_CJK.RESOLUTION,
         color: hex(COLORS.BADGE_TEXT),
         backgroundColor: hex(COLORS.BADGE_BG),
         padding: { x: 2, y: 1 },

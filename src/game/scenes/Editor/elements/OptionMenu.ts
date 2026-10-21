@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Direction } from '@/game/ui/focus';
-import { COLORS, FONT, cjkStyle, hex } from '../constants';
+import { COLORS, FONT_CJK, cjkStyle, hex } from '../constants';
 import { FocusableCursorList } from './FocusableCursorList';
 
 export interface OptionMenuItem {
@@ -200,7 +200,7 @@ export class OptionMenu extends FocusableCursorList {
 
   private textStyle(color: number): Phaser.Types.GameObjects.Text.TextStyle {
     if (this.cjk) return cjkStyle(color);
-    return { fontFamily: FONT.FAMILY, fontSize: FONT.SIZE, color: hex(color), resolution: 1 };
+    return { fontFamily: FONT_CJK.FAMILY, fontSize: `${FONT_CJK.SIZE}px`, color: hex(color), resolution: FONT_CJK.RESOLUTION };
   }
 
   private clearRows() {

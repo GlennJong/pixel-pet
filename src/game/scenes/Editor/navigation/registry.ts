@@ -2,21 +2,19 @@ import { AtlasPickerScreen } from '../screens/AtlasPickerScreen';
 import { LibraryScreen } from '../screens/LibraryScreen';
 import { SpriteEditScreen } from '../screens/SpriteEditScreen';
 import { FrameSelectorScreen } from '../screens/FrameSelectorScreen';
-import { ListScreen } from '../screens/ListScreen';
 import { PreviewGridScreen } from '../screens/PreviewGridScreen';
 import { ActionFormScreen } from '../screens/ActionFormScreen';
 import { TextEditScreen } from '../screens/TextEditScreen';
-import { findGroup, findItem, groupRows, segmentRows } from '../action/rows';
-import { PORTRAIT_PREFIX, portraitLabel } from '../action/catalog';
+import { CarouselScreen } from '../screens/CarouselScreen';
+import { findGroup, findItem } from '../action/rows';
+import { CATALOG, PORTRAIT_PREFIX, portraitLabel } from '../action/catalog';
 import type { EditableStat, GameConfigProject } from '../action/GameConfigProject';
 import {
   EditorContext,
   ScreenId,
   ScreenParams,
   ScreenSpec,
-  NavModeId,
 } from './types';
-import { ActionSpec } from './types';
 import { ButtonConfig } from '../elements';
 import { buildPresetSpritesFromImages } from '../utils/smartInput';
 import { deleteImages } from '../utils/imageLibrary';
@@ -39,8 +37,9 @@ import { LibraryProceedPayload, WorkspaceAtlasEntry } from '../types';
 
 // ── Shared buttons ───────────────────────────────────────────────────────────
 
-const SAVE: ButtonConfig = { key: 'save', label: 'SAVE' };
-const EXIT: ButtonConfig = { key: 'exit', label: 'EXIT' };
+/** Download the sprite sheet files. Edits themselves apply on their own. */
+const EXPORT: ButtonConfig = { key: 'export', label: 'EXPORT' };
+const EXIT: ButtonConfig = { key: 'exit', label: '離開' };
 
 /** Adapts the context's nav focusable to the NavHost shape the screens take. */
 const navHost = (ctx: EditorContext) => ({
@@ -52,34 +51,6 @@ function isRootPicker(ctx: EditorContext): boolean {
   const params = ctx.params();
   return params.screen !== 'picker' || params.root !== false;
 }
-
-// ── Nav sub-menus ────────────────────────────────────────────────────────────
-
-/**
- * Shown in place of a screen's own nav after SAVE. APPLY writes the
- * customization into the running game; EXPORT downloads the artifacts.
- */
-export const NAV_MODES: Record<NavModeId, {
-  buttons: ButtonConfig[];
-  actions: Record<string, ActionSpec>;
-}> = {
-  save: {
-    buttons: [
-      { key: 'apply', label: 'APPLY' },
-      { key: 'export', label: 'EXPORT' },
-      { key: 'cancel', label: 'CANCEL' },
-    ],
-    actions: {
-      apply: {
-        run: async (ctx) => { ctx.app.commitSprites(); await ctx.app.applyCustomization(); },
-      },
-      export: {
-        run: async (ctx) => { ctx.app.commitSprites(); await ctx.app.exportArtifacts(); },
-      },
-      cancel: { run: (ctx) => ctx.setNavMode(null) },
-    },
-  },
-};
 
 /**
  * Leave the picker: out of the editor when it is the first screen, otherwise
@@ -132,14 +103,6 @@ function config(ctx: EditorContext): GameConfigProject {
   return ctx.config;
 }
 
-/** Re-read the parts list after an edit, without rebuilding the screen. */
-function refreshParts(ctx: EditorContext) {
-  const p = paramsOf(ctx, 'sequence');
-  const item = findItem(p.group, p.item);
-  if (item) ctx.screen<ListScreen>()?.setItems(segmentRows(item, config(ctx).animation(p.action)));
-  ctx.refreshNav();
-}
-
 /** Back from a performance's parts to the settings it was opened from. */
 const backToDetail = (ctx: EditorContext) => {
   const p = paramsOf(ctx, 'sequence');
@@ -158,14 +121,10 @@ function saveText(ctx: EditorContext, text: string | undefined) {
   leaveText(ctx);
 }
 
-/** Back from the animation grid to whatever it was opened for. */
+/** Back from the face grid to the dialogue box. */
 const leaveChoice = (ctx: EditorContext) => {
   const p = paramsOf(ctx, 'choose');
-  if (p.purpose === 'portrait') {
-    ctx.go({ screen: 'detail', group: p.group, item: p.item, focus: 'dialogue' });
-  } else {
-    ctx.go({ screen: 'sequence', group: p.group, item: p.item, action: p.action, focus: String(p.segment ?? 0) });
-  }
+  ctx.go({ screen: 'detail', group: p.group, item: p.item, focus: 'dialogue' });
 };
 
 // ── Screens ──────────────────────────────────────────────────────────────────
@@ -175,16 +134,29 @@ export const SCREENS: Record<ScreenId, ScreenSpec<any>> = {
 
   /** B1 — the editor's first screen: the groups in action/catalog.ts. */
   groups: {
-    nav: () => [{ key: 'sprites', label: 'SPRITES' }, EXIT],
+    nav: () => [{ key: 'animation', label: '動畫集' }, EXIT],
     navAlign: 'right',
     shortcuts: { Escape: 'cancel' },
-    build: (ctx) => new ListScreen(ctx.scene, ctx.width, ctx.height, groupRows(), navHost(ctx), {
-      title: '編輯角色',
-      focusKey: paramsOf(ctx, 'groups').focus,
-    }),
+    build: (ctx) => {
+      const cfg = config(ctx);
+      return new CarouselScreen(
+        ctx.scene, ctx.width, ctx.height, cfg.characterAtlasId,
+        CATALOG.map((g) => ({
+          key: g.id,
+          title: g.label,
+          description: g.description,
+          showcase: g.items.map((item) => ({
+            label: item.label,
+            parts: item.actions.flatMap((a) => cfg.animation(a)),
+          })),
+        })),
+        navHost(ctx),
+        paramsOf(ctx, 'groups').focus,
+      );
+    },
     actions: {
-      // The raw sprite editor, for anything the basic editor does not cover.
-      sprites: { run: (ctx) => ctx.go({ screen: 'picker', root: false, returnTo: { screen: 'groups' } }) },
+      // The sprite editor, for drawing the animations themselves.
+      animation: { run: (ctx) => ctx.go({ screen: 'picker', root: false, returnTo: { screen: 'groups' } }) },
       exit: { run: (ctx) => ctx.exitEditor() },
     },
     events: {
@@ -252,7 +224,7 @@ export const SCREENS: Record<ScreenId, ScreenSpec<any>> = {
       },
       'open-portrait': (ctx, action: string) => {
         const p = paramsOf(ctx, 'detail');
-        ctx.go({ screen: 'choose', group: p.group, item: p.item, action, purpose: 'portrait' });
+        ctx.go({ screen: 'choose', group: p.group, item: p.item, action });
       },
       'open-text': (ctx, action: string) => {
         const p = paramsOf(ctx, 'detail');
@@ -287,67 +259,59 @@ export const SCREENS: Record<ScreenId, ScreenSpec<any>> = {
     },
   },
 
-  /** B4 — the parts of one performance, played in order. */
+  /**
+   * B4 — a performance: tick animations on a grid, in the order they play.
+   * The ticks are the answer; OK takes it, CANCEL leaves it as it was.
+   */
   sequence: {
     nav: (ctx) => {
-      const p = paramsOf(ctx, 'sequence');
-      const parts = ctx.config?.animation(p.action).length ?? 0;
+      const n = ctx.screen<PreviewGridScreen>()?.selectedIds.length ?? 0;
       return [
-        { key: 'add', label: 'ADD' },
+        // Draw or fix the animations themselves; BACK there returns here.
+        { key: 'animation', label: '編輯動畫' },
         // A performance needs at least one part to play.
-        { key: 'delete', label: 'DEL', disabled: parts <= 1 },
-        BACK,
+        { key: 'confirm', label: n > 0 ? `OK(${n})` : 'OK', disabled: n === 0 },
+        { key: 'cancel', label: 'CANCEL' },
       ];
     },
     navAlign: 'right',
     shortcuts: { Escape: 'cancel' },
     build: (ctx) => {
       const p = paramsOf(ctx, 'sequence');
-      const item = findItem(p.group, p.item)!;
-      return new ListScreen(
-        ctx.scene, ctx.width, ctx.height,
-        segmentRows(item, config(ctx).animation(p.action)), navHost(ctx),
-        { title: `${item.label} › 演出`, focusKey: p.focus },
+      const cfg = config(ctx);
+      const item = findItem(p.group, p.item);
+      return new PreviewGridScreen(
+        ctx.scene, ctx.width, ctx.height, `${item?.label ?? ''} › 演出`, cfg.characterAtlasId,
+        ctx.characterAnimations().map((a) => ({ id: a, parts: [a] })),
+        { ordered: cfg.animation(p.action) },
+        navHost(ctx),
       );
     },
     actions: {
-      // A new part starts as a copy of the last one, so it plays something
-      // sensible until the user picks what it should be.
-      add: {
+      confirm: {
         run: (ctx) => {
-          const p = paramsOf(ctx, 'sequence');
-          const cfg = config(ctx);
-          const seq = cfg.animation(p.action);
-          cfg.setAnimation(p.action, [...seq, seq[seq.length - 1]]);
-          refreshParts(ctx);
+          const ids = ctx.screen<PreviewGridScreen>()?.selectedIds ?? [];
+          if (ids.length > 0) config(ctx).setAnimation(paramsOf(ctx, 'sequence').action, ids);
+          backToDetail(ctx);
         },
       },
-      delete: {
+      cancel: { run: backToDetail },
+      animation: {
         run: (ctx) => {
-          const p = paramsOf(ctx, 'sequence');
-          const cfg = config(ctx);
-          const seq = cfg.animation(p.action);
-          if (seq.length <= 1) return;
-          const at = Number(ctx.screen<ListScreen>()?.cursorKey ?? seq.length - 1);
-          cfg.setAnimation(p.action, seq.filter((_, i) => i !== at));
-          refreshParts(ctx);
+          const atlas = ctx.atlasList.find((a) => a.atlasId === config(ctx).characterAtlasId);
+          if (!atlas) { ctx.banner('The character atlas is not editable'); return; }
+          void ctx.app.openAtlas(atlas, ctx.params());
         },
       },
-      back: { run: backToDetail },
     },
     events: {
-      select: (ctx, index: string) => {
-        const p = paramsOf(ctx, 'sequence');
-        ctx.go({ screen: 'choose', group: p.group, item: p.item, action: p.action, purpose: 'segment', segment: Number(index) });
-      },
+      // The OK button counts the ticks.
+      'selection-change': (ctx) => ctx.refreshNav(),
       cancel: backToDetail,
     },
   },
 
-  /**
-   * B5 — pick one animation by watching them all play: for one part of a
-   * performance, or for a speaker's face (the atlas's `face-*`, titled 喜/怒/哀).
-   */
+  /** B5 — a speaker's face: the atlas's `face-*`, titled 喜/怒/哀. */
   choose: {
     nav: () => [BACK],
     navAlign: 'right',
@@ -356,16 +320,13 @@ export const SCREENS: Record<ScreenId, ScreenSpec<any>> = {
       const p = paramsOf(ctx, 'choose');
       const cfg = config(ctx);
       const item = findItem(p.group, p.item);
-      const all = ctx.characterAnimations();
-      const portrait = p.purpose === 'portrait';
-      const cells = portrait
-        ? all.filter((a) => a.startsWith(PORTRAIT_PREFIX)).map((a) => ({ id: a, label: portraitLabel(a), parts: [a] }))
-        : all.map((a) => ({ id: a, parts: [a] }));
-      const current = portrait ? cfg.dialogue(p.action)?.portrait : cfg.animation(p.action)[p.segment ?? 0];
       return new PreviewGridScreen(
-        ctx.scene, ctx.width, ctx.height,
-        `${item?.label ?? ''} › ${portrait ? '選擇頭像' : '選擇動畫'}`, cfg.characterAtlasId,
-        cells, { markedId: current }, navHost(ctx),
+        ctx.scene, ctx.width, ctx.height, `${item?.label ?? ''} › 選擇頭像`, cfg.characterAtlasId,
+        ctx.characterAnimations()
+          .filter((a) => a.startsWith(PORTRAIT_PREFIX))
+          .map((a) => ({ id: a, label: portraitLabel(a), parts: [a] })),
+        { markedId: cfg.dialogue(p.action)?.portrait },
+        navHost(ctx),
       );
     },
     actions: {
@@ -374,14 +335,7 @@ export const SCREENS: Record<ScreenId, ScreenSpec<any>> = {
     events: {
       pick: (ctx, prefix: string) => {
         const p = paramsOf(ctx, 'choose');
-        const cfg = config(ctx);
-        if (p.purpose === 'portrait') {
-          cfg.setPortrait(p.action, prefix);
-        } else {
-          const seq = cfg.animation(p.action);
-          seq[p.segment ?? 0] = prefix;
-          cfg.setAnimation(p.action, seq);
-        }
+        config(ctx).setPortrait(p.action, prefix);
         leaveChoice(ctx);
       },
       cancel: leaveChoice,
@@ -412,7 +366,9 @@ export const SCREENS: Record<ScreenId, ScreenSpec<any>> = {
     },
     events: {
       cancel: (ctx) => leavePicker(ctx),
-      confirm: (ctx, p: { atlas: WorkspaceAtlasEntry }) => void ctx.app.openAtlas(p.atlas),
+      // Picked from the basic editor: BACK in the sprite editor returns there.
+      confirm: (ctx, p: { atlas: WorkspaceAtlasEntry }) =>
+        void ctx.app.openAtlas(p.atlas, paramsOf(ctx, 'picker').returnTo),
     },
   },
 
@@ -424,7 +380,7 @@ export const SCREENS: Record<ScreenId, ScreenSpec<any>> = {
       // the library is empty. Disabling beats letting the press through and
       // answering with an error banner.
       { key: 'sprites', label: 'SPRITES', disabled: !ctx.app.canLeaveLibrary() },
-      SAVE,
+      EXPORT,
       EXIT,
     ],
     navAlign: 'left',
@@ -440,7 +396,7 @@ export const SCREENS: Record<ScreenId, ScreenSpec<any>> = {
     actions: {
       library: { run: (ctx) => ctx.screen<LibraryScreen>()?.showMenu() },
       sprites: { run: (ctx) => ctx.screen<LibraryScreen>()?.requestProceed() },
-      save: { run: (ctx) => ctx.setNavMode('save') },
+      export: { run: exportSprites },
       exit: { run: (ctx) => ctx.exitEditor() },
     },
     events: {
@@ -461,7 +417,7 @@ export const SCREENS: Record<ScreenId, ScreenSpec<any>> = {
    * mean "go to the screen you are on", and the library is reached by Escape.
    */
   sprites: {
-    nav: () => [SAVE, EXIT],
+    nav: (ctx) => [EXPORT, spritesReturn(ctx) ? BACK : EXIT],
     navAlign: 'right',
     shortcuts: { Escape: 'back' },
     build: (ctx) => {
@@ -471,14 +427,17 @@ export const SCREENS: Record<ScreenId, ScreenSpec<any>> = {
       );
     },
     actions: {
-      save: { run: (ctx) => ctx.setNavMode('save') },
-      exit: { run: (ctx) => ctx.exitEditor() },
+      export: { run: exportSprites },
+      // Leaving makes the edits live (see EditorApp.publishSprites).
+      exit: { run: (ctx) => { ctx.app.commitSprites(); ctx.exitEditor(); } },
+      back: { run: (ctx) => leaveSprites(ctx) },
     },
     events: {
-      // Escape — see `shortcuts`. Goes to the material view, not the entry
-      // menu: from here "back" means "let me change what I have to work with",
-      // which is a question the menu would ask again for no reason.
-      back: (ctx) => { ctx.app.commitSprites(); ctx.go({ screen: 'library' }); },
+      // Escape — see `shortcuts`. Opened from the basic editor, it goes back
+      // there. Otherwise to the material view, not the entry menu: from here
+      // "back" means "let me change what I have to work with", which is a
+      // question the menu would ask again for no reason.
+      back: (ctx) => leaveSprites(ctx),
       'go-to-frames': (ctx, p: { spriteId: string; currentFrames: string[] }) => {
         ctx.app.commitSprites();
         ctx.go({ screen: 'frames', spriteId: p.spriteId, currentFrames: p.currentFrames });
@@ -573,6 +532,33 @@ export const SCREENS: Record<ScreenId, ScreenSpec<any>> = {
     },
   },
 };
+
+/** The basic editor screen the sprite editor was opened from, if any. */
+function spritesReturn(ctx: EditorContext): ScreenParams | undefined {
+  const p = ctx.params();
+  return p.screen === 'sprites' ? p.returnTo : undefined;
+}
+
+/**
+ * Back out of the sprite editor: to where it was opened from, or the library.
+ *
+ * Going back to the basic editor makes the edits live first, so its previews
+ * play the new art; if that fails the user stays here, with the reason shown.
+ * The library is still the same project, so nothing needs publishing yet.
+ */
+async function leaveSprites(ctx: EditorContext) {
+  ctx.app.commitSprites();
+  const back = spritesReturn(ctx);
+  if (!back) { ctx.go({ screen: 'library' }); return; }
+  await ctx.transition(async () => {
+    if (await ctx.app.publishSprites()) ctx.go(back);
+  });
+}
+
+async function exportSprites(ctx: EditorContext) {
+  ctx.app.commitSprites();
+  await ctx.app.exportArtifacts();
+}
 
 /**
  * Leave the library for wherever it was entered from.

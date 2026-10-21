@@ -8,7 +8,6 @@
  * Field order on each item:
  *   label     what the user sees
  *   actions   the action keys it edits; two for a left/right pair
- *   segments  names for the parts of a multi-part performance
  *   fields    what can be changed
  */
 
@@ -22,8 +21,6 @@ export type CatalogField =
 export interface CatalogItem {
   label: string;
   actions: string[];
-  /** One name per part of the performance, in order. Absent: a single part. */
-  segments?: string[];
   fields: CatalogField[];
   /** How much one ◀/▶ press changes a stat. Absent: 1. */
   steps?: Partial<Record<'hp' | 'coin', number>>;
@@ -51,6 +48,8 @@ export function portraitLabel(prefix: string | undefined): string {
 export interface CatalogGroup {
   id: string;
   label: string;
+  /** One or two lines under the group's page in the editor's first screen. */
+  description: string;
   items: CatalogItem[];
 }
 
@@ -62,6 +61,7 @@ export const CATALOG: CatalogGroup[] = [
   {
     id: 'idle',
     label: '閒晃',
+    description: '角色靜止時的閒置行為，可修改閒置動畫',
     items: [
       { label: '站立', actions: pair('stand'), fields: ['animation'] },
       { label: '閒置1', actions: pair('idle1'), fields: ['animation'] },
@@ -72,6 +72,7 @@ export const CATALOG: CatalogGroup[] = [
   {
     id: 'care',
     label: '照顧',
+    description: '吃飯與工作，可修改動畫、生命、金錢與台詞',
     items: [
       { label: '吃飯', actions: ['eat'], fields: ['animation', 'hp', 'coin', ...TALK] },
       { label: '工作', actions: ['work'], fields: ['animation', 'coin', ...TALK] },
@@ -80,16 +81,18 @@ export const CATALOG: CatalogGroup[] = [
   {
     id: 'rest',
     label: '作息',
+    description: '睡覺與起床，也是睡眠中其他動作的過場',
     items: [
       // Their performances are also the bridge every other action uses while
       // asleep — see gameConfig/rules.ts.
-      { label: '睡覺', actions: ['sleep'], segments: ['倒地', '睡覺中'], fields: ['animation', ...TALK] },
-      { label: '起床', actions: ['wake'], segments: ['起身'], fields: ['animation', ...TALK] },
+      { label: '睡覺', actions: ['sleep'], fields: ['animation', ...TALK] },
+      { label: '起床', actions: ['wake'], fields: ['animation', ...TALK] },
     ],
   },
   {
     id: 'shop',
     label: '購買',
+    description: '升級時的演出，可修改價格與台詞',
     items: [1, 2, 3, 4, 5].map((lv) => ({
       label: `升級 Lv${lv}`,
       actions: [`buy-lv${lv}`],
@@ -100,6 +103,7 @@ export const CATALOG: CatalogGroup[] = [
   {
     id: 'life',
     label: '生死',
+    description: '死亡、死亡中與復活的演出與台詞',
     items: [
       { label: '死亡', actions: ['die'], fields: ['animation', ...TALK] },
       // `lock` is what every action becomes while dead (conditions.json
